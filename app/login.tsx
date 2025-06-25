@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, TextInput } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { router } from 'expo-router';
+import { useState } from 'react';
+import { KeyboardAvoidingView, Platform, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function LoginScreen() {
   const colorScheme = useColorScheme() ?? 'light';
@@ -12,6 +13,11 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLogin, setIsLogin] = useState(true);
+
+  const handleLogin = () => {
+    // Navigation vers l'application principale
+    router.replace('/(tabs)');
+  };
 
   return (
     <ThemedView style={styles.container}>
@@ -22,13 +28,13 @@ export default function LoginScreen() {
         {/* Logo Section */}
         <View style={styles.logoSection}>
           <View style={[styles.logoContainer, { backgroundColor: colors.primary }]}>
-            <IconSymbol name="house.fill" size={48} color="#FFFFFF" />
+            <IconSymbol name="house.fill" size={32} color="#FFFFFF" />
           </View>
           <ThemedText type="title" style={[styles.appName, { color: colors.text }]}>
             ShelfSpot
           </ThemedText>
           <ThemedText style={[styles.tagline, { color: colors.textSecondary }]}>
-            Gérez votre inventaire domestique simplement
+            Votre inventaire domestique intelligent
           </ThemedText>
         </View>
 
@@ -83,31 +89,12 @@ export default function LoginScreen() {
             </TouchableOpacity>
           )}
 
-          <TouchableOpacity style={[styles.primaryButton, { backgroundColor: colors.primary }]}>
+          <TouchableOpacity 
+            style={[styles.primaryButton, { backgroundColor: colors.primary }]}
+            onPress={handleLogin}
+          >
             <ThemedText style={[styles.primaryButtonText, { color: '#FFFFFF' }]}>
               {isLogin ? 'Se connecter' : "S'inscrire"}
-            </ThemedText>
-          </TouchableOpacity>
-
-          <View style={styles.divider}>
-            <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
-            <ThemedText style={[styles.dividerText, { color: colors.textSecondary }]}>
-              OU
-            </ThemedText>
-            <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
-          </View>
-
-          <TouchableOpacity style={[styles.socialButton, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}>
-            <IconSymbol name="apple.logo" size={20} color={colors.text} />
-            <ThemedText style={[styles.socialButtonText, { color: colors.text }]}>
-              Continuer avec Apple
-            </ThemedText>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={[styles.socialButton, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}>
-            <IconSymbol name="globe" size={20} color={colors.text} />
-            <ThemedText style={[styles.socialButtonText, { color: colors.text }]}>
-              Continuer avec Google
             </ThemedText>
           </TouchableOpacity>
         </View>
@@ -136,119 +123,106 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 24,
     justifyContent: 'center',
+    paddingTop: 100,
   },
   logoSection: {
     alignItems: 'center',
-    marginBottom: 48,
+    marginBottom: 24,
+    marginTop: -80,
   },
   logoContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 24,
+    width: 64,
+    height: 64,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    marginBottom: 12,
+    shadowColor: '#4F7CAC',
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowRadius: 12,
+    elevation: 6,
   },
   appName: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
-    marginBottom: 8,
+    marginBottom: 4,
+    letterSpacing: -0.5,
   },
   tagline: {
-    fontSize: 16,
+    fontSize: 14,
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 18,
+    fontWeight: '400',
   },
   formSection: {
     marginBottom: 32,
   },
   formTitle: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
-    marginBottom: 24,
+    marginBottom: 32,
     textAlign: 'center',
+    letterSpacing: -0.5,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    marginBottom: 16,
-    gap: 12,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    paddingHorizontal: 20,
+    paddingVertical: 18,
+    marginBottom: 20,
+    gap: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   input: {
     flex: 1,
     fontSize: 16,
+    fontWeight: '500',
   },
   forgotPassword: {
     alignSelf: 'flex-end',
-    marginBottom: 24,
+    marginBottom: 32,
+    paddingVertical: 4,
   },
   forgotPasswordText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  primaryButton: {
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  primaryButtonText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
   },
-  divider: {
-    flexDirection: 'row',
+  primaryButton: {
+    borderRadius: 16,
+    paddingVertical: 18,
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 32,
+    shadowColor: '#4F7CAC',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 4,
   },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-  },
-  dividerText: {
-    marginHorizontal: 16,
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  socialButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingVertical: 16,
-    marginBottom: 12,
-    gap: 12,
-  },
-  socialButtonText: {
-    fontSize: 16,
-    fontWeight: '500',
+  primaryButtonText: {
+    fontSize: 17,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     gap: 8,
+    paddingBottom: 32,
   },
   footerText: {
-    fontSize: 14,
+    fontSize: 15,
+    fontWeight: '500',
   },
   footerLink: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
   },
 });
