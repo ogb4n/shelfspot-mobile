@@ -3,11 +3,13 @@ import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { useTheme } from '@/contexts/ThemeContext';
 import { router } from 'expo-router';
 import React from 'react';
 import { ScrollView, StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
 
 export default function SettingsScreen() {
+  const { themeMode, setThemeMode } = useTheme();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
 
@@ -30,7 +32,7 @@ export default function SettingsScreen() {
     showArrow = true,
     rightComponent 
   }: {
-    icon: string;
+    icon: any; // Type temporaire pour éviter l'erreur TypeScript
     title: string;
     subtitle?: string;
     onPress?: () => void;
@@ -136,23 +138,91 @@ export default function SettingsScreen() {
         {/* App Settings */}
         <SectionHeader title="Application" />
         <View style={styles.section}>
-          <SettingItem
-            icon="paintbrush"
-            title="Thème"
-            subtitle={colorScheme === 'dark' ? 'Sombre' : 'Clair'}
-            rightComponent={
-              <Switch
-                value={colorScheme === 'dark'}
-                onValueChange={() => {}}
-                trackColor={{
-                  false: colors.border,
-                  true: colors.primary,
-                }}
-                thumbColor={colorScheme === 'dark' ? '#FFFFFF' : colors.textSecondary}
-              />
-            }
-            showArrow={false}
-          />
+          {/* Theme Section */}
+          <View style={[styles.themeSection, { backgroundColor: colors.card }]}>
+            <View style={styles.themeSectionHeader}>
+              <View style={[styles.settingIcon, { backgroundColor: colors.backgroundSecondary }]}>
+                <IconSymbol name="paintbrush" size={20} color={colors.primary} />
+              </View>
+              <ThemedText type="defaultSemiBold" style={[styles.settingTitle, { color: colors.text }]}>
+                Thème de l'application
+              </ThemedText>
+            </View>
+            
+            <View style={styles.themeOptions}>
+              {/* Auto Theme */}
+              <TouchableOpacity 
+                style={[styles.themeOption, { borderColor: colors.border }]}
+                onPress={() => setThemeMode('auto')}
+              >
+                <View style={styles.themeOptionLeft}>
+                  <IconSymbol name="gear" size={18} color={colors.textSecondary} />
+                  <ThemedText style={[styles.themeOptionText, { color: colors.text }]}>
+                    Automatique
+                  </ThemedText>
+                </View>
+                <View style={[
+                  styles.radioButton, 
+                  { 
+                    borderColor: themeMode === 'auto' ? colors.primary : colors.border,
+                    backgroundColor: themeMode === 'auto' ? colors.primary : 'transparent'
+                  }
+                ]}>
+                  {themeMode === 'auto' && (
+                    <View style={[styles.radioButtonInner, { backgroundColor: '#FFFFFF' }]} />
+                  )}
+                </View>
+              </TouchableOpacity>
+
+              {/* Light Theme */}
+              <TouchableOpacity 
+                style={[styles.themeOption, { borderColor: colors.border }]}
+                onPress={() => setThemeMode('light')}
+              >
+                <View style={styles.themeOptionLeft}>
+                  <IconSymbol name="sun.max.fill" size={18} color={colors.textSecondary} />
+                  <ThemedText style={[styles.themeOptionText, { color: colors.text }]}>
+                    Clair
+                  </ThemedText>
+                </View>
+                <View style={[
+                  styles.radioButton, 
+                  { 
+                    borderColor: themeMode === 'light' ? colors.primary : colors.border,
+                    backgroundColor: themeMode === 'light' ? colors.primary : 'transparent'
+                  }
+                ]}>
+                  {themeMode === 'light' && (
+                    <View style={[styles.radioButtonInner, { backgroundColor: '#FFFFFF' }]} />
+                  )}
+                </View>
+              </TouchableOpacity>
+
+              {/* Dark Theme */}
+              <TouchableOpacity 
+                style={[styles.themeOption, { borderColor: colors.border }]}
+                onPress={() => setThemeMode('dark')}
+              >
+                <View style={styles.themeOptionLeft}>
+                  <IconSymbol name="moon.fill" size={18} color={colors.textSecondary} />
+                  <ThemedText style={[styles.themeOptionText, { color: colors.text }]}>
+                    Sombre
+                  </ThemedText>
+                </View>
+                <View style={[
+                  styles.radioButton, 
+                  { 
+                    borderColor: themeMode === 'dark' ? colors.primary : colors.border,
+                    backgroundColor: themeMode === 'dark' ? colors.primary : 'transparent'
+                  }
+                ]}>
+                  {themeMode === 'dark' && (
+                    <View style={[styles.radioButtonInner, { backgroundColor: '#FFFFFF' }]} />
+                  )}
+                </View>
+              </TouchableOpacity>
+            </View>
+          </View>
           <SettingItem
             icon="globe"
             title="Langue"
@@ -370,5 +440,51 @@ const styles = StyleSheet.create({
   logoutText: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  // Theme section styles
+  themeSection: {
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  themeSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 12,
+  },
+  themeOptions: {
+    gap: 8,
+  },
+  themeOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  themeOptionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  themeOptionText: {
+    fontSize: 15,
+    fontWeight: '500',
+  },
+  radioButton: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radioButtonInner: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
 });
