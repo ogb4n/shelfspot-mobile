@@ -149,6 +149,7 @@ export default function ServerConfigScreen() {
 
           <ConnectionStatus 
             style={styles.statusContainer}
+            onRetry={handleTestConnection}
           />
 
           {serverInfo && connectionStatus === 'success' && (
