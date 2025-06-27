@@ -1,0 +1,194 @@
+import React from 'react';
+import { 
+  Modal, 
+  View, 
+  TouchableOpacity, 
+  ScrollView, 
+  StyleSheet 
+} from 'react-native';
+import { ThemedText } from '../ThemedText';
+import { ThemedView } from '../ThemedView';
+import { IconSymbol } from '../ui/IconSymbol';
+import { TriggeredAlert } from '../../utils/inventory/alerts';
+import { useThemeColor } from '../../hooks/useThemeColor';
+
+interface AlertsModalProps {
+  visible: boolean;
+  onClose: () => void;
+  triggeredAlerts: TriggeredAlert[];
+}
+
+export function AlertsModal({ visible, onClose, triggeredAlerts }: AlertsModalProps) {
+  const colors = {
+    card: useThemeColor({}, 'card'),
+    text: useThemeColor({}, 'text'),
+    textSecondary: useThemeColor({}, 'textSecondary'),
+    primary: useThemeColor({}, 'primary'),
+    backgroundSecondary: useThemeColor({}, 'backgroundSecondary'),
+    warning: useThemeColor({}, 'warning'),
+    error: useThemeColor({}, 'error'),
+  };
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
+      <ThemedView style={styles.container}>
+        {/* Header */}
+        <View style={[styles.header, { borderBottomColor: colors.backgroundSecondary }]}>
+          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <IconSymbol name="xmark" size={24} color={colors.textSecondary} />
+          </TouchableOpacity>
+          <ThemedText type="defaultSemiBold" style={[styles.title, { color: colors.text }]}>
+            Alertes actives
+          </ThemedText>
+          <View style={styles.headerSpace} />
+        </View>
+
+        {/* Content */}
+        <ScrollView style={styles.content}>
+          <View style={styles.alertsContainer}>
+            {triggeredAlerts.length === 0 ? (
+              <View style={styles.emptyState}>
+                <IconSymbol name="bell.slash" size={48} color={colors.textSecondary} />
+                <ThemedText style={[styles.emptyStateText, { color: colors.textSecondary }]}>
+                  Aucune alerte active
+                </ThemedText>
+                <ThemedText style={[styles.emptyStateDescription, { color: colors.textSecondary }]}>
+                  Toutes vos alertes sont sous contrôle !
+                </ThemedText>
+              </View>
+            ) : (
+              triggeredAlerts.map(({ item, alert }, index) => (
+                <View 
+                  key={`${item.id}-${alert.id}`} 
+                  style={[styles.alertCard, { 
+                    backgroundColor: colors.card,
+                    borderLeftColor: colors.warning,
+                  }]}
+                >
+                  <View style={styles.alertHeader}>
+                    <View style={styles.alertIcon}>
+                      <IconSymbol name="exclamationmark.triangle" size={20} color={colors.warning} />
+                    </View>
+                    <View style={styles.alertInfo}>
+                      <ThemedText type="defaultSemiBold" style={[styles.alertTitle, { color: colors.text }]}>
+                        {alert.name || `Stock faible: ${item.name}`}
+                      </ThemedText>
+                      <ThemedText style={[styles.alertSubtitle, { color: colors.textSecondary }]}>
+                        {item.name} - Quantité: {item.quantity}
+                      </ThemedText>
+                    </View>
+                    <View style={[styles.alertBadge, { backgroundColor: colors.warning }]}>
+                      <ThemedText style={styles.alertBadgeText}>
+                        Seuil: {alert.threshold}
+                      </ThemedText>
+                    </View>
+                  </View>
+                  
+                  <View style={styles.alertDetails}>
+                    <ThemedText style={[styles.alertLocation, { color: colors.textSecondary }]}>
+                      📍 {item.location}
+                    </ThemedText>
+                  </View>
+                </View>
+              ))
+            )}
+          </View>
+        </ScrollView>
+      </ThemedView>
+    </Modal>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+  },
+  closeButton: {
+    padding: 4,
+  },
+  title: {
+    fontSize: 18,
+  },
+  headerSpace: {
+    width: 32,
+  },
+  content: {
+    flex: 1,
+  },
+  alertsContainer: {
+    padding: 20,
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    gap: 16,
+  },
+  emptyStateText: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  emptyStateDescription: {
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  alertCard: {
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderLeftWidth: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  alertHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  alertIcon: {
+    marginRight: 12,
+    marginTop: 2,
+  },
+  alertInfo: {
+    flex: 1,
+  },
+  alertTitle: {
+    fontSize: 16,
+    marginBottom: 4,
+  },
+  alertSubtitle: {
+    fontSize: 14,
+  },
+  alertBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  alertBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  alertDetails: {
+    marginTop: 8,
+  },
+  alertLocation: {
+    fontSize: 14,
+  },
+});
