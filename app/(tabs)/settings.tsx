@@ -1,10 +1,11 @@
-import React from 'react';
-import { ScrollView, StyleSheet, View, TouchableOpacity, Switch } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { router } from 'expo-router';
+import React from 'react';
+import { ScrollView, StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
 
 export default function SettingsScreen() {
   const colorScheme = useColorScheme() ?? 'light';
@@ -14,6 +15,11 @@ export default function SettingsScreen() {
     name: 'John Doe',
     email: 'john.doe@example.com',
     role: 'admin' as const,
+  };
+
+  const handleLogout = () => {
+    // Redirection vers l'écran de configuration du serveur
+    router.replace('/server-config');
   };
 
   const SettingItem = ({ 
@@ -213,7 +219,10 @@ export default function SettingsScreen() {
 
         {/* Logout */}
         <View style={styles.section}>
-          <TouchableOpacity style={[styles.logoutButton, { backgroundColor: colors.error }]}>
+          <TouchableOpacity 
+            style={[styles.logoutButton, { backgroundColor: colors.error }]}
+            onPress={handleLogout}
+          >
             <IconSymbol name="arrow.right.square" size={20} color="#FFFFFF" />
             <ThemedText style={[styles.logoutText, { color: '#FFFFFF' }]}>
               Se déconnecter

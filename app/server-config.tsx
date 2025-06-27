@@ -7,15 +7,18 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 
-export default function LoginScreen() {
+export default function ServerConfigScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [isLogin, setIsLogin] = useState(true);
+  const [serverIp, setServerIp] = useState('');
 
-  const handleLogin = () => {
-    // Navigation vers l'application principale
+  const handleSubmit = () => {
+    // Ici vous pourrez stocker l'IP du serveur si nécessaire
+    router.replace('/login');
+  };
+
+  const handleSkip = () => {
+    // Redirection directe vers l'application principale
     router.replace('/(tabs)');
   };
 
@@ -25,6 +28,13 @@ export default function LoginScreen() {
         style={styles.content}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
+        {/* Skip Button */}
+        <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
+          <ThemedText style={[styles.skipText, { color: colors.textSecondary }]}>
+            Ignorer
+          </ThemedText>
+        </TouchableOpacity>
+
         {/* Logo Section */}
         <View style={styles.logoSection}>
           <View style={[styles.logoContainer, { backgroundColor: colors.primary }]}>
@@ -34,81 +44,44 @@ export default function LoginScreen() {
             ShelfSpot
           </ThemedText>
           <ThemedText style={[styles.tagline, { color: colors.textSecondary }]}>
-            Votre inventaire domestique intelligent
+            Configuration du serveur
           </ThemedText>
         </View>
 
         {/* Form Section */}
         <View style={styles.formSection}>
           <ThemedText type="subtitle" style={[styles.formTitle, { color: colors.text }]}>
-            {isLogin ? 'Connexion' : 'Inscription'}
+            Adresse du serveur
           </ThemedText>
 
-          {!isLogin && (
-            <View style={[styles.inputContainer, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}>
-              <IconSymbol name="person" size={20} color={colors.textSecondary} />
-              <TextInput
-                style={[styles.input, { color: colors.text }]}
-                placeholder="Nom complet"
-                placeholderTextColor={colors.textSecondary}
-                autoCapitalize="words"
-              />
-            </View>
-          )}
-
           <View style={[styles.inputContainer, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}>
-            <IconSymbol name="envelope" size={20} color={colors.textSecondary} />
+            <IconSymbol name="server.rack" size={20} color={colors.textSecondary} />
             <TextInput
               style={[styles.input, { color: colors.text }]}
-              placeholder="Email"
+              placeholder="192.168.1.100"
               placeholderTextColor={colors.textSecondary}
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
+              value={serverIp}
+              onChangeText={setServerIp}
+              keyboardType="numeric"
               autoCapitalize="none"
             />
           </View>
 
-          <View style={[styles.inputContainer, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}>
-            <IconSymbol name="lock" size={20} color={colors.textSecondary} />
-            <TextInput
-              style={[styles.input, { color: colors.text }]}
-              placeholder="Mot de passe"
-              placeholderTextColor={colors.textSecondary}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-            />
-          </View>
-
-          {isLogin && (
-            <TouchableOpacity style={styles.forgotPassword}>
-              <ThemedText style={[styles.forgotPasswordText, { color: colors.primary }]}>
-                Mot de passe oublié ?
-              </ThemedText>
-            </TouchableOpacity>
-          )}
-
           <TouchableOpacity 
             style={[styles.primaryButton, { backgroundColor: colors.primary }]}
-            onPress={handleLogin}
+            onPress={handleSubmit}
           >
             <ThemedText style={[styles.primaryButtonText, { color: '#FFFFFF' }]}>
-              {isLogin ? 'Se connecter' : "S'inscrire"}
+              Valider
             </ThemedText>
           </TouchableOpacity>
         </View>
 
-        {/* Footer */}
+        {/* Footer Info */}
         <View style={styles.footer}>
           <ThemedText style={[styles.footerText, { color: colors.textSecondary }]}>
-            {isLogin ? "Vous n'avez pas de compte ?" : 'Vous avez déjà un compte ?'}
+            Saisissez l'adresse IP de votre serveur local
           </ThemedText>
-          <TouchableOpacity onPress={() => setIsLogin(!isLogin)}>
-            <ThemedText style={[styles.footerLink, { color: colors.primary }]}>
-              {isLogin ? "S'inscrire" : 'Se connecter'}
-            </ThemedText>
-          </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
     </ThemedView>
@@ -125,10 +98,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingTop: 100,
   },
+  skipButton: {
+    position: 'absolute',
+    top: 60,
+    right: 24,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    zIndex: 10,
+  },
+  skipText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
   logoSection: {
     alignItems: 'center',
-    marginBottom: 24,
-    marginTop: -80,
+    marginBottom: 40,
+    marginTop: -60,
   },
   logoContainer: {
     width: 64,
@@ -172,7 +157,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     paddingHorizontal: 20,
     paddingVertical: 18,
-    marginBottom: 20,
+    marginBottom: 32,
     gap: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -184,15 +169,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     fontWeight: '500',
-  },
-  forgotPassword: {
-    alignSelf: 'flex-end',
-    marginBottom: 32,
-    paddingVertical: 4,
-  },
-  forgotPasswordText: {
-    fontSize: 15,
-    fontWeight: '600',
   },
   primaryButton: {
     borderRadius: 16,
@@ -211,18 +187,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
     paddingBottom: 32,
   },
   footerText: {
-    fontSize: 15,
-    fontWeight: '500',
-  },
-  footerLink: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 14,
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
 });
