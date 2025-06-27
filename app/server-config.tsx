@@ -1,90 +1,219 @@
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ActivityIndicator,
+} from 'react-native';
+import { router } from 'expo-router';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { router } from 'expo-router';
-import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { useConfigStore } from '@/stores/config';
+import { ConnectionStatus } from '@/components/ConnectionStatus';
 
 export default function ServerConfigScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
-  const [serverIp, setServerIp] = useState('');
+  
+  const [ipInput, setIpInput] = useState('');
+  
+  const { 
+    serverIp, 
+    connectionStatus, 
+    serverInfo,
+    isLoading,
+    setServerIp, 
+    testConnection,
+    clearError 
+  } = useConfigStore();
 
-  const handleSubmit = () => {
-    // Ici vous pourrez stocker l'IP du serveur si nécessaire
-    router.replace('/login');
+  useEffect(() => {
+    // Initialize input with current server IP
+    setIpInput(serverIp);
+  }, [serverIp]);
+
+  const handleSaveConfig = async () => {
+    if (!ipInput.trim()) {
+      Alert.alert('Erreur', 'Veuillez entrer une adresse IP valide');
+      return;
+    }
+
+    clearError();
+    
+    try {
+      await setServerIp(ipInput.trim());
+      Alert.alert('Succès', 'Configuration sauvegardée');
+    } catch (error) {
+      console.error('Error saving config:', error);
+      Alert.alert('Erreur', 'Impossible de sauvegarder la configuration');
+    }
   };
 
-  const handleSkip = () => {
-    // Redirection directe vers l'application principale
-    router.replace('/(tabs)');
+  const handleTestConnection = async () => {
+    if (!ipInput.trim()) {
+      Alert.alert('Erreur', 'Veuillez entrer une adresse IP valide');
+      return;
+    }
+
+    clearError();
+    
+    try {
+      // Save IP first if different
+      if (ipInput.trim() !== serverIp) {
+        await setServerIp(ipInput.trim());
+      }
+      
+      const success = await testConnection();
+      
+      if (success) {
+        Alert.alert(
+          'Connexion réussie',
+          `Serveur accessible à l'adresse ${ipInput.trim()}`,
+          [
+            {
+              text: 'Continuer',
+              onPress: () => router.replace('/login')
+            }
+          ]
+        );
+      }
+    } catch (error) {
+      console.error('Test connection error:', error);
+      // Error is already handled in the store
+    }
   };
+
+  const handleContinue = () => {
+    if (connectionStatus === 'success' || connectionStatus === 'idle') {
+      router.replace('/login');
+    } else {
+      Alert.alert(
+        'Test de connexion recommandé',
+        'Il est recommandé de tester la connexion avant de continuer.',
+        [
+          {
+            text: 'Tester',
+            onPress: handleTestConnection
+          },
+          {
+            text: 'Continuer quand même',
+            onPress: () => router.replace('/login'),
+            style: 'destructive'
+          }
+        ]
+      );
+    }
+  };
+
+
+
+
 
   return (
-    <ThemedView style={styles.container}>
-      <KeyboardAvoidingView 
-        style={styles.content}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        {/* Skip Button */}
-        <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
-          <ThemedText style={[styles.skipText, { color: colors.textSecondary }]}>
-            Ignorer
-          </ThemedText>
-        </TouchableOpacity>
+    <KeyboardAvoidingView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <ThemedView style={styles.content}>
+        <ThemedText style={styles.title}>Configuration Serveur</ThemedText>
+        <ThemedText style={styles.subtitle}>
+          Configurez l&apos;adresse IP de votre serveur ShelfSpot
+        </ThemedText>
 
-        {/* Logo Section */}
-        <View style={styles.logoSection}>
-          <View style={[styles.logoContainer, { backgroundColor: colors.primary }]}>
-            <IconSymbol name="house.fill" size={32} color="#FFFFFF" />
+        <View style={styles.form}>
+          <ThemedText style={styles.label}>Adresse IP du serveur :</ThemedText>
+          <TextInput
+            style={[
+              styles.input,
+              {
+                borderColor: colors.text,
+                color: colors.text,
+                backgroundColor: colors.background,
+              },
+            ]}
+            value={ipInput}
+            onChangeText={setIpInput}
+            placeholder="ex: 192.168.1.100"
+            placeholderTextColor={colors.text + '80'}
+            autoCapitalize="none"
+            autoCorrect={false}
+            editable={!isLoading}
+          />
+
+          <ConnectionStatus 
+            style={styles.statusContainer}
+          />
+
+          {serverInfo && connectionStatus === 'success' && (
+            <View style={styles.serverInfoContainer}>
+              <ThemedText style={styles.serverInfoTitle}>Informations du serveur :</ThemedText>
+              <ThemedText style={styles.serverInfoText}>Version: {serverInfo.version}</ThemedText>
+              <ThemedText style={styles.serverInfoText}>
+                Dernière connexion: {new Date(serverInfo.timestamp).toLocaleString()}
+              </ThemedText>
+            </View>
+          )}
+
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              style={[
+                styles.button,
+                styles.saveButton,
+                { backgroundColor: colors.tint },
+                isLoading && styles.disabledButton,
+              ]}
+              onPress={handleSaveConfig}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="white" size="small" />
+              ) : (
+                <Text style={styles.buttonText}>Sauvegarder</Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.button,
+                styles.testButton,
+                { borderColor: colors.tint },
+                isLoading && styles.disabledButton,
+              ]}
+              onPress={handleTestConnection}
+              disabled={isLoading}
+            >
+              {connectionStatus === 'testing' ? (
+                <ActivityIndicator color={colors.tint} size="small" />
+              ) : (
+                <Text style={[styles.buttonTextSecondary, { color: colors.tint }]}>
+                  Tester la connexion
+                </Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.button,
+                styles.continueButton,
+                { backgroundColor: connectionStatus === 'success' ? '#4CAF50' : colors.text + '40' },
+                isLoading && styles.disabledButton,
+              ]}
+              onPress={handleContinue}
+              disabled={isLoading}
+            >
+              <Text style={styles.buttonText}>Continuer</Text>
+            </TouchableOpacity>
           </View>
-          <ThemedText type="title" style={[styles.appName, { color: colors.text }]}>
-            ShelfSpot
-          </ThemedText>
-          <ThemedText style={[styles.tagline, { color: colors.textSecondary }]}>
-            Configuration du serveur
-          </ThemedText>
         </View>
-
-        {/* Form Section */}
-        <View style={styles.formSection}>
-          <ThemedText type="subtitle" style={[styles.formTitle, { color: colors.text }]}>
-            Adresse du serveur
-          </ThemedText>
-
-          <View style={[styles.inputContainer, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}>
-            <IconSymbol name="server.rack" size={20} color={colors.textSecondary} />
-            <TextInput
-              style={[styles.input, { color: colors.text }]}
-              placeholder="192.168.1.100"
-              placeholderTextColor={colors.textSecondary}
-              value={serverIp}
-              onChangeText={setServerIp}
-              keyboardType="numeric"
-              autoCapitalize="none"
-            />
-          </View>
-
-          <TouchableOpacity 
-            style={[styles.primaryButton, { backgroundColor: colors.primary }]}
-            onPress={handleSubmit}
-          >
-            <ThemedText style={[styles.primaryButtonText, { color: '#FFFFFF' }]}>
-              Valider
-            </ThemedText>
-          </TouchableOpacity>
-        </View>
-
-        {/* Footer Info */}
-        <View style={styles.footer}>
-          <ThemedText style={[styles.footerText, { color: colors.textSecondary }]}>
-            Saisissez l'adresse IP de votre serveur local
-          </ThemedText>
-        </View>
-      </KeyboardAvoidingView>
-    </ThemedView>
+      </ThemedView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -94,105 +223,88 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: 24,
     justifyContent: 'center',
-    paddingTop: 100,
+    paddingHorizontal: 20,
   },
-  skipButton: {
-    position: 'absolute',
-    top: 60,
-    right: 24,
-    paddingVertical: 8,
+  title: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  subtitle: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 40,
+    opacity: 0.8,
+  },
+  form: {
+    width: '100%',
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  input: {
+    borderWidth: 1,
+    borderRadius: 8,
     paddingHorizontal: 16,
-    zIndex: 10,
+    paddingVertical: 12,
+    fontSize: 16,
+    marginBottom: 20,
   },
-  skipText: {
+  statusContainer: {
+    marginBottom: 20,
+  },
+  serverInfoContainer: {
+    padding: 16,
+    borderRadius: 8,
+    backgroundColor: '#E8F5E8',
+    marginBottom: 20,
+  },
+  serverInfoTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
+    color: '#2E7D32',
+  },
+  serverInfoText: {
+    fontSize: 14,
+    color: '#388E3C',
+    marginBottom: 4,
+  },
+  buttonContainer: {
+    gap: 12,
+  },
+  button: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 48,
+  },
+  saveButton: {
+    // backgroundColor is set dynamically
+  },
+  testButton: {
+    borderWidth: 1,
+    backgroundColor: 'transparent',
+  },
+  continueButton: {
+    // backgroundColor is set dynamically
+  },
+  disabledButton: {
+    opacity: 0.5,
+  },
+  buttonText: {
+    color: 'white',
     fontSize: 16,
     fontWeight: '600',
   },
-  logoSection: {
-    alignItems: 'center',
-    marginBottom: 40,
-    marginTop: -60,
-  },
-  logoContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-    shadowColor: '#4F7CAC',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  appName: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 4,
-    letterSpacing: -0.5,
-  },
-  tagline: {
-    fontSize: 14,
-    textAlign: 'center',
-    lineHeight: 18,
-    fontWeight: '400',
-  },
-  formSection: {
-    marginBottom: 32,
-  },
-  formTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 32,
-    textAlign: 'center',
-    letterSpacing: -0.5,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 16,
-    borderWidth: 1.5,
-    paddingHorizontal: 20,
-    paddingVertical: 18,
-    marginBottom: 32,
-    gap: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  input: {
-    flex: 1,
+  buttonTextSecondary: {
     fontSize: 16,
-    fontWeight: '500',
-  },
-  primaryButton: {
-    borderRadius: 16,
-    paddingVertical: 18,
-    alignItems: 'center',
-    marginBottom: 32,
-    shadowColor: '#4F7CAC',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  primaryButtonText: {
-    fontSize: 17,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
-  footer: {
-    alignItems: 'center',
-    paddingBottom: 32,
-  },
-  footerText: {
-    fontSize: 14,
-    textAlign: 'center',
-    fontStyle: 'italic',
+    fontWeight: '600',
   },
 });
