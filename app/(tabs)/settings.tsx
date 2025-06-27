@@ -1,3 +1,7 @@
+import PersonalInfoModal from '@/components/modals/PersonalInfoModal';
+import EditNameModal from '@/components/modals/EditNameModal';
+import SecurityModal from '@/components/modals/SecurityModal';
+import NotificationsModal from '@/components/modals/NotificationsModal';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
@@ -5,7 +9,7 @@ import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { router } from 'expo-router';
-import React from 'react';
+import React, { useState } from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 export default function SettingsScreen() {
@@ -13,10 +17,53 @@ export default function SettingsScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
 
-  const user = {
+  // État pour la modal des informations personnelles
+  const [showPersonalInfoModal, setShowPersonalInfoModal] = useState(false);
+  
+  // État pour la modal d'édition du nom
+  const [showEditNameModal, setShowEditNameModal] = useState(false);
+  
+  // État pour la modal de sécurité
+  const [showSecurityModal, setShowSecurityModal] = useState(false);
+  
+  // État pour la modal des notifications
+  const [showNotificationsModal, setShowNotificationsModal] = useState(false);
+
+  // Données utilisateur avec état
+  const [user, setUser] = useState({
     name: 'John Doe',
     email: 'john.doe@example.com',
     role: 'admin' as const,
+  });
+
+  // Paramètres de notifications avec état
+  const [notificationSettings, setNotificationSettings] = useState({
+    pushNotifications: true,
+    emailNotifications: false,
+    inventoryAlerts: true,
+    systemUpdates: true,
+    lowStockAlerts: true,
+    weeklyReports: false,
+  });
+
+  const handleSavePersonalInfo = (name: string, email: string) => {
+    setUser(prev => ({ ...prev, name, email }));
+  };
+
+  const handleSaveName = (name: string) => {
+    setUser(prev => ({ ...prev, name }));
+  };
+
+  const handleChangePassword = (currentPassword: string, newPassword: string) => {
+    // Ici vous pouvez ajouter la logique pour changer le mot de passe
+    console.log('Changement de mot de passe:', { currentPassword, newPassword });
+    // Exemple : appel API pour changer le mot de passe
+  };
+
+  const handleSaveNotifications = (settings: typeof notificationSettings) => {
+    setNotificationSettings(settings);
+    console.log('Paramètres de notifications sauvegardés:', settings);
+    // Ici vous pouvez ajouter la logique pour sauvegarder les paramètres
   };
 
   const handleLogout = () => {
@@ -107,7 +154,10 @@ export default function SettingsScreen() {
               </View>
             </View>
           </View>
-          <TouchableOpacity style={[styles.editProfileButton, { backgroundColor: colors.backgroundSecondary }]}>
+          <TouchableOpacity 
+            style={[styles.editProfileButton, { backgroundColor: colors.backgroundSecondary }]}
+            onPress={() => setShowEditNameModal(true)}
+          >
             <IconSymbol name="pencil" size={16} color={colors.primary} />
           </TouchableOpacity>
         </View>
@@ -119,19 +169,19 @@ export default function SettingsScreen() {
             icon="person.circle"
             title="Informations personnelles"
             subtitle="Nom, email, mot de passe"
-            onPress={() => {}}
+            onPress={() => setShowPersonalInfoModal(true)}
           />
           <SettingItem
             icon="bell"
             title="Notifications"
             subtitle="Gérer les alertes et notifications"
-            onPress={() => {}}
+            onPress={() => setShowNotificationsModal(true)}
           />
           <SettingItem
             icon="lock"
             title="Sécurité"
             subtitle="Mot de passe et authentification"
-            onPress={() => {}}
+            onPress={() => setShowSecurityModal(true)}
           />
         </View>
 
@@ -300,6 +350,38 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Modal des informations personnelles */}
+      <PersonalInfoModal
+        visible={showPersonalInfoModal}
+        onClose={() => setShowPersonalInfoModal(false)}
+        currentName={user.name}
+        currentEmail={user.email}
+        onSave={handleSavePersonalInfo}
+      />
+
+      {/* Modal d'édition du nom */}
+      <EditNameModal
+        visible={showEditNameModal}
+        onClose={() => setShowEditNameModal(false)}
+        currentName={user.name}
+        onSave={handleSaveName}
+      />
+
+      {/* Modal de sécurité */}
+      <SecurityModal
+        visible={showSecurityModal}
+        onClose={() => setShowSecurityModal(false)}
+        onChangePassword={handleChangePassword}
+      />
+
+      {/* Modal des notifications */}
+      <NotificationsModal
+        visible={showNotificationsModal}
+        onClose={() => setShowNotificationsModal(false)}
+        currentSettings={notificationSettings}
+        onSave={handleSaveNotifications}
+      />
     </ThemedView>
   );
 }
