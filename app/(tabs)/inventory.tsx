@@ -150,7 +150,6 @@ export default function InventoryScreen() {
         advancedFilters={advancedFilters}
         showAdvancedFilters={showAdvancedFilters}
         onFilterSelect={setSelectedFilter}
-        onToggleAdvancedFilters={handleToggleAdvancedFilters}
         onToggleAdvancedFilter={toggleAdvancedFilter}
         onClearAdvancedFilters={clearAllAdvancedFilters}
       />

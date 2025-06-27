@@ -20,7 +20,6 @@ interface InventoryFiltersProps {
   advancedFilters: FilterOptions;
   showAdvancedFilters: boolean;
   onFilterSelect: (filter: FilterKey) => void;
-  onToggleAdvancedFilters: () => void;
   onToggleAdvancedFilter: (
     category: keyof Pick<FilterOptions, 'roomIds' | 'placeIds' | 'containerIds' | 'tagIds' | 'statuses'>,
     value: number | string
@@ -34,7 +33,6 @@ export function InventoryFilters({
   advancedFilters,
   showAdvancedFilters,
   onFilterSelect,
-  onToggleAdvancedFilters,
   onToggleAdvancedFilter,
   onClearAdvancedFilters,
 }: InventoryFiltersProps) {
@@ -83,40 +81,13 @@ export function InventoryFilters({
         ))}
       </ScrollView>
 
-      {/* Advanced Filters Toggle */}
-      <TouchableOpacity 
-        style={[styles.advancedToggle, { backgroundColor: backgroundSecondaryColor }]}
-        onPress={onToggleAdvancedFilters}
-      >
-        <IconSymbol 
-          name={showAdvancedFilters ? "chevron.up" : "slider.horizontal.3"} 
-          size={20} 
-          color={hasActiveFilters ? primaryColor : textSecondaryColor} 
-        />
-        <ThemedText style={[
-          styles.advancedToggleText,
-          { color: hasActiveFilters ? primaryColor : textSecondaryColor }
-        ]}>
-          Filtres avancés
-        </ThemedText>
-        {hasActiveFilters && (
-          <View style={[styles.activeFiltersBadge, { backgroundColor: primaryColor }]}>
-            <ThemedText style={styles.activeFiltersBadgeText}>
-              {[
-                ...advancedFilters.roomIds,
-                ...advancedFilters.placeIds,
-                ...advancedFilters.containerIds,
-                ...advancedFilters.tagIds,
-                ...advancedFilters.statuses,
-              ].length}
-            </ThemedText>
-          </View>
-        )}
-      </TouchableOpacity>
-
       {/* Advanced Filters */}
       {showAdvancedFilters && (
-        <View style={[styles.advancedFiltersContainer, { backgroundColor: cardColor }]}>
+        <ScrollView 
+          style={[styles.advancedFiltersContainer, { backgroundColor: cardColor }]}
+          showsVerticalScrollIndicator={false}
+          nestedScrollEnabled={true}
+        >
           <View style={styles.advancedFiltersHeader}>
             <ThemedText type="defaultSemiBold" style={[styles.advancedFiltersTitle, { color: textColor }]}>
               Filtres avancés
@@ -184,7 +155,7 @@ export function InventoryFilters({
             backgroundSecondaryColor={backgroundSecondaryColor}
             textSecondaryColor={textSecondaryColor}
           />
-        </View>
+        </ScrollView>
       )}
     </View>
   );
@@ -271,34 +242,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
-  advancedToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: 20,
-    marginBottom: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    gap: 12,
-  },
-  advancedToggleText: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  activeFiltersBadge: {
-    minWidth: 20,
-    height: 20,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 6,
-  },
-  activeFiltersBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
-  },
   advancedFiltersContainer: {
     marginHorizontal: 20,
     marginBottom: 16,
@@ -309,6 +252,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
+    maxHeight: 400, // Add max height for scrolling
   },
   advancedFiltersHeader: {
     flexDirection: 'row',

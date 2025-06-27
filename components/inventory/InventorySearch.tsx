@@ -33,12 +33,17 @@ export function InventorySearch({
         value={searchQuery}
         onChangeText={onSearchChange}
       />
-      <TouchableOpacity onPress={onToggleAdvancedFilters}>
+      <TouchableOpacity onPress={onToggleAdvancedFilters} style={styles.filterButton}>
         <IconSymbol 
           name={showAdvancedFilters ? "chevron.up" : "slider.horizontal.3"} 
           size={20} 
           color={hasActiveFilters ? primaryColor : textSecondaryColor} 
         />
+        {hasActiveFilters && (
+          <View style={[styles.activeFiltersBadge, { backgroundColor: primaryColor }]}>
+            <View style={styles.activeFiltersIndicator} />
+          </View>
+        )}
       </TouchableOpacity>
     </View>
   );
@@ -58,5 +63,19 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 16,
+  },
+  filterButton: {
+    position: 'relative',
+  },
+  activeFiltersBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  activeFiltersIndicator: {
+    flex: 1,
   },
 });
