@@ -2,11 +2,11 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
-import { useColorScheme } from '@/hooks/useColorScheme';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useColorScheme } from '@/hooks/useColorScheme';
 import { router } from 'expo-router';
 import React from 'react';
-import { ScrollView, StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 export default function SettingsScreen() {
   const { themeMode, setThemeMode } = useTheme();
