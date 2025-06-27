@@ -3,6 +3,8 @@ import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { useAuthStore } from '@/stores/auth';
+import { useConfigStore } from '@/stores/config';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
@@ -12,11 +14,76 @@ export default function LoginScreen() {
   const colors = Colors[colorScheme];
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
   const [isLogin, setIsLogin] = useState(true);
 
-  const handleLogin = () => {
-    // Navigation vers l'application principale
-    router.replace('/(tabs)');
+  // Use Zustand stores
+  const { 
+    login, 
+    register, 
+    loading: authLoading, 
+    error: authError, 
+    clearError 
+  } = useAuthStore();
+  
+  const { serverIp } = useConfigStore();
+
+  const handleLogin = async () => {
+    if (!email.trim() || !password.trim()) {
+      return;
+    }
+
+    clearError();
+
+    try {
+      await login(email.trim(), password);
+      // Navigate to main app
+      router.replace('/(tabs)');
+    } catch (error) {
+      // Error is already handled in the store
+      console.error('Login error:', error);
+    }
+  };
+
+  const handleRegister = async () => {
+    if (!email.trim() || !password.trim() || !name.trim()) {
+      console.error('Register error: All fields are required');
+      return;
+    }
+
+    if (name.length < 5) {
+      console.error('Register error: Name must be at least 5 characters long');
+      return;
+    }
+
+    if (password.length < 8) {
+      console.error('Register error: Password must be at least 8 characters long'); 
+      return;
+    }
+
+    clearError();
+
+    try {
+      console.log('Registering with:', { email, password, name });
+      await register(email.trim(), password, name.trim());
+      // Navigate to main app
+      router.replace('/(tabs)');
+    } catch (error) {
+      // Error is already handled in the store
+      console.error('Register error:', error);
+    }
+  };
+
+  const handleSubmit = () => {
+    if (isLogin) {
+      handleLogin();
+    } else {
+      handleRegister();
+    }
+  };
+
+  const navigateToServerConfig = () => {
+    router.push('/server-config');
   };
 
   return (
@@ -51,6 +118,8 @@ export default function LoginScreen() {
                 style={[styles.input, { color: colors.text }]}
                 placeholder="Nom complet"
                 placeholderTextColor={colors.textSecondary}
+                value={name}
+                onChangeText={setName}
                 autoCapitalize="words"
               />
             </View>
@@ -89,12 +158,37 @@ export default function LoginScreen() {
             </TouchableOpacity>
           )}
 
+          {/* Error Display */}
+          {authError ? (
+            <View style={[styles.errorContainer, { backgroundColor: 'rgba(239, 68, 68, 0.1)', borderColor: 'rgba(239, 68, 68, 0.3)' }]}>
+              <IconSymbol name="exclamationmark.triangle.fill" size={16} color="#EF4444" />
+              <ThemedText style={[styles.errorText, { color: '#EF4444' }]}>
+                {authError}
+              </ThemedText>
+            </View>
+          ) : null}
+
           <TouchableOpacity 
-            style={[styles.primaryButton, { backgroundColor: colors.primary }]}
-            onPress={handleLogin}
+            style={[
+              styles.primaryButton, 
+              { backgroundColor: authLoading ? colors.textSecondary : colors.primary },
+            ]}
+            onPress={handleSubmit}
+            disabled={authLoading}
           >
             <ThemedText style={[styles.primaryButtonText, { color: '#FFFFFF' }]}>
-              {isLogin ? 'Se connecter' : "S'inscrire"}
+              {authLoading ? 'Chargement...' : (isLogin ? 'Se connecter' : "S'inscrire")}
+            </ThemedText>
+          </TouchableOpacity>
+
+          {/* Server Configuration Button */}
+          <TouchableOpacity 
+            style={[styles.secondaryButton, { borderColor: colors.border }]}
+            onPress={navigateToServerConfig}
+          >
+            <IconSymbol name="gear" size={16} color={colors.primary} />
+            <ThemedText style={[styles.secondaryButtonText, { color: colors.primary }]}>
+              Configuration du serveur
             </ThemedText>
           </TouchableOpacity>
         </View>
@@ -198,7 +292,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingVertical: 18,
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 16,
     shadowColor: '#4F7CAC',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
@@ -209,6 +303,37 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '700',
     letterSpacing: 0.5,
+  },
+  secondaryButton: {
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    marginBottom: 32,
+    borderWidth: 1.5,
+    backgroundColor: 'transparent',
+    flexDirection: 'row',
+    gap: 8,
+  },
+  secondaryButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  errorText: {
+    fontSize: 14,
+    fontWeight: '500',
+    flex: 1,
+    lineHeight: 18,
   },
   footer: {
     flexDirection: 'row',
