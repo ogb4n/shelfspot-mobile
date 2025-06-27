@@ -1,31 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ActivityIndicator,
-} from 'react-native';
-import { router } from 'expo-router';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { ConnectionStatus } from '@/components/ui/ConnectionStatus';
+import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useConfigStore } from '@/stores/config';
-import { ConnectionStatus } from '@/components/ConnectionStatus';
+import { router } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { Alert, KeyboardAvoidingView, Platform, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function ServerConfigScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
   
-  const [ipInput, setIpInput] = useState('');
+  const [serverIp, setServerIpInput] = useState('');
   
   const { 
-    serverIp, 
+    serverIp: currentServerIp, 
     connectionStatus, 
     serverInfo,
     isLoading,
@@ -35,30 +26,13 @@ export default function ServerConfigScreen() {
   } = useConfigStore();
 
   useEffect(() => {
-    // Initialize input with current server IP
-    setIpInput(serverIp);
-  }, [serverIp]);
-
-  const handleSaveConfig = async () => {
-    if (!ipInput.trim()) {
-      Alert.alert('Erreur', 'Veuillez entrer une adresse IP valide');
-      return;
-    }
-
-    clearError();
-    
-    try {
-      await setServerIp(ipInput.trim());
-      Alert.alert('Succès', 'Configuration sauvegardée');
-    } catch (error) {
-      console.error('Error saving config:', error);
-      Alert.alert('Erreur', 'Impossible de sauvegarder la configuration');
-    }
-  };
+    // Load current server IP
+    setServerIpInput(currentServerIp);
+  }, [currentServerIp]);
 
   const handleTestConnection = async () => {
-    if (!ipInput.trim()) {
-      Alert.alert('Erreur', 'Veuillez entrer une adresse IP valide');
+    if (!serverIp.trim()) {
+      Alert.alert('Erreur', 'Veuillez entrer une adresse IP');
       return;
     }
 
@@ -66,155 +40,151 @@ export default function ServerConfigScreen() {
     
     try {
       // Save IP first if different
-      if (ipInput.trim() !== serverIp) {
-        await setServerIp(ipInput.trim());
+      if (serverIp.trim() !== currentServerIp) {
+        await setServerIp(serverIp.trim());
       }
       
       const success = await testConnection();
       
-      if (success) {
+      if (success && serverInfo) {
         Alert.alert(
-          'Connexion réussie',
-          `Serveur accessible à l'adresse ${ipInput.trim()}`,
+          'Connexion réussie ✅',
+          `Le serveur ShelfSpot est accessible.\nVersion: ${serverInfo.version}\n\nVoulez-vous continuer vers l'écran de connexion ?`,
           [
-            {
-              text: 'Continuer',
-              onPress: () => router.replace('/login')
-            }
+            { text: 'Retester', style: 'cancel' },
+            { text: 'Continuer', onPress: () => router.replace('/login') }
+          ]
+        );
+      } else if (!success) {
+        const errorMsg = 'Erreur de connexion';
+        Alert.alert(
+          'Échec de la connexion ❌',
+          `Impossible de se connecter au serveur ShelfSpot.\n\nErreur: ${errorMsg}\n\nVérifiez:\n• L'adresse URL est correcte\n• Le serveur est démarré\n• Vous êtes sur le même réseau`,
+          [
+            { text: 'Réessayer', style: 'default' },
+            { text: 'Continuer quand même', style: 'destructive', onPress: () => router.replace('/login') }
           ]
         );
       }
     } catch (error) {
       console.error('Test connection error:', error);
-      // Error is already handled in the store
     }
   };
 
-  const handleContinue = () => {
-    if (connectionStatus === 'success' || connectionStatus === 'idle') {
+  const handleSkip = () => {
+    // Skip to login with default IP
+    router.replace('/login');
+  };
+
+  const handleSubmit = async () => {
+    if (!serverIp.trim()) {
+      Alert.alert('Erreur', 'Veuillez entrer une adresse URL valide');
+      return;
+    }
+
+    try {
+      await setServerIp(serverIp.trim());
       router.replace('/login');
-    } else {
-      Alert.alert(
-        'Test de connexion recommandé',
-        'Il est recommandé de tester la connexion avant de continuer.',
-        [
-          {
-            text: 'Tester',
-            onPress: handleTestConnection
-          },
-          {
-            text: 'Continuer quand même',
-            onPress: () => router.replace('/login'),
-            style: 'destructive'
-          }
-        ]
-      );
+    } catch {
+      Alert.alert('Erreur', 'Impossible de sauvegarder l\'adresse URL');
     }
   };
-
-
-
-
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ThemedView style={styles.content}>
-        <ThemedText style={styles.title}>Configuration Serveur</ThemedText>
-        <ThemedText style={styles.subtitle}>
-          Configurez l&apos;adresse IP de votre serveur ShelfSpot
-        </ThemedText>
+    <ThemedView style={styles.container}>
+      <KeyboardAvoidingView 
+        style={styles.content}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        {/* Skip Button */}
+        <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
+          <ThemedText style={[styles.skipText, { color: colors.textSecondary }]}>
+            Ignorer
+          </ThemedText>
+        </TouchableOpacity>
 
-        <View style={styles.form}>
-          <ThemedText style={styles.label}>Adresse IP du serveur :</ThemedText>
-          <TextInput
-            style={[
-              styles.input,
-              {
-                borderColor: colors.text,
-                color: colors.text,
-                backgroundColor: colors.background,
-              },
-            ]}
-            value={ipInput}
-            onChangeText={setIpInput}
-            placeholder="ex: 192.168.1.100"
-            placeholderTextColor={colors.text + '80'}
-            autoCapitalize="none"
-            autoCorrect={false}
-            editable={!isLoading}
-          />
-
-          <ConnectionStatus 
-            style={styles.statusContainer}
-            onRetry={handleTestConnection}
-          />
-
-          {serverInfo && connectionStatus === 'success' && (
-            <View style={styles.serverInfoContainer}>
-              <ThemedText style={styles.serverInfoTitle}>Informations du serveur :</ThemedText>
-              <ThemedText style={styles.serverInfoText}>Version: {serverInfo.version}</ThemedText>
-              <ThemedText style={styles.serverInfoText}>
-                Dernière connexion: {new Date(serverInfo.timestamp).toLocaleString()}
-              </ThemedText>
-            </View>
-          )}
-
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              style={[
-                styles.button,
-                styles.saveButton,
-                { backgroundColor: colors.tint },
-                isLoading && styles.disabledButton,
-              ]}
-              onPress={handleSaveConfig}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <ActivityIndicator color="white" size="small" />
-              ) : (
-                <Text style={styles.buttonText}>Sauvegarder</Text>
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.button,
-                styles.testButton,
-                { borderColor: colors.tint },
-                isLoading && styles.disabledButton,
-              ]}
-              onPress={handleTestConnection}
-              disabled={isLoading}
-            >
-              {connectionStatus === 'testing' ? (
-                <ActivityIndicator color={colors.tint} size="small" />
-              ) : (
-                <Text style={[styles.buttonTextSecondary, { color: colors.tint }]}>
-                  Tester la connexion
-                </Text>
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.button,
-                styles.continueButton,
-                { backgroundColor: connectionStatus === 'success' ? '#4CAF50' : colors.text + '40' },
-                isLoading && styles.disabledButton,
-              ]}
-              onPress={handleContinue}
-              disabled={isLoading}
-            >
-              <Text style={styles.buttonText}>Continuer</Text>
-            </TouchableOpacity>
+        {/* Logo Section */}
+        <View style={styles.logoSection}>
+          <View style={[styles.logoContainer, { backgroundColor: colors.primary }]}>
+            <IconSymbol name="house.fill" size={32} color="#FFFFFF" />
           </View>
+          <ThemedText type="title" style={[styles.appName, { color: colors.text }]}>
+            ShelfSpot
+          </ThemedText>
+          <ThemedText style={[styles.tagline, { color: colors.textSecondary }]}>
+            Configuration du serveur
+          </ThemedText>
         </View>
-      </ThemedView>
-    </KeyboardAvoidingView>
+
+        {/* Form Section */}
+        <View style={styles.formSection}>
+          <ThemedText type="subtitle" style={[styles.formTitle, { color: colors.text }]}>
+            Adresse du serveur
+          </ThemedText>
+
+          <View style={[styles.inputContainer, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}>
+            <IconSymbol name="server.rack" size={20} color={colors.textSecondary} />
+            <TextInput
+              style={[styles.input, { color: colors.text }]}
+              placeholder="http://192.168.1.100:3001"
+              placeholderTextColor={colors.textSecondary}
+              value={serverIp}
+              onChangeText={setServerIpInput}
+              keyboardType="url"
+              autoCapitalize="none"
+            />
+          </View>
+
+          {/* Connection Status */}
+          <ConnectionStatus
+            status={
+              isLoading ? 'testing' :
+              connectionStatus === 'success' ? 'success' :
+              connectionStatus === 'error' ? 'error' : 'idle'
+            }
+            serverInfo={serverInfo}
+            error={connectionStatus === 'error' ? 'Erreur de connexion' : undefined}
+            onRetry={handleTestConnection}
+            showDetails={true}
+          />
+
+          <ThemedText style={[styles.description, { color: colors.textSecondary }]}>
+            Saisissez l&apos;URL complète de votre serveur local (exemple: http://192.168.1.100:3001)
+          </ThemedText>
+
+          {/* Buttons */}
+          <TouchableOpacity 
+            style={[
+              styles.primaryButton, 
+              { backgroundColor: isLoading ? colors.textSecondary : colors.primary }
+            ]}
+            onPress={handleTestConnection}
+            disabled={isLoading}
+          >
+            <ThemedText style={[styles.primaryButtonText, { color: '#FFFFFF' }]}>
+              {isLoading ? 'Test en cours...' : 'Tester la connexion'}
+            </ThemedText>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.secondaryButton, { borderColor: colors.border }]}
+            onPress={handleSubmit}
+            disabled={isLoading}
+          >
+            <ThemedText style={[styles.secondaryButtonText, { color: colors.primary }]}>
+              Confirmer et continuer
+            </ThemedText>
+          </TouchableOpacity>
+        </View>
+
+        {/* Footer */}
+        <View style={styles.footer}>
+          <ThemedText style={[styles.footerText, { color: colors.textSecondary }]}>
+            Vous pouvez modifier cette configuration plus tard dans les paramètres
+          </ThemedText>
+        </View>
+      </KeyboardAvoidingView>
+    </ThemedView>
   );
 }
 
@@ -224,88 +194,122 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 10,
-  },
-  subtitle: {
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 40,
-    opacity: 0.8,
-  },
-  form: {
-    width: '100%',
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    marginBottom: 20,
-  },
-  statusContainer: {
-    marginBottom: 20,
-  },
-  serverInfoContainer: {
-    padding: 16,
-    borderRadius: 8,
-    backgroundColor: '#E8F5E8',
-    marginBottom: 20,
-  },
-  serverInfoTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 8,
-    color: '#2E7D32',
-  },
-  serverInfoText: {
-    fontSize: 14,
-    color: '#388E3C',
-    marginBottom: 4,
-  },
-  buttonContainer: {
-    gap: 12,
-  },
-  button: {
-    paddingVertical: 12,
     paddingHorizontal: 24,
-    borderRadius: 8,
+    justifyContent: 'center',
+    paddingTop: 100,
+  },
+  skipButton: {
+    position: 'absolute',
+    top: 60,
+    right: 24,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    zIndex: 10,
+  },
+  skipText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  logoSection: {
+    alignItems: 'center',
+    marginBottom: 40,
+    marginTop: -60,
+  },
+  logoContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 48,
+    marginBottom: 12,
+    shadowColor: '#4F7CAC',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 6,
   },
-  saveButton: {
-    // backgroundColor is set dynamically
+  appName: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    marginBottom: 4,
+    letterSpacing: -0.5,
   },
-  testButton: {
-    borderWidth: 1,
+  tagline: {
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 18,
+    fontWeight: '400',
+  },
+  formSection: {
+    marginBottom: 32,
+  },
+  formTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 16,
+    borderWidth: 1.5,
+    paddingHorizontal: 20,
+    paddingVertical: 18,
+    marginBottom: 16,
+    gap: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  input: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  description: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 20,
+  },
+  primaryButton: {
+    paddingVertical: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+    marginBottom: 12,
+    shadowColor: '#4F7CAC',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  primaryButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    letterSpacing: 0.3,
+  },
+  secondaryButton: {
+    paddingVertical: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+    borderWidth: 1.5,
     backgroundColor: 'transparent',
   },
-  continueButton: {
-    // backgroundColor is set dynamically
-  },
-  disabledButton: {
-    opacity: 0.5,
-  },
-  buttonText: {
-    color: 'white',
+  secondaryButtonText: {
     fontSize: 16,
     fontWeight: '600',
+    letterSpacing: 0.3,
   },
-  buttonTextSecondary: {
-    fontSize: 16,
-    fontWeight: '600',
+  footer: {
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  footerText: {
+    fontSize: 12,
+    textAlign: 'center',
+    lineHeight: 16,
   },
 });

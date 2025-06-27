@@ -1,7 +1,7 @@
-import { router } from 'expo-router';
-import { useEffect } from 'react';
 import { useAuthStore } from '@/stores/auth';
 import { useConfigStore } from '@/stores/config';
+import { router } from 'expo-router';
+import { useEffect } from 'react';
 
 export default function Index() {
   const { isAuthenticated, user } = useAuthStore();
@@ -9,7 +9,7 @@ export default function Index() {
 
   useEffect(() => {
     // Check if we have a server IP configured
-    if (!serverIp || serverIp === '' || serverIp === '192.168.1.100') {
+    if (!serverIp || serverIp === '' || serverIp === 'http://192.168.1.100:3001') {
       // Default IP or empty - go to server config
       router.replace('/server-config');
       return;

@@ -38,7 +38,7 @@ export const useConfigStore = create<ConfigState>()(
   persist(
     (set, get) => ({
       // Initial state
-      serverIp: '192.168.1.100',
+      serverIp: 'http://192.168.1.100:3001',
       connectionStatus: 'idle',
       serverInfo: null,
       error: null,
@@ -140,7 +140,7 @@ export const useConfigStore = create<ConfigState>()(
           console.log('ConfigStore: Clearing server configuration');
           await configService.clearServerConfig();
           set({ 
-            serverIp: '192.168.1.100',
+            serverIp: 'http://192.168.1.100:3001',
             connectionStatus: 'idle',
             serverInfo: null,
             error: null 

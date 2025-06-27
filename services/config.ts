@@ -41,10 +41,11 @@ export class ConfigService {
 
   async setServerIp(ip: string): Promise<void> {
     try {
-      const normalizedIp = this.normalizeUrl(ip);
-      await AsyncStorage.setItem(STORAGE_KEY, normalizedIp);
-      this._backendUrl = normalizedIp;
-      console.log('ConfigService: Server IP updated to:', normalizedIp);
+      // Use the IP as provided by the user without normalization
+      const cleanIp = ip.trim();
+      await AsyncStorage.setItem(STORAGE_KEY, cleanIp);
+      this._backendUrl = cleanIp;
+      console.log('ConfigService: Server IP updated to:', cleanIp);
     } catch (error) {
       console.error('ConfigService: Error saving server IP:', error);
       throw error;
@@ -54,10 +55,10 @@ export class ConfigService {
   async getServerIp(): Promise<string> {
     try {
       const storedIp = await AsyncStorage.getItem(STORAGE_KEY);
-      return storedIp || '192.168.1.100'; // Default IP
+      return storedIp || 'http://192.168.1.100:3001'; // Default full URL
     } catch (error) {
       console.error('ConfigService: Error getting server IP:', error);
-      return '192.168.1.100';
+      return 'http://192.168.1.100:3001';
     }
   }
 
