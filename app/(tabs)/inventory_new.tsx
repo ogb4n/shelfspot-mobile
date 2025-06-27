@@ -10,9 +10,6 @@ import { InventoryHeader } from '../../components/inventory/InventoryHeader';
 import { InventorySearch } from '../../components/inventory/InventorySearch';
 import { InventoryFilters } from '../../components/inventory/InventoryFilters';
 import { InventoryItem } from '../../components/inventory/InventoryItem';
-import { AddItemModal } from '../../components/inventory/AddItemModal';
-import { AlertsModal } from '../../components/inventory/AlertsModal';
-import { CreateAlertModal } from '../../components/inventory/CreateAlertModal';
 import { useInventoryItems } from '../../hooks/inventory/useInventoryItems';
 import { useInventorySelection } from '../../hooks/inventory/useInventorySelection';
 import { useInventoryAlerts } from '../../hooks/inventory/useInventoryAlerts';
@@ -25,7 +22,7 @@ export default function InventoryScreen() {
   // Show/hide advanced filters
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   
-  // Add item modal
+  // Modals
   const [showAddModal, setShowAddModal] = useState(false);
 
   // Use custom hooks
@@ -41,7 +38,6 @@ export default function InventoryScreen() {
     clearAllAdvancedFilters,
     deleteItems,
     toggleFavorite,
-    addItem,
   } = useInventoryItems();
 
   const {
@@ -57,15 +53,10 @@ export default function InventoryScreen() {
 
   const {
     showAlertsModal,
-    showCreateAlertModal,
-    selectedItemForAlert,
-    selectedItem,
     triggeredAlerts,
     openAlertsModal,
     closeAlertsModal,
     openCreateAlertModal,
-    closeCreateAlertModal,
-    createAlert,
   } = useInventoryAlerts(items);
 
   // Handlers
@@ -101,12 +92,6 @@ export default function InventoryScreen() {
 
   const handleSelectAll = () => {
     selectAllItems(filteredItems.map(item => item.id));
-  };
-
-  const handleCreateAlert = (alertData: any) => {
-    createAlert(() => {
-      Alert.alert('Succès', 'L&apos;alerte a été créée !');
-    });
   };
 
   const renderInventoryItem = ({ item }: { item: any }) => (
@@ -173,26 +158,10 @@ export default function InventoryScreen() {
         <IconSymbol name="plus" size={28} color="#FFFFFF" />
       </TouchableOpacity>
 
-      {/* Modals */}
-      <AddItemModal
-        visible={showAddModal}
-        onClose={handleCloseAddModal}
-        onAddItem={addItem}
-      />
-
-      <AlertsModal
-        visible={showAlertsModal}
-        onClose={closeAlertsModal}
-        triggeredAlerts={triggeredAlerts}
-      />
-
-      <CreateAlertModal
-        visible={showCreateAlertModal}
-        onClose={closeCreateAlertModal}
-        onCreateAlert={handleCreateAlert}
-        itemId={selectedItemForAlert}
-        itemName={selectedItem?.name}
-      />
+      {/* TODO: Add modals here */}
+      {/* - AddItemModal */}
+      {/* - AlertsModal */}
+      {/* - CreateAlertModal */}
     </ThemedView>
   );
 }
