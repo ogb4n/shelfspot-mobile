@@ -41,9 +41,10 @@ export class ConfigService {
 
   async setServerIp(ip: string): Promise<void> {
     try {
-      await AsyncStorage.setItem(STORAGE_KEY, ip);
-      this._backendUrl = ip;
-      console.log('ConfigService: Server IP updated to:', ip);
+      const normalizedIp = this.normalizeUrl(ip);
+      await AsyncStorage.setItem(STORAGE_KEY, normalizedIp);
+      this._backendUrl = normalizedIp;
+      console.log('ConfigService: Server IP updated to:', normalizedIp);
     } catch (error) {
       console.error('ConfigService: Error saving server IP:', error);
       throw error;
