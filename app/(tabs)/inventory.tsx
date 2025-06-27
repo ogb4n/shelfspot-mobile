@@ -31,11 +31,17 @@ interface AdvancedFilters {
 interface NewItemData {
   name: string;
   quantity: number;
+  status: 'available' | 'running_low' | 'out_of_stock' | 'expired';
+  isConsumable: boolean;
+  image?: string;
+  barcode?: string;
   room: string;
   place: string;
   container: string;
   tags: string[];
-  status: 'available' | 'running_low' | 'out_of_stock' | 'expired';
+  externalLink: string;
+  purchasePrice: number;
+  salePrice: number;
   isFavorite: boolean;
 }
 
@@ -60,11 +66,17 @@ export default function InventoryScreen() {
   const [newItemData, setNewItemData] = useState<NewItemData>({
     name: '',
     quantity: 1,
+    status: 'available',
+    isConsumable: false,
+    image: undefined,
+    barcode: undefined,
     room: '',
     place: '',
     container: '',
     tags: [],
-    status: 'available',
+    externalLink: '',
+    purchasePrice: 0,
+    salePrice: 0,
     isFavorite: false,
   });
   const [tempTag, setTempTag] = useState('');
@@ -212,11 +224,17 @@ export default function InventoryScreen() {
     setNewItemData({
       name: '',
       quantity: 1,
+      status: 'available',
+      isConsumable: false,
+      image: undefined,
+      barcode: undefined,
       room: '',
       place: '',
       container: '',
       tags: [],
-      status: 'available',
+      externalLink: '',
+      purchasePrice: 0,
+      salePrice: 0,
       isFavorite: false,
     });
   };
@@ -228,7 +246,7 @@ export default function InventoryScreen() {
   };
 
   const nextStep = () => {
-    if (currentStep < 3) {
+    if (currentStep < 4) {
       setCurrentStep(currentStep + 1);
     }
   };
@@ -257,9 +275,10 @@ export default function InventoryScreen() {
   const canProceedToNextStep = () => {
     switch (currentStep) {
       case 0: return newItemData.name.trim() !== '';
-      case 1: return newItemData.room.trim() !== '' && newItemData.place.trim() !== '' && newItemData.container.trim() !== '';
-      case 2: return true; // Tags and status are optional
-      case 3: return true; // Final step
+      case 1: return true; // Image and barcode are optional
+      case 2: return newItemData.room.trim() !== '' && newItemData.place.trim() !== '' && newItemData.container.trim() !== '';
+      case 3: return true; // Tags, links and prices are optional
+      case 4: return true; // Final step
       default: return false;
     }
   };
@@ -284,9 +303,10 @@ export default function InventoryScreen() {
   };
 
   const steps = [
-    { title: 'Informations de base', description: 'Nom et quantité' },
+    { title: 'Informations de base', description: 'Nom, quantité, statut et type' },
+    { title: 'Image et code-barres', description: 'Photo et scan optionnels' },
     { title: 'Localisation', description: 'Pièce, endroit et contenant' },
-    { title: 'Détails', description: 'Tags et statut' },
+    { title: 'Détails complémentaires', description: 'Tags, liens et prix' },
     { title: 'Confirmation', description: 'Vérifiez les informations' },
   ];
 
@@ -830,11 +850,131 @@ export default function InventoryScreen() {
                       </TouchableOpacity>
                     </View>
                   </View>
+
+                  <View style={styles.inputGroup}>
+                    <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                      Statut
+                    </ThemedText>
+                    <View style={styles.statusButtons}>
+                      {(['available', 'running_low', 'out_of_stock', 'expired'] as const).map((status) => (
+                        <TouchableOpacity
+                          key={status}
+                          style={[
+                            styles.statusButton,
+                            {
+                              backgroundColor: newItemData.status === status ? colors.primary : colors.backgroundSecondary,
+                            }
+                          ]}
+                          onPress={() => updateNewItemData('status', status)}
+                        >
+                          <ThemedText style={[
+                            styles.statusButtonText,
+                            { color: newItemData.status === status ? '#FFFFFF' : colors.textSecondary }
+                          ]}>
+                            {getStatusText(status)}
+                          </ThemedText>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+
+                  <TouchableOpacity
+                    style={styles.consumableToggle}
+                    onPress={() => updateNewItemData('isConsumable', !newItemData.isConsumable)}
+                  >
+                    <View style={[
+                      styles.checkbox, 
+                      { 
+                        backgroundColor: newItemData.isConsumable ? colors.primary : 'transparent',
+                        borderColor: newItemData.isConsumable ? colors.primary : colors.textSecondary 
+                      }
+                    ]}>
+                      {newItemData.isConsumable && (
+                        <IconSymbol name="checkmark" size={16} color="#FFFFFF" />
+                      )}
+                    </View>
+                    <ThemedText style={[styles.consumableText, { color: colors.text }]}>
+                      Objet consommable
+                    </ThemedText>
+                  </TouchableOpacity>
                 </View>
               )}
 
-              {/* Step 1: Location */}
+              {/* Step 1: Image and Barcode */}
               {currentStep === 1 && (
+                <View style={styles.stepContent}>
+                  <View style={styles.inputGroup}>
+                    <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                      Photo de l&apos;objet
+                    </ThemedText>
+                    <View style={styles.imageButtonsContainer}>
+                      <TouchableOpacity
+                        style={[styles.imageButton, { backgroundColor: colors.backgroundSecondary }]}
+                        onPress={() => {
+                          // TODO: Implement camera functionality
+                          Alert.alert('Caméra', 'Fonctionnalité caméra à implémenter');
+                        }}
+                      >
+                        <IconSymbol name="camera" size={24} color={colors.text} />
+                        <ThemedText style={[styles.imageButtonText, { color: colors.text }]}>
+                          Prendre une photo
+                        </ThemedText>
+                      </TouchableOpacity>
+                      
+                      <TouchableOpacity
+                        style={[styles.imageButton, { backgroundColor: colors.backgroundSecondary }]}
+                        onPress={() => {
+                          // TODO: Implement gallery functionality
+                          Alert.alert('Galerie', 'Fonctionnalité galerie à implémenter');
+                        }}
+                      >
+                        <IconSymbol name="photo" size={24} color={colors.text} />
+                        <ThemedText style={[styles.imageButtonText, { color: colors.text }]}>
+                          Choisir dans la galerie
+                        </ThemedText>
+                      </TouchableOpacity>
+                    </View>
+                    
+                    {newItemData.image && (
+                      <View style={[styles.imagePreview, { backgroundColor: colors.backgroundSecondary }]}>
+                        <ThemedText style={[styles.imagePreviewText, { color: colors.textSecondary }]}>
+                          Image sélectionnée
+                        </ThemedText>
+                        <TouchableOpacity onPress={() => updateNewItemData('image', undefined)}>
+                          <IconSymbol name="xmark.circle" size={20} color={colors.error} />
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                      Code-barres
+                    </ThemedText>
+                    <View style={styles.barcodeContainer}>
+                      <TextInput
+                        style={[styles.barcodeInput, { backgroundColor: colors.backgroundSecondary, color: colors.text }]}
+                        placeholder="Code-barres (optionnel)"
+                        placeholderTextColor={colors.textSecondary}
+                        value={newItemData.barcode || ''}
+                        onChangeText={(text) => updateNewItemData('barcode', text)}
+                      />
+                      <TouchableOpacity
+                        style={[styles.scanButton, { backgroundColor: colors.primary }]}
+                        onPress={() => {
+                          // TODO: Implement barcode scanner
+                          Alert.alert('Scanner', 'Fonctionnalité scanner à implémenter');
+                        }}
+                      >
+                        <IconSymbol name="barcode.viewfinder" size={20} color="#FFFFFF" />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+              )}
+
+              {/* Step 2: Location */}
+              {currentStep === 2 && (
                 <View style={styles.stepContent}>
                   <View style={styles.inputGroup}>
                     <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
@@ -877,8 +1017,8 @@ export default function InventoryScreen() {
                 </View>
               )}
 
-              {/* Step 2: Details */}
-              {currentStep === 2 && (
+              {/* Step 3: Additional Details */}
+              {currentStep === 3 && (
                 <View style={styles.stepContent}>
                   <View style={styles.inputGroup}>
                     <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
@@ -917,28 +1057,51 @@ export default function InventoryScreen() {
 
                   <View style={styles.inputGroup}>
                     <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
-                      Statut
+                      Lien externe
                     </ThemedText>
-                    <View style={styles.statusButtons}>
-                      {(['available', 'running_low', 'out_of_stock', 'expired'] as const).map((status) => (
-                        <TouchableOpacity
-                          key={status}
-                          style={[
-                            styles.statusButton,
-                            {
-                              backgroundColor: newItemData.status === status ? colors.primary : colors.backgroundSecondary,
-                            }
-                          ]}
-                          onPress={() => updateNewItemData('status', status)}
-                        >
-                          <ThemedText style={[
-                            styles.statusButtonText,
-                            { color: newItemData.status === status ? '#FFFFFF' : colors.textSecondary }
-                          ]}>
-                            {getStatusText(status)}
-                          </ThemedText>
-                        </TouchableOpacity>
-                      ))}
+                    <TextInput
+                      style={[styles.modalInput, { backgroundColor: colors.backgroundSecondary, color: colors.text }]}
+                      placeholder="Ex: lien produit, notice..."
+                      placeholderTextColor={colors.textSecondary}
+                      value={newItemData.externalLink}
+                      onChangeText={(text) => updateNewItemData('externalLink', text)}
+                      keyboardType="url"
+                    />
+                  </View>
+
+                  <View style={styles.priceContainer}>
+                    <View style={styles.priceInputGroup}>
+                      <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                        Prix d&apos;achat (€)
+                      </ThemedText>
+                      <TextInput
+                        style={[styles.priceInput, { backgroundColor: colors.backgroundSecondary, color: colors.text }]}
+                        placeholder="0"
+                        placeholderTextColor={colors.textSecondary}
+                        value={newItemData.purchasePrice ? newItemData.purchasePrice.toString() : ''}
+                        onChangeText={(text) => {
+                          const price = parseFloat(text) || 0;
+                          updateNewItemData('purchasePrice', price);
+                        }}
+                        keyboardType="decimal-pad"
+                      />
+                    </View>
+
+                    <View style={styles.priceInputGroup}>
+                      <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                        Prix de vente (€)
+                      </ThemedText>
+                      <TextInput
+                        style={[styles.priceInput, { backgroundColor: colors.backgroundSecondary, color: colors.text }]}
+                        placeholder="0"
+                        placeholderTextColor={colors.textSecondary}
+                        value={newItemData.salePrice ? newItemData.salePrice.toString() : ''}
+                        onChangeText={(text) => {
+                          const price = parseFloat(text) || 0;
+                          updateNewItemData('salePrice', price);
+                        }}
+                        keyboardType="decimal-pad"
+                      />
                     </View>
                   </View>
 
@@ -958,8 +1121,8 @@ export default function InventoryScreen() {
                 </View>
               )}
 
-              {/* Step 3: Confirmation */}
-              {currentStep === 3 && (
+              {/* Step 4: Confirmation */}
+              {currentStep === 4 && (
                 <View style={styles.stepContent}>
                   <View style={[styles.confirmationCard, { backgroundColor: colors.card }]}>
                     <ThemedText type="defaultSemiBold" style={[styles.confirmationTitle, { color: colors.text }]}>
@@ -977,15 +1140,6 @@ export default function InventoryScreen() {
 
                     <View style={styles.confirmationRow}>
                       <ThemedText style={[styles.confirmationLabel, { color: colors.textSecondary }]}>
-                        Localisation:
-                      </ThemedText>
-                      <ThemedText style={[styles.confirmationValue, { color: colors.text }]}>
-                        {newItemData.room} → {newItemData.place} → {newItemData.container}
-                      </ThemedText>
-                    </View>
-
-                    <View style={styles.confirmationRow}>
-                      <ThemedText style={[styles.confirmationLabel, { color: colors.textSecondary }]}>
                         Statut:
                       </ThemedText>
                       <View style={[styles.statusBadge, { backgroundColor: `${getStatusColor(newItemData.status)}20` }]}>
@@ -993,6 +1147,48 @@ export default function InventoryScreen() {
                           {getStatusText(newItemData.status)}
                         </ThemedText>
                       </View>
+                    </View>
+
+                    {newItemData.isConsumable && (
+                      <View style={styles.confirmationRow}>
+                        <ThemedText style={[styles.confirmationLabel, { color: colors.textSecondary }]}>
+                          Type:
+                        </ThemedText>
+                        <ThemedText style={[styles.confirmationValue, { color: colors.text }]}>
+                          Consommable
+                        </ThemedText>
+                      </View>
+                    )}
+
+                    {newItemData.image && (
+                      <View style={styles.confirmationRow}>
+                        <ThemedText style={[styles.confirmationLabel, { color: colors.textSecondary }]}>
+                          Image:
+                        </ThemedText>
+                        <ThemedText style={[styles.confirmationValue, { color: colors.text }]}>
+                          Ajoutée
+                        </ThemedText>
+                      </View>
+                    )}
+
+                    {newItemData.barcode && (
+                      <View style={styles.confirmationRow}>
+                        <ThemedText style={[styles.confirmationLabel, { color: colors.textSecondary }]}>
+                          Code-barres:
+                        </ThemedText>
+                        <ThemedText style={[styles.confirmationValue, { color: colors.text }]}>
+                          {newItemData.barcode}
+                        </ThemedText>
+                      </View>
+                    )}
+
+                    <View style={styles.confirmationRow}>
+                      <ThemedText style={[styles.confirmationLabel, { color: colors.textSecondary }]}>
+                        Localisation:
+                      </ThemedText>
+                      <ThemedText style={[styles.confirmationValue, { color: colors.text }]}>
+                        {newItemData.room} → {newItemData.place} → {newItemData.container}
+                      </ThemedText>
                     </View>
 
                     {newItemData.tags.length > 0 && (
@@ -1009,6 +1205,42 @@ export default function InventoryScreen() {
                             </View>
                           ))}
                         </View>
+                      </View>
+                    )}
+
+                    {newItemData.externalLink && (
+                      <View style={styles.confirmationRow}>
+                        <ThemedText style={[styles.confirmationLabel, { color: colors.textSecondary }]}>
+                          Lien externe:
+                        </ThemedText>
+                        <ThemedText style={[styles.confirmationValue, { color: colors.primary }]} numberOfLines={1}>
+                          {newItemData.externalLink}
+                        </ThemedText>
+                      </View>
+                    )}
+
+                    {(newItemData.purchasePrice > 0 || newItemData.salePrice > 0) && (
+                      <View style={styles.priceRow}>
+                        {newItemData.purchasePrice > 0 && (
+                          <View style={styles.priceInfo}>
+                            <ThemedText style={[styles.confirmationLabel, { color: colors.textSecondary }]}>
+                              Prix d&apos;achat:
+                            </ThemedText>
+                            <ThemedText style={[styles.confirmationValue, { color: colors.text }]}>
+                              {newItemData.purchasePrice}€
+                            </ThemedText>
+                          </View>
+                        )}
+                        {newItemData.salePrice > 0 && (
+                          <View style={styles.priceInfo}>
+                            <ThemedText style={[styles.confirmationLabel, { color: colors.textSecondary }]}>
+                              Prix de vente:
+                            </ThemedText>
+                            <ThemedText style={[styles.confirmationValue, { color: colors.text }]}>
+                              {newItemData.salePrice}€
+                            </ThemedText>
+                          </View>
+                        )}
                       </View>
                     )}
 
@@ -1049,14 +1281,14 @@ export default function InventoryScreen() {
                     flex: currentStep === 0 ? 1 : 0.6
                   }
                 ]}
-                onPress={currentStep === 3 ? addNewItem : nextStep}
+                onPress={currentStep === 4 ? addNewItem : nextStep}
                 disabled={!canProceedToNextStep()}
               >
                 <ThemedText style={[
                   styles.primaryButtonText, 
                   { color: canProceedToNextStep() ? '#FFFFFF' : colors.textSecondary }
                 ]}>
-                  {currentStep === 3 ? 'Ajouter l&apos;objet' : 'Suivant'}
+                  {currentStep === 4 ? 'Ajouter l&apos;objet' : 'Suivant'}
                 </ThemedText>
               </TouchableOpacity>
             </View>
@@ -1572,5 +1804,85 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     fontSize: 16,
     fontWeight: '500',
+  },
+  // New styles for updated wizard
+  consumableToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 16,
+  },
+  consumableText: {
+    fontSize: 16,
+  },
+  imageButtonsContainer: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  imageButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    gap: 8,
+  },
+  imageButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  imagePreview: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginTop: 8,
+  },
+  imagePreviewText: {
+    fontSize: 14,
+  },
+  barcodeContainer: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  barcodeInput: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    fontSize: 16,
+  },
+  scanButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  priceContainer: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  priceInputGroup: {
+    flex: 1,
+    gap: 8,
+  },
+  priceInput: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    fontSize: 16,
+  },
+  priceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 16,
+  },
+  priceInfo: {
+    flex: 1,
   },
 });
