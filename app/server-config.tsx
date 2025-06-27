@@ -5,32 +5,21 @@ import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function ServerConfigScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
-  const [serverIP, setServerIP] = useState('');
-
-  const validateIP = (ip: string) => {
-    const ipRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
-    return ipRegex.test(ip) || ip === 'localhost' || ip.includes(':'); // Accepte aussi localhost et les ports
-  };
+  const [serverIp, setServerIp] = useState('');
 
   const handleSubmit = () => {
-    if (!serverIP.trim()) {
-      Alert.alert('Erreur', 'Veuillez saisir une adresse IP ou une URL de serveur');
-      return;
-    }
-
-    if (!validateIP(serverIP.trim())) {
-      Alert.alert('Erreur', 'Veuillez saisir une adresse IP valide (ex: 192.168.1.100 ou localhost:3000)');
-      return;
-    }
-
-    // Ici on pourrait sauvegarder l'IP dans le stockage local
-    // Pour l'instant, on navigue simplement vers la page de connexion
+    // Ici vous pourrez stocker l'IP du serveur si nécessaire
     router.replace('/login');
+  };
+
+  const handleSkip = () => {
+    // Redirection directe vers l'application principale
+    router.replace('/(tabs)');
   };
 
   return (
@@ -39,16 +28,23 @@ export default function ServerConfigScreen() {
         style={styles.content}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
+        {/* Skip Button */}
+        <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
+          <ThemedText style={[styles.skipText, { color: colors.textSecondary }]}>
+            Ignorer
+          </ThemedText>
+        </TouchableOpacity>
+
         {/* Logo Section */}
         <View style={styles.logoSection}>
           <View style={[styles.logoContainer, { backgroundColor: colors.primary }]}>
-            <IconSymbol name="server.rack" size={32} color="#FFFFFF" />
+            <IconSymbol name="house.fill" size={32} color="#FFFFFF" />
           </View>
           <ThemedText type="title" style={[styles.appName, { color: colors.text }]}>
-            Configuration Serveur
+            ShelfSpot
           </ThemedText>
           <ThemedText style={[styles.tagline, { color: colors.textSecondary }]}>
-            Connectez-vous à votre serveur ShelfSpot
+            Configuration du serveur
           </ThemedText>
         </View>
 
@@ -59,32 +55,16 @@ export default function ServerConfigScreen() {
           </ThemedText>
 
           <View style={[styles.inputContainer, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}>
-            <IconSymbol name="globe" size={20} color={colors.textSecondary} />
+            <IconSymbol name="server.rack" size={20} color={colors.textSecondary} />
             <TextInput
               style={[styles.input, { color: colors.text }]}
-              placeholder="192.168.1.100 ou localhost:3000"
+              placeholder="192.168.1.100"
               placeholderTextColor={colors.textSecondary}
-              value={serverIP}
-              onChangeText={setServerIP}
-              keyboardType="url"
+              value={serverIp}
+              onChangeText={setServerIp}
+              keyboardType="numeric"
               autoCapitalize="none"
-              autoCorrect={false}
             />
-          </View>
-
-          <View style={styles.helpSection}>
-            <ThemedText style={[styles.helpTitle, { color: colors.text }]}>
-              Exemples d'adresses :
-            </ThemedText>
-            <ThemedText style={[styles.helpText, { color: colors.textSecondary }]}>
-              • 192.168.1.100
-            </ThemedText>
-            <ThemedText style={[styles.helpText, { color: colors.textSecondary }]}>
-              • localhost:3000
-            </ThemedText>
-            <ThemedText style={[styles.helpText, { color: colors.textSecondary }]}>
-              • 10.0.0.50:8080
-            </ThemedText>
           </View>
 
           <TouchableOpacity 
@@ -92,15 +72,15 @@ export default function ServerConfigScreen() {
             onPress={handleSubmit}
           >
             <ThemedText style={[styles.primaryButtonText, { color: '#FFFFFF' }]}>
-              Se connecter au serveur
+              Valider
             </ThemedText>
           </TouchableOpacity>
         </View>
 
-        {/* Footer */}
+        {/* Footer Info */}
         <View style={styles.footer}>
           <ThemedText style={[styles.footerText, { color: colors.textSecondary }]}>
-            Cette adresse sera utilisée pour communiquer avec votre serveur ShelfSpot
+            Saisissez l'adresse IP de votre serveur local
           </ThemedText>
         </View>
       </KeyboardAvoidingView>
@@ -118,10 +98,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingTop: 100,
   },
+  skipButton: {
+    position: 'absolute',
+    top: 60,
+    right: 24,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    zIndex: 10,
+  },
+  skipText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
   logoSection: {
     alignItems: 'center',
-    marginBottom: 24,
-    marginTop: -80,
+    marginBottom: 40,
+    marginTop: -60,
   },
   logoContainer: {
     width: 64,
@@ -141,7 +133,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 4,
     letterSpacing: -0.5,
-    textAlign: 'center',
   },
   tagline: {
     fontSize: 14,
@@ -153,7 +144,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   formTitle: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
     marginBottom: 32,
     textAlign: 'center',
@@ -166,7 +157,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     paddingHorizontal: 20,
     paddingVertical: 18,
-    marginBottom: 24,
+    marginBottom: 32,
     gap: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -178,20 +169,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     fontWeight: '500',
-  },
-  helpSection: {
-    marginBottom: 32,
-    paddingHorizontal: 8,
-  },
-  helpTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  helpText: {
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 4,
   },
   primaryButton: {
     borderRadius: 16,
@@ -211,13 +188,11 @@ const styles = StyleSheet.create({
   },
   footer: {
     alignItems: 'center',
-    paddingHorizontal: 16,
     paddingBottom: 32,
   },
   footerText: {
-    fontSize: 13,
+    fontSize: 14,
     textAlign: 'center',
-    lineHeight: 18,
-    fontWeight: '400',
+    fontStyle: 'italic',
   },
 });
