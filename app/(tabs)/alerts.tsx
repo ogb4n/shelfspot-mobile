@@ -1,4 +1,4 @@
-import { CreateAlertModal } from '@/components/inventory/CreateAlertModal';
+import { AlertContextMenu, CreateAlertWithItemSelectorModal, EditAlertModal } from '@/components/inventory';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
@@ -6,13 +6,22 @@ import { Colors } from '@/constants/Colors';
 import { useInventoryAlerts, useInventoryItems } from '@/hooks/inventory';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Alert, AlertFormData } from '@/types/inventory';
+import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Alert as RNAlert, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, Alert as RNAlert, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function AlertsScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Context menu state
+  const [showContextMenu, setShowContextMenu] = useState(false);
+  const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 });
+  const [selectedAlertForContext, setSelectedAlertForContext] = useState<Alert | null>(null);
 
   const { items, loading: itemsLoading } = useInventoryItems();
   const {
@@ -22,11 +31,21 @@ export default function AlertsScreen() {
     error,
     toggleAlert,
     deleteAlert,
+    updateAlert,
     loadAlerts,
     showCreateAlertModal,
     openCreateAlertModal,
-    closeCreateAlertModal
+    closeCreateAlertModal,
+    createAlert
   } = useInventoryAlerts(items);
+
+  // Filter alerts based on search query
+  const filteredAlerts = searchQuery.trim()
+    ? allAlerts.filter(alert =>
+      alert.item?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      alert.name?.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    : allAlerts;
 
   const loading = itemsLoading || alertsLoading;
 
@@ -40,10 +59,19 @@ export default function AlertsScreen() {
     const alert = allAlerts.find(a => a.id === alertId);
     if (alert) {
       try {
+        console.log('Toggling alert:', { alertId, currentStatus, newStatus: !currentStatus });
         await toggleAlert(alert.itemId, alertId);
+        // Force reload after toggle
+        setTimeout(() => {
+          loadAlerts();
+        }, 500);
       } catch (error) {
+        console.error('Error toggling alert:', error);
         RNAlert.alert('Error', 'Failed to update alert status');
       }
+    } else {
+      console.error('Alert not found for toggle:', { alertId, allAlertsCount: allAlerts.length });
+      RNAlert.alert('Error', 'Alert not found');
     }
   };
 
@@ -72,14 +100,49 @@ export default function AlertsScreen() {
   };
 
   const handleCreateAlert = async (alertData: AlertFormData) => {
-    // This function should be implemented in the hook or add it here
     try {
-      // For now, we'll just close the modal and reload
-      closeCreateAlertModal();
-      await loadAlerts();
+      await createAlert(() => {
+        closeCreateAlertModal();
+        loadAlerts();
+      });
     } catch (error) {
       RNAlert.alert('Error', 'Failed to create alert');
     }
+  };
+
+  const handleEditAlert = (alert: Alert) => {
+    setSelectedAlert(alert);
+    setShowEditModal(true);
+  };
+
+  const handleUpdateAlert = async (alertData: AlertFormData) => {
+    if (!selectedAlert) return;
+
+    try {
+      await updateAlert(selectedAlert.id, alertData, () => {
+        setShowEditModal(false);
+        setSelectedAlert(null);
+        loadAlerts();
+      });
+    } catch (error) {
+      RNAlert.alert('Error', 'Failed to update alert');
+    }
+  };
+
+  const handleViewItem = (itemId: number) => {
+    router.push(`/item/${itemId}`);
+  };
+
+  // Context menu handlers
+  const handleAlertLongPress = (alert: Alert, position: { x: number; y: number }) => {
+    setSelectedAlertForContext(alert);
+    setContextMenuPosition(position);
+    setShowContextMenu(true);
+  };
+
+  const handleCloseContextMenu = () => {
+    setShowContextMenu(false);
+    setSelectedAlertForContext(null);
   };
 
   const getAlertIcon = (alert: Alert) => {
@@ -124,67 +187,64 @@ export default function AlertsScreen() {
     return d.toLocaleDateString();
   };
 
-  const renderAlert = ({ item }: { item: Alert }) => (
-    <View style={[styles.alertCard, { backgroundColor: colors.card }]}>
-      <View style={styles.alertHeader}>
-        <View style={styles.alertInfo}>
-          <View style={styles.alertTitleRow}>
-            <View style={[styles.alertIconContainer, { backgroundColor: `${getAlertColor(item)}20` }]}>
-              <IconSymbol
-                name={getAlertIcon(item)}
-                size={16}
-                color={getAlertColor(item)}
-              />
-            </View>
-            <View style={styles.alertTitleContent}>
-              <ThemedText type="defaultSemiBold" style={[styles.alertItemName, { color: colors.text }]}>
-                {item.name || item.item.name}
-              </ThemedText>
-              <View style={[styles.alertTypeBadge, { backgroundColor: `${getAlertColor(item)}20` }]}>
-                <ThemedText style={[styles.alertTypeText, { color: getAlertColor(item) }]}>
-                  {getAlertTypeText(item)}
+  const renderAlert = ({ item }: { item: Alert }) => {
+    const handleLongPress = (event: any) => {
+      const { pageX, pageY } = event.nativeEvent;
+      handleAlertLongPress(item, { x: pageX, y: pageY });
+    };
+
+    return (
+      <TouchableOpacity
+        style={[styles.alertCard, { backgroundColor: colors.card }]}
+        onPress={() => handleViewItem(item.item.id)}
+        onLongPress={handleLongPress}
+      >
+        <View style={styles.alertHeader}>
+          <View style={styles.alertInfo}>
+            <View style={styles.alertTitleRow}>
+              <View style={[styles.alertIconContainer, { backgroundColor: `${getAlertColor(item)}20` }]}>
+                <IconSymbol
+                  name={getAlertIcon(item)}
+                  size={16}
+                  color={getAlertColor(item)}
+                />
+              </View>
+              <View style={styles.alertTitleContent}>
+                <ThemedText type="defaultSemiBold" style={[styles.alertItemName, { color: colors.text }]}>
+                  {item.name || item.item.name}
                 </ThemedText>
+                <View style={[styles.alertTypeBadge, { backgroundColor: `${getAlertColor(item)}20` }]}>
+                  <ThemedText style={[styles.alertTypeText, { color: getAlertColor(item) }]}>
+                    {getAlertTypeText(item)}
+                  </ThemedText>
+                </View>
               </View>
             </View>
+            <ThemedText style={[styles.alertMessage, { color: colors.textSecondary }]}>
+              {getAlertMessage(item)}
+            </ThemedText>
+            <ThemedText style={[styles.alertMeta, { color: colors.textSecondary }]}>
+              Created {formatDate(item.createdAt)}
+              {item.lastSent && ` • Last triggered ${formatDate(item.lastSent)}`}
+            </ThemedText>
           </View>
-          <ThemedText style={[styles.alertMessage, { color: colors.textSecondary }]}>
-            {getAlertMessage(item)}
-          </ThemedText>
-          <ThemedText style={[styles.alertMeta, { color: colors.textSecondary }]}>
-            Created {formatDate(item.createdAt)}
-            {item.lastSent && ` • Last triggered ${formatDate(item.lastSent)}`}
-          </ThemedText>
-        </View>
-        <Switch
-          value={item.isActive}
-          onValueChange={() => handleToggleAlert(item.id, item.isActive)}
-          trackColor={{
-            false: colors.border,
-            true: colors.primary,
-          }}
-          thumbColor={item.isActive ? '#FFFFFF' : colors.textSecondary}
-        />
-      </View>
 
-      <View style={styles.alertActions}>
-        <TouchableOpacity
-          style={[styles.actionButton, { backgroundColor: colors.backgroundSecondary }]}
-          onPress={() => handleDeleteAlert(item.id)}
-        >
-          <IconSymbol name="trash" size={14} color={colors.error} />
-          <ThemedText style={[styles.actionButtonText, { color: colors.error }]}>
-            Delete
-          </ThemedText>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.actionButton, { backgroundColor: colors.backgroundSecondary }]}>
-          <IconSymbol name="arrow.right" size={14} color={colors.textSecondary} />
-          <ThemedText style={[styles.actionButtonText, { color: colors.textSecondary }]}>
-            View Item
-          </ThemedText>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
+          {/* Status indicator */}
+          <View style={[
+            styles.alertStatusBadge,
+            { backgroundColor: item.isActive ? `${colors.primary}20` : `${colors.textSecondary}20` }
+          ]}>
+            <ThemedText style={[
+              styles.alertStatusText,
+              { color: item.isActive ? colors.primary : colors.textSecondary }
+            ]}>
+              {item.isActive ? 'Active' : 'Inactive'}
+            </ThemedText>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   const EmptyState = () => (
     <View style={styles.emptyState}>
@@ -197,7 +257,7 @@ export default function AlertsScreen() {
       </ThemedText>
       <TouchableOpacity
         style={[styles.emptyButton, { backgroundColor: colors.primary }]}
-        onPress={() => openCreateAlertModal(0)} // Let user select an item
+        onPress={() => setShowCreateModal(true)}
       >
         <ThemedText style={[styles.emptyButtonText, { color: '#FFFFFF' }]}>
           Create Alert
@@ -215,7 +275,7 @@ export default function AlertsScreen() {
         </ThemedText>
         <TouchableOpacity
           style={[styles.addButton, { backgroundColor: colors.primary }]}
-          onPress={() => openCreateAlertModal(0)} // Use a default itemId or let user select
+          onPress={() => setShowCreateModal(true)}
         >
           <IconSymbol name="plus" size={24} color="#FFFFFF" />
         </TouchableOpacity>
@@ -241,34 +301,24 @@ export default function AlertsScreen() {
         </View>
       </View>
 
-      {/* Quick Actions */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.quickActions}
-        contentContainerStyle={styles.quickActionsContent}
-      >
-        <TouchableOpacity style={[styles.quickActionCard, { backgroundColor: colors.warning }]}>
-          <IconSymbol name="exclamationmark.triangle" size={20} color="#FFFFFF" />
-          <ThemedText style={[styles.quickActionText, { color: '#FFFFFF' }]}>
-            Low Stock
-          </ThemedText>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={[styles.quickActionCard, { backgroundColor: colors.error }]}>
-          <IconSymbol name="xmark.circle" size={20} color="#FFFFFF" />
-          <ThemedText style={[styles.quickActionText, { color: '#FFFFFF' }]}>
-            Out of Stock
-          </ThemedText>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={[styles.quickActionCard, { backgroundColor: colors.info }]}>
-          <IconSymbol name="clock" size={20} color="#FFFFFF" />
-          <ThemedText style={[styles.quickActionText, { color: '#FFFFFF' }]}>
-            Expiration
-          </ThemedText>
-        </TouchableOpacity>
-      </ScrollView>
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <View style={[styles.searchBar, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <IconSymbol name="magnifyingglass" size={20} color={colors.textSecondary} />
+          <TextInput
+            style={[styles.searchInput, { color: colors.text }]}
+            placeholder="Search alerts by item name..."
+            placeholderTextColor={colors.textSecondary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <IconSymbol name="xmark.circle.fill" size={20} color={colors.textSecondary} />
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
 
       {/* Alerts List */}
       {loading ? (
@@ -296,29 +346,57 @@ export default function AlertsScreen() {
             </ThemedText>
           </TouchableOpacity>
         </View>
-      ) : allAlerts.length > 0 ? (
+      ) : filteredAlerts.length > 0 ? (
         <FlatList
-          data={allAlerts}
+          data={filteredAlerts}
           renderItem={renderAlert}
           keyExtractor={(item) => item.id.toString()}
           style={styles.list}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
         />
+      ) : searchQuery.trim() ? (
+        <View style={styles.emptyState}>
+          <IconSymbol name="magnifyingglass" size={64} color={colors.textSecondary} />
+          <ThemedText type="subtitle" style={[styles.emptyTitle, { color: colors.text }]}>
+            No Results Found
+          </ThemedText>
+          <ThemedText style={[styles.emptyDescription, { color: colors.textSecondary }]}>
+            No alerts found for "{searchQuery}". Try a different search term.
+          </ThemedText>
+        </View>
       ) : (
         <EmptyState />
       )}
 
       {/* Create Alert Modal */}
-      {showCreateAlertModal && (
-        <CreateAlertModal
-          visible={showCreateAlertModal}
-          onClose={closeCreateAlertModal}
-          onCreateAlert={handleCreateAlert}
-          itemId={null} // Let user select item in modal
-          itemName=""
+      <CreateAlertWithItemSelectorModal
+        visible={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onCreateAlert={handleCreateAlert}
+        items={items}
+      />
+      {/* Edit Alert Modal */}
+      {showEditModal && selectedAlert && (
+        <EditAlertModal
+          visible={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          alert={selectedAlert}
+          onUpdateAlert={handleUpdateAlert}
         />
       )}
+
+      {/* Alert Context Menu */}
+      <AlertContextMenu
+        visible={showContextMenu}
+        onClose={handleCloseContextMenu}
+        alert={selectedAlertForContext}
+        position={contextMenuPosition}
+        onEdit={handleEditAlert}
+        onToggleActive={handleToggleAlert}
+        onViewItem={handleViewItem}
+        onDelete={handleDeleteAlert}
+      />
     </ThemedView>
   );
 }
@@ -372,24 +450,23 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
   },
-  quickActions: {
+  searchContainer: {
+    paddingHorizontal: 20,
     marginBottom: 20,
   },
-  quickActionsContent: {
-    paddingHorizontal: 20,
-    gap: 12,
-  },
-  quickActionCard: {
+  searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 12,
-    gap: 8,
+    borderWidth: 1,
+    gap: 12,
   },
-  quickActionText: {
-    fontSize: 14,
-    fontWeight: '500',
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    minHeight: 20,
   },
   list: {
     flex: 1,
@@ -453,21 +530,16 @@ const styles = StyleSheet.create({
   alertMeta: {
     fontSize: 12,
   },
-  alertActions: {
-    flexDirection: 'row',
-    gap: 8,
+  alertStatusBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginTop: 8,
   },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    gap: 6,
-  },
-  actionButtonText: {
-    fontSize: 12,
-    fontWeight: '500',
+  alertStatusText: {
+    fontSize: 10,
+    fontWeight: '600',
   },
   emptyState: {
     flex: 1,
