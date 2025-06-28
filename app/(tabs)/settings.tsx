@@ -3,10 +3,10 @@ import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { useAuthStore } from '@/stores/auth';
 import { router } from 'expo-router';
 import React from 'react';
-import { ScrollView, StyleSheet, Switch, TouchableOpacity, View, Alert } from 'react-native';
-import { useAuthStore } from '@/stores/auth';
+import { Alert, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
 
 export default function SettingsScreen() {
   const colorScheme = useColorScheme() ?? 'light';
@@ -45,13 +45,13 @@ export default function SettingsScreen() {
     router.push('/server-config');
   };
 
-  const SettingItem = ({ 
-    icon, 
-    title, 
-    subtitle, 
-    onPress, 
+  const SettingItem = ({
+    icon,
+    title,
+    subtitle,
+    onPress,
     showArrow = true,
-    rightComponent 
+    rightComponent
   }: {
     icon: string;
     title: string;
@@ -60,7 +60,7 @@ export default function SettingsScreen() {
     showArrow?: boolean;
     rightComponent?: React.ReactNode;
   }) => (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={[styles.settingItem, { backgroundColor: colors.card }]}
       onPress={onPress}
       disabled={!onPress}
@@ -94,7 +94,7 @@ export default function SettingsScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <ScrollView 
+      <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -102,7 +102,7 @@ export default function SettingsScreen() {
         {/* Header */}
         <View style={styles.header}>
           <ThemedText type="title" style={[styles.title, { color: colors.text }]}>
-            Paramètres
+            Settings
           </ThemedText>
         </View>
 
@@ -116,14 +116,14 @@ export default function SettingsScreen() {
             </View>
             <View style={styles.profileDetails}>
               <ThemedText type="defaultSemiBold" style={[styles.userName, { color: colors.text }]}>
-                {user?.name || 'Utilisateur'}
+                {user?.name || 'User'}
               </ThemedText>
               <ThemedText style={[styles.userEmail, { color: colors.textSecondary }]}>
-                {user?.email || 'Non défini'}
+                {user?.email || 'Not defined'}
               </ThemedText>
               <View style={[styles.roleBadge, { backgroundColor: colors.primary }]}>
                 <ThemedText style={[styles.roleText, { color: '#FFFFFF' }]}>
-                  {user?.admin ? 'Administrateur' : 'Utilisateur'}
+                  {user?.admin ? 'Administrator' : 'User'}
                 </ThemedText>
               </View>
             </View>
@@ -134,25 +134,25 @@ export default function SettingsScreen() {
         </View>
 
         {/* Account Settings */}
-        <SectionHeader title="Compte" />
+        <SectionHeader title="Account" />
         <View style={styles.section}>
           <SettingItem
             icon="person.circle"
-            title="Informations personnelles"
-            subtitle="Nom, email, mot de passe"
-            onPress={() => {}}
+            title="Personal Information"
+            subtitle="Name, email, password"
+            onPress={() => { }}
           />
           <SettingItem
             icon="bell"
             title="Notifications"
-            subtitle="Gérer les alertes et notifications"
-            onPress={() => {}}
+            subtitle="Manage alerts and notifications"
+            onPress={() => { }}
           />
           <SettingItem
             icon="lock"
-            title="Sécurité"
-            subtitle="Mot de passe et authentification"
-            onPress={() => {}}
+            title="Security"
+            subtitle="Password and authentication"
+            onPress={() => { }}
           />
         </View>
 
@@ -161,12 +161,12 @@ export default function SettingsScreen() {
         <View style={styles.section}>
           <SettingItem
             icon="paintbrush"
-            title="Thème"
-            subtitle={colorScheme === 'dark' ? 'Sombre' : 'Clair'}
+            title="Theme"
+            subtitle={colorScheme === 'dark' ? 'Dark' : 'Light'}
             rightComponent={
               <Switch
                 value={colorScheme === 'dark'}
-                onValueChange={() => {}}
+                onValueChange={() => { }}
                 trackColor={{
                   false: colors.border,
                   true: colors.primary,
@@ -178,15 +178,15 @@ export default function SettingsScreen() {
           />
           <SettingItem
             icon="globe"
-            title="Langue"
-            subtitle="Français"
-            onPress={() => {}}
+            title="Language"
+            subtitle="English"
+            onPress={() => { }}
           />
           <SettingItem
             icon="arrow.down.circle"
-            title="Sauvegarde"
-            subtitle="Exporter les données"
-            onPress={() => {}}
+            title="Backup"
+            subtitle="Export data"
+            onPress={() => { }}
           />
         </View>
 
@@ -197,26 +197,26 @@ export default function SettingsScreen() {
             <View style={styles.section}>
               <SettingItem
                 icon="person.2"
-                title="Gestion des utilisateurs"
-                subtitle="Ajouter, modifier, supprimer des utilisateurs"
-                onPress={() => {}}
+                title="User Management"
+                subtitle="Add, modify, delete users"
+                onPress={() => { }}
               />
               <SettingItem
                 icon="chart.bar"
-                title="Statistiques"
-                subtitle="Tableau de bord avancé"
-                onPress={() => {}}
+                title="Statistics"
+                subtitle="Advanced dashboard"
+                onPress={() => { }}
               />
               <SettingItem
                 icon="gear"
-                title="Configuration système"
-                subtitle="Paramètres globaux"
-                onPress={() => {}}
+                title="System Configuration"
+                subtitle="Global settings"
+                onPress={() => { }}
               />
               <SettingItem
                 icon="server.rack"
-                title="Configuration Serveur"
-                subtitle="Modifier l'adresse IP du serveur"
+                title="Server Configuration"
+                subtitle="Modify server IP address"
                 onPress={handleServerConfig}
               />
             </View>
@@ -228,33 +228,33 @@ export default function SettingsScreen() {
         <View style={styles.section}>
           <SettingItem
             icon="questionmark.circle"
-            title="Aide"
-            subtitle="FAQ et documentation"
-            onPress={() => {}}
+            title="Help"
+            subtitle="FAQ and documentation"
+            onPress={() => { }}
           />
           <SettingItem
             icon="envelope"
-            title="Nous contacter"
-            subtitle="Envoyer vos commentaires"
-            onPress={() => {}}
+            title="Contact Us"
+            subtitle="Send your feedback"
+            onPress={() => { }}
           />
           <SettingItem
             icon="info.circle"
-            title="À propos"
+            title="About"
             subtitle="Version 1.0.0"
-            onPress={() => {}}
+            onPress={() => { }}
           />
         </View>
 
         {/* Logout */}
         <View style={styles.section}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.logoutButton, { backgroundColor: colors.error }]}
             onPress={handleLogout}
           >
             <IconSymbol name="arrow.right.square" size={20} color="#FFFFFF" />
             <ThemedText style={[styles.logoutText, { color: '#FFFFFF' }]}>
-              Se déconnecter
+              Sign Out
             </ThemedText>
           </TouchableOpacity>
         </View>

@@ -1,8 +1,7 @@
-import React from 'react';
-import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useThemeColor } from '../../hooks/useThemeColor';
 import { ThemedText } from '../ThemedText';
 import { IconSymbol } from '../ui/IconSymbol';
-import { useThemeColor } from '../../hooks/useThemeColor';
 
 interface InventoryHeaderProps {
   isSelectionMode: boolean;
@@ -35,34 +34,34 @@ export function InventoryHeader({
     return (
       <View style={styles.header}>
         <View style={styles.selectionHeader}>
-          <TouchableOpacity 
-            style={styles.cancelButton} 
+          <TouchableOpacity
+            style={styles.cancelButton}
             onPress={onToggleSelectionMode}
           >
             <IconSymbol name="xmark" size={24} color={textSecondaryColor} />
           </TouchableOpacity>
           <ThemedText type="defaultSemiBold" style={[styles.selectionTitle, { color: textColor }]}>
-            {selectedItemsCount} sélectionné{selectedItemsCount > 1 ? 's' : ''}
+            {selectedItemsCount} selected
           </ThemedText>
-          <TouchableOpacity 
-            style={styles.selectAllButton} 
+          <TouchableOpacity
+            style={styles.selectAllButton}
             onPress={onSelectAll}
           >
             <ThemedText style={[styles.selectAllText, { color: primaryColor }]}>
-              Tout sélectionner
+              Select All
             </ThemedText>
           </TouchableOpacity>
         </View>
-        
+
         {selectedItemsCount > 0 && (
           <View style={styles.deleteButtonContainer}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.deleteButton, { backgroundColor: errorColor }]}
               onPress={onDeleteSelected}
             >
               <IconSymbol name="trash" size={20} color="#FFFFFF" />
               <ThemedText style={styles.deleteButtonText}>
-                Supprimer ({selectedItemsCount})
+                Delete ({selectedItemsCount})
               </ThemedText>
             </TouchableOpacity>
           </View>
@@ -74,10 +73,10 @@ export function InventoryHeader({
   return (
     <View style={styles.header}>
       <ThemedText type="title" style={[styles.title, { color: textColor }]}>
-        Inventaire
+        Inventory
       </ThemedText>
       <View style={styles.headerButtons}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.headerButton, { backgroundColor: backgroundSecondaryColor }]}
           onPress={onOpenAlertsModal}
         >
@@ -90,13 +89,13 @@ export function InventoryHeader({
             </View>
           )}
         </TouchableOpacity>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.headerButton, { backgroundColor: backgroundSecondaryColor }]}
           onPress={onToggleSelectionMode}
         >
           <IconSymbol name="checkmark.circle" size={20} color={textSecondaryColor} />
         </TouchableOpacity>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.addButton, { backgroundColor: primaryColor }]}
           onPress={onOpenAddModal}
         >

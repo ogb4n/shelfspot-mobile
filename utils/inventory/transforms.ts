@@ -1,8 +1,8 @@
-import { Item, ItemWithLocation, Tag, Alert } from '../../types/inventory';
+import { Alert, Item, ItemWithLocation, Tag } from '../../types/inventory';
 
 export const transformItemToItemWithLocation = (
-  item: Item,
-  currentUserId?: number
+  item: any, // API response item
+  currentUserId?: number | string
 ): ItemWithLocation => {
   // Build location string
   const locationParts: string[] = [];
@@ -12,18 +12,51 @@ export const transformItemToItemWithLocation = (
   const location = locationParts.join(' → ') || 'Non localisé';
 
   // Extract tags from itemTags
-  const tags: Tag[] = item.itemTags?.map(itemTag => itemTag.tag) || [];
+  const tags: Tag[] = item.itemTags?.map((itemTag: any) => itemTag.tag) || [];
 
   // Check if item is favorited by current user
   const isFavorite = currentUserId 
-    ? item.favourites?.some(fav => fav.userId === currentUserId) || false
+    ? item.favourites?.some((fav: any) => 
+        String(fav.userId) === String(currentUserId)
+      ) || false
     : false;
 
   // Filter active alerts
-  const activeAlerts: Alert[] = item.alerts?.filter(alert => alert.isActive) || [];
+  const activeAlerts: Alert[] = item.alerts?.filter((alert: any) => alert.isActive) || [];
+
+  // Map status from API to our type
+  const statusMap: { [key: string]: 'available' | 'running_low' | 'out_of_stock' | 'expired' } = {
+    'Available': 'available',
+    'Running Low': 'running_low',
+    'Out of Stock': 'out_of_stock',
+    'Expired': 'expired',
+    'available': 'available',
+    'running_low': 'running_low',
+    'out_of_stock': 'out_of_stock',
+    'expired': 'expired',
+  };
 
   return {
-    ...item,
+    id: item.id,
+    name: item.name,
+    quantity: item.quantity || 0,
+    status: statusMap[item.status] || 'available',
+    consumable: item.consumable || false,
+    image: item.image,
+    price: item.price,
+    sellprice: item.sellprice,
+    roomId: item.roomId,
+    placeId: item.placeId,
+    containerId: item.containerId,
+    itemLink: item.itemLink,
+    createdAt: new Date(item.createdAt),
+    updatedAt: new Date(item.updatedAt),
+    room: item.room,
+    place: item.place,
+    container: item.container,
+    alerts: item.alerts || [],
+    favourites: item.favourites || [],
+    itemTags: item.itemTags || [],
     location,
     tags,
     isFavorite,
@@ -33,7 +66,7 @@ export const transformItemToItemWithLocation = (
 
 export const transformItemsToItemsWithLocation = (
   items: Item[],
-  currentUserId?: number
+  currentUserId?: number | string
 ): ItemWithLocation[] => {
   return items.map(item => transformItemToItemWithLocation(item, currentUserId));
 };

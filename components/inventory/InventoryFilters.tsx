@@ -1,18 +1,17 @@
-import React from 'react';
-import { View, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { FILTER_CHIPS } from '../../constants/inventory';
+import { useThemeColor } from '../../hooks/useThemeColor';
+import { FilterKey, FilterOptions, ItemWithLocation } from '../../types/inventory';
+import {
+  getUniqueContainers,
+  getUniquePlaces,
+  getUniqueRooms,
+  getUniqueStatuses,
+  getUniqueTags,
+  hasActiveAdvancedFilters
+} from '../../utils/inventory/filters';
 import { ThemedText } from '../ThemedText';
 import { IconSymbol } from '../ui/IconSymbol';
-import { FilterKey, FilterOptions, ItemWithLocation } from '../../types/inventory';
-import { FILTER_CHIPS } from '../../constants/inventory';
-import { 
-  getUniqueRooms, 
-  getUniquePlaces, 
-  getUniqueContainers, 
-  getUniqueTags, 
-  getUniqueStatuses,
-  hasActiveAdvancedFilters 
-} from '../../utils/inventory/filters';
-import { useThemeColor } from '../../hooks/useThemeColor';
 
 interface InventoryFiltersProps {
   items: ItemWithLocation[];
@@ -47,8 +46,8 @@ export function InventoryFilters({
   return (
     <View>
       {/* Basic Filters */}
-      <ScrollView 
-        horizontal 
+      <ScrollView
+        horizontal
         showsHorizontalScrollIndicator={false}
         style={styles.filtersContainer}
         contentContainerStyle={styles.filtersContent}
@@ -59,17 +58,17 @@ export function InventoryFilters({
             style={[
               styles.filterChip,
               {
-                backgroundColor: selectedFilter === filter.key 
-                  ? primaryColor 
+                backgroundColor: selectedFilter === filter.key
+                  ? primaryColor
                   : backgroundSecondaryColor,
               }
             ]}
             onPress={() => onFilterSelect(filter.key)}
           >
-            <IconSymbol 
-              name={filter.icon as any} 
-              size={16} 
-              color={selectedFilter === filter.key ? '#FFFFFF' : textSecondaryColor} 
+            <IconSymbol
+              name={filter.icon as any}
+              size={16}
+              color={selectedFilter === filter.key ? '#FFFFFF' : textSecondaryColor}
             />
             <ThemedText style={[
               styles.filterText,
@@ -83,19 +82,19 @@ export function InventoryFilters({
 
       {/* Advanced Filters */}
       {showAdvancedFilters && (
-        <ScrollView 
+        <ScrollView
           style={[styles.advancedFiltersContainer, { backgroundColor: cardColor }]}
           showsVerticalScrollIndicator={false}
           nestedScrollEnabled={true}
         >
           <View style={styles.advancedFiltersHeader}>
             <ThemedText type="defaultSemiBold" style={[styles.advancedFiltersTitle, { color: textColor }]}>
-              Filtres avancés
+              Advanced Filters
             </ThemedText>
             {hasActiveFilters && (
               <TouchableOpacity onPress={onClearAdvancedFilters}>
                 <ThemedText style={[styles.clearFiltersText, { color: primaryColor }]}>
-                  Effacer tout
+                  Clear All
                 </ThemedText>
               </TouchableOpacity>
             )}
@@ -195,8 +194,8 @@ function FilterSection({
               style={[
                 styles.filterOption,
                 {
-                  backgroundColor: selectedValues.includes(option) 
-                    ? primaryColor 
+                  backgroundColor: selectedValues.includes(option)
+                    ? primaryColor
                     : backgroundSecondaryColor,
                 }
               ]}
@@ -204,10 +203,10 @@ function FilterSection({
             >
               <ThemedText style={[
                 styles.filterOptionText,
-                { 
-                  color: selectedValues.includes(option) 
-                    ? '#FFFFFF' 
-                    : textSecondaryColor 
+                {
+                  color: selectedValues.includes(option)
+                    ? '#FFFFFF'
+                    : textSecondaryColor
                 }
               ]}>
                 {option}

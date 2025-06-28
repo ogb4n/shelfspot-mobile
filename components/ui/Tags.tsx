@@ -1,8 +1,8 @@
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { ThemedText } from '../ThemedText';
 import { Colors, TagColors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import React from 'react';
+import { StyleSheet, View } from 'react-native';
+import { ThemedText } from '../ThemedText';
 
 interface TagProps {
   text: string;
@@ -14,9 +14,9 @@ interface TagProps {
 export function Tag({ text, color, size = 'medium', onPress }: TagProps) {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
-  
+
   const tagColor = color || TagColors[Math.floor(Math.random() * TagColors.length)];
-  
+
   const tagStyle = [
     styles.tag,
     size === 'small' ? styles.tagSmall : styles.tagMedium,
@@ -48,14 +48,14 @@ export function StatusBadge({ status, size = 'medium' }: StatusBadgeProps) {
   const colors = Colors[colorScheme];
 
   const statusConfig = {
-    available: { text: 'Disponible', color: colors.success },
-    running_low: { text: 'Stock faible', color: colors.warning },
-    out_of_stock: { text: 'Épuisé', color: colors.error },
-    expired: { text: 'Expiré', color: '#805AD5' },
+    available: { text: 'Available', color: colors.success },
+    running_low: { text: 'Running Low', color: colors.warning },
+    out_of_stock: { text: 'Out of Stock', color: colors.error },
+    expired: { text: 'Expired', color: '#805AD5' },
   };
 
   const config = statusConfig[status];
-  
+
   const badgeStyle = [
     styles.badge,
     size === 'small' ? styles.badgeSmall : styles.badgeMedium,
@@ -90,7 +90,7 @@ export function Breadcrumb({ items, onItemPress }: BreadcrumbProps) {
     <View style={styles.breadcrumb}>
       {items.map((item, index) => (
         <React.Fragment key={index}>
-          <ThemedText 
+          <ThemedText
             style={[
               styles.breadcrumbItem,
               { color: index === items.length - 1 ? colors.text : colors.textSecondary }

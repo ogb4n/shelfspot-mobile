@@ -1,97 +1,127 @@
-import React from 'react';
-import { ScrollView, StyleSheet, View, TouchableOpacity, FlatList, Switch } from 'react-native';
+import { CreateAlertModal } from '@/components/inventory/CreateAlertModal';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
+import { useInventoryAlerts, useInventoryItems } from '@/hooks/inventory';
 import { useColorScheme } from '@/hooks/useColorScheme';
-
-interface Alert {
-  id: string;
-  itemName: string;
-  type: 'low_stock' | 'expiration' | 'out_of_stock';
-  threshold: number;
-  currentValue: number;
-  isActive: boolean;
-  createdAt: string;
-  lastTriggered?: string;
-}
+import { Alert, AlertFormData } from '@/types/inventory';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, FlatList, Alert as RNAlert, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
 
 export default function AlertsScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
-  // Mock data
-  const alerts: Alert[] = [
-    {
-      id: '1',
-      itemName: 'Dentifrice Colgate',
-      type: 'low_stock',
-      threshold: 3,
-      currentValue: 2,
-      isActive: true,
-      createdAt: 'Il y a 2 jours',
-      lastTriggered: 'Il y a 2h',
-    },
-    {
-      id: '2',
-      itemName: 'Yaourts nature',
-      type: 'out_of_stock',
-      threshold: 1,
-      currentValue: 0,
-      isActive: true,
-      createdAt: 'Il y a 1 semaine',
-      lastTriggered: 'Il y a 1h',
-    },
-    {
-      id: '3',
-      itemName: 'Lait demi-écrémé',
-      type: 'expiration',
-      threshold: 3,
-      currentValue: 1,
-      isActive: false,
-      createdAt: 'Il y a 3 jours',
-    },
-  ];
+  const { items, loading: itemsLoading } = useInventoryItems();
+  const {
+    allAlerts,
+    triggeredAlerts,
+    loading: alertsLoading,
+    error,
+    toggleAlert,
+    deleteAlert,
+    loadAlerts,
+    showCreateAlertModal,
+    openCreateAlertModal,
+    closeCreateAlertModal
+  } = useInventoryAlerts(items);
 
-  const getAlertIcon = (type: string) => {
-    switch (type) {
-      case 'low_stock': return 'exclamationmark.triangle.fill';
-      case 'out_of_stock': return 'xmark.circle.fill';
-      case 'expiration': return 'clock.fill';
-      default: return 'bell.fill';
+  const loading = itemsLoading || alertsLoading;
+
+  useEffect(() => {
+    if (items.length > 0) {
+      loadAlerts();
+    }
+  }, [items.length]); // Only depend on items length, not the whole items array or loadAlerts
+
+  const handleToggleAlert = async (alertId: number, currentStatus: boolean) => {
+    const alert = allAlerts.find(a => a.id === alertId);
+    if (alert) {
+      try {
+        await toggleAlert(alert.itemId, alertId);
+      } catch (error) {
+        RNAlert.alert('Error', 'Failed to update alert status');
+      }
     }
   };
 
-  const getAlertColor = (type: string) => {
-    switch (type) {
-      case 'low_stock': return colors.warning;
-      case 'out_of_stock': return colors.error;
-      case 'expiration': return colors.info;
-      default: return colors.textSecondary;
+  const handleDeleteAlert = async (alertId: number) => {
+    const alert = allAlerts.find(a => a.id === alertId);
+    if (alert) {
+      RNAlert.alert(
+        'Delete Alert',
+        'Are you sure you want to delete this alert?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                await deleteAlert(alert.itemId, alertId);
+              } catch (error) {
+                RNAlert.alert('Error', 'Failed to delete alert');
+              }
+            }
+          }
+        ]
+      );
     }
   };
 
-  const getAlertTypeText = (type: string) => {
-    switch (type) {
-      case 'low_stock': return 'Stock faible';
-      case 'out_of_stock': return 'Épuisé';
-      case 'expiration': return 'Expiration proche';
-      default: return 'Alerte';
+  const handleCreateAlert = async (alertData: AlertFormData) => {
+    // This function should be implemented in the hook or add it here
+    try {
+      // For now, we'll just close the modal and reload
+      closeCreateAlertModal();
+      await loadAlerts();
+    } catch (error) {
+      RNAlert.alert('Error', 'Failed to create alert');
     }
+  };
+
+  const getAlertIcon = (alert: Alert) => {
+    // Since Alert doesn't have type, we'll determine it based on threshold and item status
+    if (alert.item.quantity === 0) return 'xmark.circle.fill';
+    if (alert.item.quantity <= alert.threshold) return 'exclamationmark.triangle.fill';
+    // For expiration, we'd need additional logic if we had expiry dates
+    return 'bell.fill';
+  };
+
+  const getAlertColor = (alert: Alert) => {
+    if (alert.item.quantity === 0) return colors.error;
+    if (alert.item.quantity <= alert.threshold) return colors.warning;
+    return colors.info;
+  };
+
+  const getAlertTypeText = (alert: Alert) => {
+    if (alert.item.quantity === 0) return 'Out of Stock';
+    if (alert.item.quantity <= alert.threshold) return 'Low Stock';
+    return 'Alert';
   };
 
   const getAlertMessage = (alert: Alert) => {
-    switch (alert.type) {
-      case 'low_stock':
-        return `Stock actuel: ${alert.currentValue} (seuil: ${alert.threshold})`;
-      case 'out_of_stock':
-        return 'Produit épuisé';
-      case 'expiration':
-        return `Expire dans ${alert.currentValue} jour${alert.currentValue > 1 ? 's' : ''}`;
-      default:
-        return '';
+    if (alert.item.quantity === 0) {
+      return 'Product is out of stock';
     }
+    if (alert.item.quantity <= alert.threshold) {
+      return `Current stock: ${alert.item.quantity} (threshold: ${alert.threshold})`;
+    }
+    return `Stock level: ${alert.item.quantity}`;
+  };
+
+  const formatDate = (date: Date | string) => {
+    const d = new Date(date);
+    const now = new Date();
+    const diffHours = Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60));
+
+    if (diffHours < 1) return 'Just now';
+    if (diffHours < 24) return `${diffHours}h ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    return d.toLocaleDateString();
   };
 
   const renderAlert = ({ item }: { item: Alert }) => (
@@ -99,20 +129,20 @@ export default function AlertsScreen() {
       <View style={styles.alertHeader}>
         <View style={styles.alertInfo}>
           <View style={styles.alertTitleRow}>
-            <View style={[styles.alertIconContainer, { backgroundColor: `${getAlertColor(item.type)}20` }]}>
-              <IconSymbol 
-                name={getAlertIcon(item.type)} 
-                size={16} 
-                color={getAlertColor(item.type)} 
+            <View style={[styles.alertIconContainer, { backgroundColor: `${getAlertColor(item)}20` }]}>
+              <IconSymbol
+                name={getAlertIcon(item)}
+                size={16}
+                color={getAlertColor(item)}
               />
             </View>
             <View style={styles.alertTitleContent}>
               <ThemedText type="defaultSemiBold" style={[styles.alertItemName, { color: colors.text }]}>
-                {item.itemName}
+                {item.name || item.item.name}
               </ThemedText>
-              <View style={[styles.alertTypeBadge, { backgroundColor: `${getAlertColor(item.type)}20` }]}>
-                <ThemedText style={[styles.alertTypeText, { color: getAlertColor(item.type) }]}>
-                  {getAlertTypeText(item.type)}
+              <View style={[styles.alertTypeBadge, { backgroundColor: `${getAlertColor(item)}20` }]}>
+                <ThemedText style={[styles.alertTypeText, { color: getAlertColor(item) }]}>
+                  {getAlertTypeText(item)}
                 </ThemedText>
               </View>
             </View>
@@ -121,13 +151,13 @@ export default function AlertsScreen() {
             {getAlertMessage(item)}
           </ThemedText>
           <ThemedText style={[styles.alertMeta, { color: colors.textSecondary }]}>
-            Créé {item.createdAt}
-            {item.lastTriggered && ` • Dernière alerte ${item.lastTriggered}`}
+            Created {formatDate(item.createdAt)}
+            {item.lastSent && ` • Last triggered ${formatDate(item.lastSent)}`}
           </ThemedText>
         </View>
         <Switch
           value={item.isActive}
-          onValueChange={() => {}}
+          onValueChange={() => handleToggleAlert(item.id, item.isActive)}
           trackColor={{
             false: colors.border,
             true: colors.primary,
@@ -135,18 +165,21 @@ export default function AlertsScreen() {
           thumbColor={item.isActive ? '#FFFFFF' : colors.textSecondary}
         />
       </View>
-      
+
       <View style={styles.alertActions}>
-        <TouchableOpacity style={[styles.actionButton, { backgroundColor: colors.backgroundSecondary }]}>
-          <IconSymbol name="pencil" size={14} color={colors.primary} />
-          <ThemedText style={[styles.actionButtonText, { color: colors.primary }]}>
-            Modifier
+        <TouchableOpacity
+          style={[styles.actionButton, { backgroundColor: colors.backgroundSecondary }]}
+          onPress={() => handleDeleteAlert(item.id)}
+        >
+          <IconSymbol name="trash" size={14} color={colors.error} />
+          <ThemedText style={[styles.actionButtonText, { color: colors.error }]}>
+            Delete
           </ThemedText>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.actionButton, { backgroundColor: colors.backgroundSecondary }]}>
           <IconSymbol name="arrow.right" size={14} color={colors.textSecondary} />
           <ThemedText style={[styles.actionButtonText, { color: colors.textSecondary }]}>
-            Voir l'objet
+            View Item
           </ThemedText>
         </TouchableOpacity>
       </View>
@@ -157,14 +190,17 @@ export default function AlertsScreen() {
     <View style={styles.emptyState}>
       <IconSymbol name="bell.slash" size={64} color={colors.textSecondary} />
       <ThemedText type="subtitle" style={[styles.emptyTitle, { color: colors.text }]}>
-        Aucune alerte configurée
+        No Alerts Configured
       </ThemedText>
       <ThemedText style={[styles.emptyDescription, { color: colors.textSecondary }]}>
-        Créez des alertes pour être notifié lorsque vos stocks sont faibles ou proches de l'expiration.
+        Create alerts to be notified when your stock is low or approaching expiration.
       </ThemedText>
-      <TouchableOpacity style={[styles.emptyButton, { backgroundColor: colors.primary }]}>
+      <TouchableOpacity
+        style={[styles.emptyButton, { backgroundColor: colors.primary }]}
+        onPress={() => openCreateAlertModal(0)} // Let user select an item
+      >
         <ThemedText style={[styles.emptyButtonText, { color: '#FFFFFF' }]}>
-          Créer une alerte
+          Create Alert
         </ThemedText>
       </TouchableOpacity>
     </View>
@@ -175,9 +211,12 @@ export default function AlertsScreen() {
       {/* Header */}
       <View style={styles.header}>
         <ThemedText type="title" style={[styles.title, { color: colors.text }]}>
-          Alertes
+          Alerts
         </ThemedText>
-        <TouchableOpacity style={[styles.addButton, { backgroundColor: colors.primary }]}>
+        <TouchableOpacity
+          style={[styles.addButton, { backgroundColor: colors.primary }]}
+          onPress={() => openCreateAlertModal(0)} // Use a default itemId or let user select
+        >
           <IconSymbol name="plus" size={24} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
@@ -186,25 +225,25 @@ export default function AlertsScreen() {
       <View style={styles.statsContainer}>
         <View style={[styles.statCard, { backgroundColor: colors.card }]}>
           <ThemedText type="subtitle" style={[styles.statNumber, { color: colors.warning }]}>
-            {alerts.filter(a => a.isActive).length}
+            {allAlerts.filter((a: Alert) => a.isActive).length}
           </ThemedText>
           <ThemedText style={[styles.statLabel, { color: colors.textSecondary }]}>
-            Alertes actives
+            Active Alerts
           </ThemedText>
         </View>
         <View style={[styles.statCard, { backgroundColor: colors.card }]}>
           <ThemedText type="subtitle" style={[styles.statNumber, { color: colors.error }]}>
-            {alerts.filter(a => a.lastTriggered).length}
+            {allAlerts.filter((a: Alert) => a.lastSent).length}
           </ThemedText>
           <ThemedText style={[styles.statLabel, { color: colors.textSecondary }]}>
-            Déclenchées récemment
+            Recently Triggered
           </ThemedText>
         </View>
       </View>
 
       {/* Quick Actions */}
-      <ScrollView 
-        horizontal 
+      <ScrollView
+        horizontal
         showsHorizontalScrollIndicator={false}
         style={styles.quickActions}
         contentContainerStyle={styles.quickActionsContent}
@@ -212,17 +251,17 @@ export default function AlertsScreen() {
         <TouchableOpacity style={[styles.quickActionCard, { backgroundColor: colors.warning }]}>
           <IconSymbol name="exclamationmark.triangle" size={20} color="#FFFFFF" />
           <ThemedText style={[styles.quickActionText, { color: '#FFFFFF' }]}>
-            Stock faible
+            Low Stock
           </ThemedText>
         </TouchableOpacity>
-        
+
         <TouchableOpacity style={[styles.quickActionCard, { backgroundColor: colors.error }]}>
           <IconSymbol name="xmark.circle" size={20} color="#FFFFFF" />
           <ThemedText style={[styles.quickActionText, { color: '#FFFFFF' }]}>
-            Épuisé
+            Out of Stock
           </ThemedText>
         </TouchableOpacity>
-        
+
         <TouchableOpacity style={[styles.quickActionCard, { backgroundColor: colors.info }]}>
           <IconSymbol name="clock" size={20} color="#FFFFFF" />
           <ThemedText style={[styles.quickActionText, { color: '#FFFFFF' }]}>
@@ -232,17 +271,53 @@ export default function AlertsScreen() {
       </ScrollView>
 
       {/* Alerts List */}
-      {alerts.length > 0 ? (
+      {loading ? (
+        <View style={[styles.emptyState, { justifyContent: 'center' }]}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <ThemedText style={[styles.emptyDescription, { color: colors.textSecondary, marginTop: 16 }]}>
+            Loading alerts...
+          </ThemedText>
+        </View>
+      ) : error ? (
+        <View style={styles.emptyState}>
+          <IconSymbol name="exclamationmark.triangle" size={64} color={colors.error} />
+          <ThemedText type="subtitle" style={[styles.emptyTitle, { color: colors.text }]}>
+            Error Loading Alerts
+          </ThemedText>
+          <ThemedText style={[styles.emptyDescription, { color: colors.textSecondary }]}>
+            {error}
+          </ThemedText>
+          <TouchableOpacity
+            style={[styles.emptyButton, { backgroundColor: colors.primary }]}
+            onPress={loadAlerts}
+          >
+            <ThemedText style={[styles.emptyButtonText, { color: '#FFFFFF' }]}>
+              Retry
+            </ThemedText>
+          </TouchableOpacity>
+        </View>
+      ) : allAlerts.length > 0 ? (
         <FlatList
-          data={alerts}
+          data={allAlerts}
           renderItem={renderAlert}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item.id.toString()}
           style={styles.list}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
         />
       ) : (
         <EmptyState />
+      )}
+
+      {/* Create Alert Modal */}
+      {showCreateAlertModal && (
+        <CreateAlertModal
+          visible={showCreateAlertModal}
+          onClose={closeCreateAlertModal}
+          onCreateAlert={handleCreateAlert}
+          itemId={null} // Let user select item in modal
+          itemName=""
+        />
       )}
     </ThemedView>
   );

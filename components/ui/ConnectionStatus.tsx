@@ -1,9 +1,8 @@
-import React from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 interface ConnectionStatusProps {
   status: 'idle' | 'testing' | 'success' | 'error';
@@ -17,12 +16,12 @@ interface ConnectionStatusProps {
   showDetails?: boolean;
 }
 
-export function ConnectionStatus({ 
-  status, 
-  serverInfo, 
-  error, 
-  onRetry, 
-  showDetails = false 
+export function ConnectionStatus({
+  status,
+  serverInfo,
+  error,
+  onRetry,
+  showDetails = false
 }: ConnectionStatusProps) {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
@@ -47,26 +46,26 @@ export function ConnectionStatus({
 
   const getStatusText = () => {
     switch (status) {
-      case 'testing': return 'Test en cours...';
-      case 'success': return 'Connexion réussie';
-      case 'error': return 'Échec de la connexion';
-      default: return 'Non testé';
+      case 'testing': return 'Testing...';
+      case 'success': return 'Connection successful';
+      case 'error': return 'Connection failed';
+      default: return 'Not tested';
     }
   };
 
   return (
     <View style={styles.container}>
       <View style={styles.statusRow}>
-        <IconSymbol 
-          name={getStatusIcon()} 
-          size={16} 
-          color={getStatusColor()} 
+        <IconSymbol
+          name={getStatusIcon()}
+          size={16}
+          color={getStatusColor()}
         />
         <ThemedText style={[styles.statusText, { color: getStatusColor() }]}>
-          État: {getStatusText()}
+          Status: {getStatusText()}
         </ThemedText>
       </View>
-      
+
       {/* Server Information */}
       {status === 'success' && serverInfo && showDetails && (
         <View style={[styles.infoContainer, { borderTopColor: colors.border }]}>
@@ -74,11 +73,11 @@ export function ConnectionStatus({
             Version: {serverInfo.version}
           </ThemedText>
           <ThemedText style={[styles.infoText, { color: colors.textSecondary }]}>
-            Dernière réponse: {new Date(serverInfo.timestamp).toLocaleTimeString()}
+            Last response: {new Date(serverInfo.timestamp).toLocaleTimeString()}
           </ThemedText>
         </View>
       )}
-      
+
       {/* Error Information */}
       {status === 'error' && error && (
         <View style={styles.errorContainer}>
@@ -89,7 +88,7 @@ export function ConnectionStatus({
             <TouchableOpacity style={styles.retryButton} onPress={onRetry}>
               <IconSymbol name="arrow.clockwise" size={14} color={colors.primary} />
               <ThemedText style={[styles.retryText, { color: colors.primary }]}>
-                Réessayer
+                Retry
               </ThemedText>
             </TouchableOpacity>
           )}

@@ -1,17 +1,17 @@
-import React from 'react';
-import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useThemeColor } from '../../hooks/useThemeColor';
+import { ItemWithLocation } from '../../types/inventory';
+import { hasActiveAlerts } from '../../utils/inventory/alerts';
+import { getStatusColor, getStatusText } from '../../utils/inventory/filters';
 import { ThemedText } from '../ThemedText';
 import { IconSymbol } from '../ui/IconSymbol';
-import { ItemWithLocation } from '../../types/inventory';
-import { getStatusColor, getStatusText } from '../../utils/inventory/filters';
-import { hasActiveAlerts } from '../../utils/inventory/alerts';
-import { useThemeColor } from '../../hooks/useThemeColor';
 
 interface InventoryItemProps {
   item: ItemWithLocation;
   isSelected?: boolean;
   isSelectionMode?: boolean;
   onPress?: () => void;
+  onLongPress?: (item: ItemWithLocation, position: { x: number; y: number }) => void;
   onToggleFavorite?: (itemId: number) => void;
   onCreateAlert?: (itemId: number) => void;
 }
@@ -21,6 +21,7 @@ export function InventoryItem({
   isSelected = false,
   isSelectionMode = false,
   onPress,
+  onLongPress,
   onToggleFavorite,
   onCreateAlert,
 }: InventoryItemProps) {
@@ -34,25 +35,33 @@ export function InventoryItem({
 
   const hasAlerts = hasActiveAlerts(item);
 
+  const handleLongPress = (event: any) => {
+    if (!isSelectionMode && onLongPress) {
+      const { pageX, pageY } = event.nativeEvent;
+      onLongPress(item, { x: pageX, y: pageY });
+    }
+  };
+
   return (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={[
-        styles.itemCard, 
+        styles.itemCard,
         { backgroundColor },
-        isSelectionMode && isSelected && { 
-          borderColor: primaryColor, 
-          borderWidth: 2 
+        isSelectionMode && isSelected && {
+          borderColor: primaryColor,
+          borderWidth: 2
         }
       ]}
       onPress={onPress}
+      onLongPress={handleLongPress}
     >
       {isSelectionMode && (
         <View style={styles.checkboxContainer}>
           <View style={[
-            styles.checkbox, 
-            { 
+            styles.checkbox,
+            {
               backgroundColor: isSelected ? primaryColor : 'transparent',
-              borderColor: isSelected ? primaryColor : textSecondaryColor 
+              borderColor: isSelected ? primaryColor : textSecondaryColor
             }
           ]}>
             {isSelected && (
@@ -61,7 +70,7 @@ export function InventoryItem({
           </View>
         </View>
       )}
-      
+
       <View style={[styles.itemContent, isSelectionMode && styles.itemContentWithCheckbox]}>
         <View style={styles.itemHeader}>
           <View style={styles.itemInfo}>
@@ -81,24 +90,24 @@ export function InventoryItem({
           </View>
           {!isSelectionMode && (
             <View style={styles.itemActions}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.alertButton}
                 onPress={() => onCreateAlert?.(item.id)}
               >
-                <IconSymbol 
-                  name="bell" 
-                  size={18} 
-                  color={hasAlerts ? warningColor : textSecondaryColor} 
+                <IconSymbol
+                  name="bell"
+                  size={18}
+                  color={hasAlerts ? warningColor : textSecondaryColor}
                 />
               </TouchableOpacity>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.favoriteButton}
                 onPress={() => onToggleFavorite?.(item.id)}
               >
-                <IconSymbol 
-                  name={item.isFavorite ? "heart.fill" : "heart"} 
-                  size={20} 
-                  color={item.isFavorite ? errorColor : textSecondaryColor} 
+                <IconSymbol
+                  name={item.isFavorite ? "heart.fill" : "heart"}
+                  size={20}
+                  color={item.isFavorite ? errorColor : textSecondaryColor}
                 />
               </TouchableOpacity>
             </View>
@@ -108,19 +117,19 @@ export function InventoryItem({
         <View style={styles.itemDetails}>
           <View style={styles.quantityContainer}>
             <ThemedText style={[styles.quantityLabel, { color: textSecondaryColor }]}>
-              Quantité:
+              Quantity:
             </ThemedText>
             <ThemedText type="defaultSemiBold" style={[styles.quantity, { color: textColor }]}>
               {item.quantity}
             </ThemedText>
           </View>
-          
+
           <View style={[
-            styles.statusBadge, 
+            styles.statusBadge,
             { backgroundColor: `${getStatusColor(item.status)}20` }
           ]}>
             <ThemedText style={[
-              styles.statusText, 
+              styles.statusText,
               { color: getStatusColor(item.status) }
             ]}>
               {getStatusText(item.status)}
@@ -130,8 +139,8 @@ export function InventoryItem({
 
         <View style={styles.tagsContainer}>
           {item.tags.map((tag) => (
-            <View 
-              key={tag.id} 
+            <View
+              key={tag.id}
               style={[styles.tag, { backgroundColor: backgroundSecondaryColor }]}
             >
               <ThemedText style={[styles.tagText, { color: textSecondaryColor }]}>

@@ -1,19 +1,19 @@
 import React, { useState } from 'react';
-import { 
-  Modal, 
-  View, 
-  TouchableOpacity, 
-  TextInput, 
-  ScrollView, 
-  StyleSheet, 
-  Alert 
+import {
+  Alert,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
+import { DEFAULT_ALERT_THRESHOLD } from '../../constants/inventory';
+import { useThemeColor } from '../../hooks/useThemeColor';
+import { AlertFormData } from '../../types/inventory';
 import { ThemedText } from '../ThemedText';
 import { ThemedView } from '../ThemedView';
 import { IconSymbol } from '../ui/IconSymbol';
-import { AlertFormData } from '../../types/inventory';
-import { DEFAULT_ALERT_THRESHOLD } from '../../constants/inventory';
-import { useThemeColor } from '../../hooks/useThemeColor';
 
 interface CreateAlertModalProps {
   visible: boolean;
@@ -23,12 +23,12 @@ interface CreateAlertModalProps {
   itemName?: string;
 }
 
-export function CreateAlertModal({ 
-  visible, 
-  onClose, 
-  onCreateAlert, 
-  itemId, 
-  itemName 
+export function CreateAlertModal({
+  visible,
+  onClose,
+  onCreateAlert,
+  itemId,
+  itemName
 }: CreateAlertModalProps) {
   const [formData, setFormData] = useState<AlertFormData>({
     itemId: itemId || 0,
@@ -53,7 +53,7 @@ export function CreateAlertModal({
       setFormData(prev => ({
         ...prev,
         itemId,
-        name: `Alerte stock faible - ${itemName || 'Objet'} (seuil: ${prev.threshold})`,
+        name: `Low stock alert - ${itemName || 'Item'} (threshold: ${prev.threshold})`,
       }));
     }
   }, [itemId, itemName]);
@@ -63,9 +63,9 @@ export function CreateAlertModal({
   };
 
   const canCreateAlert = () => {
-    return formData.itemId > 0 && 
-           formData.threshold > 0 && 
-           (formData.name?.trim() || '') !== '';
+    return formData.itemId > 0 &&
+      formData.threshold > 0 &&
+      (formData.name?.trim() || '') !== '';
   };
 
   const handleSubmit = () => {
@@ -73,7 +73,7 @@ export function CreateAlertModal({
 
     onCreateAlert(formData);
     handleClose();
-    Alert.alert('Succès', 'L&apos;alerte a été créée !');
+    Alert.alert('Success', 'The alert has been created!');
   };
 
   const handleClose = () => {
@@ -100,7 +100,7 @@ export function CreateAlertModal({
             <IconSymbol name="xmark" size={24} color={colors.textSecondary} />
           </TouchableOpacity>
           <ThemedText type="defaultSemiBold" style={[styles.title, { color: colors.text }]}>
-            Créer une alerte
+            Create Alert
           </ThemedText>
           <View style={styles.headerSpace} />
         </View>
@@ -121,15 +121,15 @@ export function CreateAlertModal({
             {/* Alert Name */}
             <View style={styles.inputGroup}>
               <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
-                Nom de l&apos;alerte *
+                Alert Name *
               </ThemedText>
               <TextInput
-                style={[styles.input, { 
-                  backgroundColor: colors.backgroundSecondary, 
+                style={[styles.input, {
+                  backgroundColor: colors.backgroundSecondary,
                   color: colors.text,
-                  borderColor: colors.backgroundSecondary 
+                  borderColor: colors.backgroundSecondary
                 }]}
-                placeholder="Ex: Stock bientôt épuisé"
+                placeholder="E.g.: Stock running low"
                 placeholderTextColor={colors.textSecondary}
                 value={formData.name}
                 onChangeText={(text) => updateFormData('name', text)}
@@ -139,20 +139,20 @@ export function CreateAlertModal({
             {/* Threshold */}
             <View style={styles.inputGroup}>
               <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
-                Seuil d&apos;alerte *
+                Alert Threshold *
               </ThemedText>
               <View style={styles.thresholdContainer}>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[styles.thresholdButton, { backgroundColor: colors.backgroundSecondary }]}
                   onPress={() => updateFormData('threshold', Math.max(1, formData.threshold - 1))}
                 >
                   <IconSymbol name="minus" size={20} color={colors.textSecondary} />
                 </TouchableOpacity>
                 <TextInput
-                  style={[styles.thresholdInput, { 
-                    backgroundColor: colors.backgroundSecondary, 
+                  style={[styles.thresholdInput, {
+                    backgroundColor: colors.backgroundSecondary,
                     color: colors.text,
-                    borderColor: colors.backgroundSecondary 
+                    borderColor: colors.backgroundSecondary
                   }]}
                   value={formData.threshold.toString()}
                   onChangeText={(text) => {
@@ -161,7 +161,7 @@ export function CreateAlertModal({
                   }}
                   keyboardType="numeric"
                 />
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[styles.thresholdButton, { backgroundColor: colors.backgroundSecondary }]}
                   onPress={() => updateFormData('threshold', formData.threshold + 1)}
                 >
@@ -169,26 +169,26 @@ export function CreateAlertModal({
                 </TouchableOpacity>
               </View>
               <ThemedText style={[styles.thresholdHelp, { color: colors.textSecondary }]}>
-                L&apos;alerte se déclenchera quand la quantité sera égale ou inférieure à {formData.threshold}
+                The alert will trigger when quantity is equal or below {formData.threshold}
               </ThemedText>
             </View>
 
             {/* Active Status */}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.activeToggle}
               onPress={() => updateFormData('isActive', !formData.isActive)}
             >
-              <IconSymbol 
-                name={formData.isActive ? "checkmark.square" : "square"} 
-                size={24} 
-                color={formData.isActive ? colors.primary : colors.textSecondary} 
+              <IconSymbol
+                name={formData.isActive ? "checkmark.square" : "square"}
+                size={24}
+                color={formData.isActive ? colors.primary : colors.textSecondary}
               />
               <View style={styles.activeToggleText}>
                 <ThemedText style={[styles.activeLabel, { color: colors.text }]}>
-                  Alerte active
+                  Active Alert
                 </ThemedText>
                 <ThemedText style={[styles.activeDescription, { color: colors.textSecondary }]}>
-                  L&apos;alerte sera vérifiée automatiquement
+                  The alert will be checked automatically
                 </ThemedText>
               </View>
             </TouchableOpacity>
@@ -198,10 +198,10 @@ export function CreateAlertModal({
               <IconSymbol name="info.circle" size={20} color={colors.primary} />
               <View style={styles.infoText}>
                 <ThemedText style={[styles.infoTitle, { color: colors.text }]}>
-                  Comment ça marche ?
+                  How does it work?
                 </ThemedText>
                 <ThemedText style={[styles.infoDescription, { color: colors.textSecondary }]}>
-                  Cette alerte vérifiera automatiquement le stock de cet objet et vous avertira lorsque la quantité atteindra le seuil défini.
+                  This alert will automatically check the stock of this item and notify you when the quantity reaches the defined threshold.
                 </ThemedText>
               </View>
             </View>
@@ -211,20 +211,20 @@ export function CreateAlertModal({
         {/* Footer */}
         <View style={[styles.footer, { borderTopColor: colors.backgroundSecondary }]}>
           <View style={styles.footerButtons}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.button, styles.secondaryButton, { borderColor: colors.textSecondary }]}
               onPress={handleClose}
             >
               <ThemedText style={[styles.secondaryButtonText, { color: colors.textSecondary }]}>
-                Annuler
+                Cancel
               </ThemedText>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={[
-                styles.button, 
-                styles.primaryButton, 
-                { 
+                styles.button,
+                styles.primaryButton,
+                {
                   backgroundColor: canCreateAlert() ? colors.primary : colors.backgroundSecondary,
                 }
               ]}
@@ -232,10 +232,10 @@ export function CreateAlertModal({
               disabled={!canCreateAlert()}
             >
               <ThemedText style={[
-                styles.primaryButtonText, 
+                styles.primaryButtonText,
                 { color: canCreateAlert() ? '#FFFFFF' : colors.textSecondary }
               ]}>
-                Créer l&apos;alerte
+                Create Alert
               </ThemedText>
             </TouchableOpacity>
           </View>
