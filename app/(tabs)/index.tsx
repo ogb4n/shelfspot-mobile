@@ -108,7 +108,9 @@ export default function DashboardScreen() {
           <TouchableOpacity style={[styles.profileButton, { backgroundColor: colors.backgroundSecondary }]}>
             <IconSymbol name="person.circle.fill" size={32} color={colors.primary} />
           </TouchableOpacity>
-        </View>        {loading ? (
+        </View>
+
+        {loading ? (
           <View style={[styles.section, { alignItems: 'center', paddingVertical: 40 }]}>
             <ActivityIndicator size="large" color={colors.primary} />
             <ThemedText style={[{ color: colors.textSecondary, marginTop: 16 }]}>

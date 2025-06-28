@@ -270,6 +270,47 @@ class BackendApiService {
     });
   }
 
+  // Projects methods
+  async getProjects(): Promise<any[]> {
+    return this.request<any[]>('/projects');
+  }
+
+  async getProject(id: number): Promise<any> {
+    return this.request<any>(`/projects/${id}`);
+  }
+
+  async createProject(data: { name: string; description?: string }): Promise<any> {
+    return this.request<any>('/projects', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateProject(id: number, data: { 
+    name?: string; 
+    description?: string; 
+    status?: string;
+    priority?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<any> {
+    return this.request<any>(`/projects/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteProject(id: number): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/projects/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Public request method for custom endpoints
+  async makeRequest<T>(endpoint: string, options?: RequestInit): Promise<T> {
+    return this.request<T>(endpoint, options);
+  }
+
   // Test connection with more detailed information
   async testConnection(): Promise<ServerTestResponse> {
     console.log('BackendAPI: Testing server connection');
