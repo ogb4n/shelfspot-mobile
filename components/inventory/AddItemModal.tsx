@@ -1,19 +1,19 @@
-import React, { useState } from 'react';
-import { 
-  Modal, 
-  View, 
-  TouchableOpacity, 
-  TextInput, 
-  ScrollView, 
-  StyleSheet, 
-  Alert 
+import { useState } from 'react';
+import {
+  Alert,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
+import { ADD_ITEM_STEPS, ITEM_STATUSES } from '../../constants/inventory';
+import { useThemeColor } from '../../hooks/useThemeColor';
+import { ItemFormData } from '../../types/inventory';
 import { ThemedText } from '../ThemedText';
 import { ThemedView } from '../ThemedView';
 import { IconSymbol } from '../ui/IconSymbol';
-import { ItemFormData } from '../../types/inventory';
-import { ADD_ITEM_STEPS, ITEM_STATUSES } from '../../constants/inventory';
-import { useThemeColor } from '../../hooks/useThemeColor';
 
 interface AddItemModalProps {
   visible: boolean;
@@ -78,9 +78,9 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
   const canProceedToNextStep = () => {
     switch (currentStep) {
       case 0: return formData.name.trim() !== '';
-      case 1: return true; // Images optionnelles
-      case 2: return true; // Location optionnelle pour le moment
-      case 3: return true; // Tags optionnels
+      case 1: return true; // Optional images
+      case 2: return true; // Optional location for now
+      case 3: return true; // Optional tags
       case 4: return true; // Confirmation
       default: return false;
     }
@@ -89,7 +89,7 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
   const handleSubmit = () => {
     onAddItem(formData);
     handleClose();
-    Alert.alert('Succès', 'L&apos;objet a été ajouté à votre inventaire !');
+    Alert.alert('Success', 'The item has been added to your inventory!');
   };
 
   const handleClose = () => {
@@ -122,7 +122,7 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
             <IconSymbol name="xmark" size={24} color={colors.textSecondary} />
           </TouchableOpacity>
           <ThemedText type="defaultSemiBold" style={[styles.title, { color: colors.text }]}>
-            Ajouter un objet
+            Add Item
           </ThemedText>
           <View style={styles.headerSpace} />
         </View>
@@ -174,14 +174,14 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
               <View style={styles.stepContent}>
                 <View style={styles.inputGroup}>
                   <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
-                    Nom de l&apos;objet *
+                    Item Name *
                   </ThemedText>
                   <TextInput
-                    style={[styles.input, { 
-                      backgroundColor: colors.backgroundSecondary, 
-                      color: colors.text 
+                    style={[styles.input, {
+                      backgroundColor: colors.backgroundSecondary,
+                      color: colors.text
                     }]}
-                    placeholder="Ex: Dentifrice Colgate"
+                    placeholder="E.g.: Colgate Toothpaste"
                     placeholderTextColor={colors.textSecondary}
                     value={formData.name}
                     onChangeText={(text) => updateFormData('name', text)}
@@ -190,19 +190,19 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
 
                 <View style={styles.inputGroup}>
                   <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
-                    Quantité
+                    Quantity
                   </ThemedText>
                   <View style={styles.quantityContainer}>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={[styles.quantityButton, { backgroundColor: colors.backgroundSecondary }]}
                       onPress={() => updateFormData('quantity', Math.max(1, formData.quantity - 1))}
                     >
                       <IconSymbol name="minus" size={20} color={colors.textSecondary} />
                     </TouchableOpacity>
                     <TextInput
-                      style={[styles.quantityInput, { 
-                        backgroundColor: colors.backgroundSecondary, 
-                        color: colors.text 
+                      style={[styles.quantityInput, {
+                        backgroundColor: colors.backgroundSecondary,
+                        color: colors.text
                       }]}
                       value={formData.quantity.toString()}
                       onChangeText={(text) => {
@@ -211,7 +211,7 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
                       }}
                       keyboardType="numeric"
                     />
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={[styles.quantityButton, { backgroundColor: colors.backgroundSecondary }]}
                       onPress={() => updateFormData('quantity', formData.quantity + 1)}
                     >
@@ -222,7 +222,7 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
 
                 <View style={styles.inputGroup}>
                   <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
-                    Statut
+                    Status
                   </ThemedText>
                   <View style={styles.statusButtons}>
                     {ITEM_STATUSES.map((status) => (
@@ -231,8 +231,8 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
                         style={[
                           styles.statusButton,
                           {
-                            backgroundColor: formData.status === status.value 
-                              ? colors.primary 
+                            backgroundColor: formData.status === status.value
+                              ? colors.primary
                               : colors.backgroundSecondary,
                           }
                         ]}
@@ -240,10 +240,10 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
                       >
                         <ThemedText style={[
                           styles.statusButtonText,
-                          { 
-                            color: formData.status === status.value 
-                              ? '#FFFFFF' 
-                              : colors.textSecondary 
+                          {
+                            color: formData.status === status.value
+                              ? '#FFFFFF'
+                              : colors.textSecondary
                           }
                         ]}>
                           {status.label}
@@ -253,17 +253,17 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
                   </View>
                 </View>
 
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.consumableToggle}
                   onPress={() => updateFormData('consumable', !formData.consumable)}
                 >
-                  <IconSymbol 
-                    name={formData.consumable ? "checkmark.square" : "square"} 
-                    size={24} 
-                    color={formData.consumable ? colors.primary : colors.textSecondary} 
+                  <IconSymbol
+                    name={formData.consumable ? "checkmark.square" : "square"}
+                    size={24}
+                    color={formData.consumable ? colors.primary : colors.textSecondary}
                   />
                   <ThemedText style={[styles.consumableText, { color: colors.text }]}>
-                    Objet consommable
+                    Consumable Item
                   </ThemedText>
                 </TouchableOpacity>
               </View>
@@ -273,7 +273,7 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
             {currentStep === 1 && (
               <View style={styles.stepContent}>
                 <ThemedText style={[styles.placeholderText, { color: colors.textSecondary }]}>
-                  Fonctionnalité d&apos;ajout d&apos;image à venir...
+                  Image upload feature coming soon...
                 </ThemedText>
               </View>
             )}
@@ -282,7 +282,7 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
             {currentStep === 2 && (
               <View style={styles.stepContent}>
                 <ThemedText style={[styles.placeholderText, { color: colors.textSecondary }]}>
-                  Sélection de localisation à venir...
+                  Location selection coming soon...
                 </ThemedText>
               </View>
             )}
@@ -292,21 +292,21 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
               <View style={styles.stepContent}>
                 <View style={styles.inputGroup}>
                   <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
-                    Ajouter des tags
+                    Add Tags
                   </ThemedText>
                   <View style={styles.tagInputContainer}>
                     <TextInput
-                      style={[styles.tagInput, { 
-                        backgroundColor: colors.backgroundSecondary, 
-                        color: colors.text 
+                      style={[styles.tagInput, {
+                        backgroundColor: colors.backgroundSecondary,
+                        color: colors.text
                       }]}
-                      placeholder="Ex: hygiène"
+                      placeholder="E.g.: hygiene"
                       placeholderTextColor={colors.textSecondary}
                       value={tempTag}
                       onChangeText={setTempTag}
                       onSubmitEditing={addTag}
                     />
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={[styles.addTagButton, { backgroundColor: colors.primary }]}
                       onPress={addTag}
                     >
@@ -337,12 +337,12 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
               <View style={styles.stepContent}>
                 <View style={[styles.confirmationCard, { backgroundColor: colors.card }]}>
                   <ThemedText type="defaultSemiBold" style={[styles.confirmationTitle, { color: colors.text }]}>
-                    Récapitulatif
+                    Summary
                   </ThemedText>
-                  
+
                   <View style={styles.confirmationRow}>
                     <ThemedText style={[styles.confirmationLabel, { color: colors.textSecondary }]}>
-                      Nom:
+                      Name:
                     </ThemedText>
                     <ThemedText style={[styles.confirmationValue, { color: colors.text }]}>
                       {formData.name}
@@ -351,7 +351,7 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
 
                   <View style={styles.confirmationRow}>
                     <ThemedText style={[styles.confirmationLabel, { color: colors.textSecondary }]}>
-                      Quantité:
+                      Quantity:
                     </ThemedText>
                     <ThemedText style={[styles.confirmationValue, { color: colors.text }]}>
                       {formData.quantity}
@@ -360,7 +360,7 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
 
                   <View style={styles.confirmationRow}>
                     <ThemedText style={[styles.confirmationLabel, { color: colors.textSecondary }]}>
-                      Statut:
+                      Status:
                     </ThemedText>
                     <ThemedText style={[styles.confirmationValue, { color: colors.text }]}>
                       {ITEM_STATUSES.find(s => s.value === formData.status)?.label}
@@ -372,7 +372,7 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
                       Type:
                     </ThemedText>
                     <ThemedText style={[styles.confirmationValue, { color: colors.text }]}>
-                      {formData.consumable ? 'Consommable' : 'Non consommable'}
+                      {formData.consumable ? 'Consumable' : 'Non-consumable'}
                     </ThemedText>
                   </View>
                 </View>
@@ -385,21 +385,21 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
         <View style={[styles.footer, { borderTopColor: colors.backgroundSecondary }]}>
           <View style={styles.footerButtons}>
             {currentStep > 0 && (
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[styles.button, styles.secondaryButton, { borderColor: colors.textSecondary }]}
                 onPress={prevStep}
               >
                 <ThemedText style={[styles.secondaryButtonText, { color: colors.textSecondary }]}>
-                  Précédent
+                  Previous
                 </ThemedText>
               </TouchableOpacity>
             )}
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={[
-                styles.button, 
-                styles.primaryButton, 
-                { 
+                styles.button,
+                styles.primaryButton,
+                {
                   backgroundColor: canProceedToNextStep() ? colors.primary : colors.backgroundSecondary,
                   flex: currentStep === 0 ? 1 : 0.6
                 }
@@ -408,10 +408,10 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
               disabled={!canProceedToNextStep()}
             >
               <ThemedText style={[
-                styles.primaryButtonText, 
+                styles.primaryButtonText,
                 { color: canProceedToNextStep() ? '#FFFFFF' : colors.textSecondary }
               ]}>
-                {currentStep === ADD_ITEM_STEPS.length - 1 ? 'Ajouter' : 'Suivant'}
+                {currentStep === ADD_ITEM_STEPS.length - 1 ? 'Add' : 'Next'}
               </ThemedText>
             </TouchableOpacity>
           </View>

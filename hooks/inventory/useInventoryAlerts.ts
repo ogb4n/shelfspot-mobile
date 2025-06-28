@@ -1,7 +1,8 @@
-import { useState } from 'react';
-import { AlertFormData, ItemWithLocation } from '../../types/inventory';
-import { getTriggeredAlerts, sortAlertsByPriority, generateDefaultAlertName } from '../../utils/inventory/alerts';
+import { useCallback, useMemo, useState } from 'react';
 import { DEFAULT_ALERT_THRESHOLD } from '../../constants/inventory';
+import { backendApi } from '../../services/backend-api';
+import { AlertFormData, ItemWithLocation } from '../../types/inventory';
+import { generateDefaultAlertName, getTriggeredAlerts, sortAlertsByPriority } from '../../utils/inventory/alerts';
 
 export const useInventoryAlerts = (items: ItemWithLocation[]) => {
   const [showAlertsModal, setShowAlertsModal] = useState(false);
@@ -13,14 +14,38 @@ export const useInventoryAlerts = (items: ItemWithLocation[]) => {
     name: '',
     isActive: true,
   });
+  const [allAlerts, setAllAlerts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Get triggered alerts
-  const triggeredAlerts = sortAlertsByPriority(getTriggeredAlerts(items));
+  // Load alerts from API
+  const loadAlerts = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const alerts = await backendApi.getAlerts();
+      setAllAlerts(alerts);
+    } catch (err: any) {
+      console.error('Error loading alerts:', err);
+      setError(err.message || 'Failed to load alerts');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Remove the automatic useEffect loading - let components handle it manually
+
+  // Get triggered alerts (combining local computation with server data) - memoized
+  const triggeredAlerts = useMemo(() => {
+    return sortAlertsByPriority(getTriggeredAlerts(items));
+  }, [items]);
   
-  // Get selected item for alert creation
-  const selectedItem = selectedItemForAlert 
-    ? items.find(item => item.id === selectedItemForAlert)
-    : null;
+  // Get selected item for alert creation - memoized
+  const selectedItem = useMemo(() => {
+    return selectedItemForAlert 
+      ? items.find(item => item.id === selectedItemForAlert)
+      : null;
+  }, [selectedItemForAlert, items]);
 
   // Modal functions
   const openAlertsModal = () => setShowAlertsModal(true);
@@ -62,27 +87,70 @@ export const useInventoryAlerts = (items: ItemWithLocation[]) => {
            (alertFormData.name?.trim() || '') !== '';
   };
 
-  // These would typically make API calls to create/update/delete alerts
-  const createAlert = (onSuccess?: () => void) => {
+  // These now make API calls to create/update/delete alerts
+  const createAlert = async (onSuccess?: () => void) => {
     if (!canCreateAlert()) return;
 
-    // Mock implementation - would call API
-    console.log('Creating alert:', alertFormData);
-    
-    closeCreateAlertModal();
-    onSuccess?.();
+    try {
+      setLoading(true);
+      setError(null);
+      
+      await backendApi.createAlert({
+        itemId: alertFormData.itemId,
+        threshold: alertFormData.threshold,
+        name: alertFormData.name,
+      });
+      
+      console.log('Alert created successfully:', alertFormData);
+      await loadAlerts(); // Reload alerts after creating
+      closeCreateAlertModal();
+      onSuccess?.();
+    } catch (err: any) {
+      console.error('Error creating alert:', err);
+      setError(err.message || 'Failed to create alert');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const toggleAlert = (itemId: number, alertId: number, onSuccess?: () => void) => {
-    // Mock implementation - would call API
-    console.log('Toggling alert:', { itemId, alertId });
-    onSuccess?.();
+  const toggleAlert = async (itemId: number, alertId: number, onSuccess?: () => void) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Find the alert to get its current state
+      const item = items.find(i => i.id === itemId);
+      const alert = item?.activeAlerts.find(a => a.id === alertId);
+      
+      if (alert) {
+        await backendApi.updateAlert(alertId, { isActive: !alert.isActive });
+        console.log('Alert toggled:', { itemId, alertId });
+        await loadAlerts(); // Reload alerts after toggling
+        onSuccess?.();
+      }
+    } catch (err: any) {
+      console.error('Error toggling alert:', err);
+      setError(err.message || 'Failed to toggle alert');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const deleteAlert = (itemId: number, alertId: number, onSuccess?: () => void) => {
-    // Mock implementation - would call API
-    console.log('Deleting alert:', { itemId, alertId });
-    onSuccess?.();
+  const deleteAlert = async (itemId: number, alertId: number, onSuccess?: () => void) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      await backendApi.deleteAlert(alertId);
+      console.log('Alert deleted:', { itemId, alertId });
+      await loadAlerts(); // Reload alerts after deleting
+      onSuccess?.();
+    } catch (err: any) {
+      console.error('Error deleting alert:', err);
+      setError(err.message || 'Failed to delete alert');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return {
@@ -93,6 +161,9 @@ export const useInventoryAlerts = (items: ItemWithLocation[]) => {
     selectedItem,
     alertFormData,
     triggeredAlerts,
+    allAlerts,
+    loading,
+    error,
 
     // Modal functions
     openAlertsModal,
@@ -108,5 +179,6 @@ export const useInventoryAlerts = (items: ItemWithLocation[]) => {
     createAlert,
     toggleAlert,
     deleteAlert,
+    loadAlerts,
   };
 };

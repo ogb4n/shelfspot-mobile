@@ -1,80 +1,16 @@
-import { useState, useEffect } from 'react';
-import { ItemWithLocation, FilterOptions, FilterKey, ItemFormData } from '../../types/inventory';
-import { filterItems, clearAdvancedFilters } from '../../utils/inventory/filters';
+import { useEffect, useState } from 'react';
 import { DEBOUNCE_DELAY } from '../../constants/inventory';
-
-// Mock data for development - should be replaced with API calls
-const mockItems: ItemWithLocation[] = [
-  {
-    id: 1,
-    name: 'Dentifrice Colgate',
-    quantity: 2,
-    status: 'running_low',
-    consumable: true,
-    location: 'Salle de bain → Armoire → Étagère du haut',
-    roomId: 1,
-    placeId: 1,
-    containerId: 1,
-    room: { id: 1, name: 'Salle de bain' },
-    place: { id: 1, name: 'Armoire', roomId: 1 },
-    container: { id: 1, name: 'Étagère du haut', placeId: 1 },
-    tags: [
-      { id: 1, name: 'hygiène' },
-      { id: 2, name: 'consommable' }
-    ],
-    isFavorite: false,
-    activeAlerts: [],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: 2,
-    name: 'Yaourts nature',
-    quantity: 0,
-    status: 'out_of_stock',
-    consumable: true,
-    location: 'Cuisine → Réfrigérateur → Étagère du milieu',
-    roomId: 2,
-    placeId: 2,
-    containerId: 2,
-    room: { id: 2, name: 'Cuisine' },
-    place: { id: 2, name: 'Réfrigérateur', roomId: 2 },
-    container: { id: 2, name: 'Étagère du milieu', placeId: 2 },
-    tags: [
-      { id: 3, name: 'nourriture' },
-      { id: 4, name: 'périssable' }
-    ],
-    isFavorite: true,
-    activeAlerts: [],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: 3,
-    name: 'Piles AA',
-    quantity: 8,
-    status: 'available',
-    consumable: false,
-    location: 'Bureau → Tiroir → Compartiment électronique',
-    roomId: 3,
-    placeId: 3,
-    containerId: 3,
-    room: { id: 3, name: 'Bureau' },
-    place: { id: 3, name: 'Tiroir', roomId: 3 },
-    container: { id: 3, name: 'Compartiment électronique', placeId: 3 },
-    tags: [
-      { id: 5, name: 'électronique' },
-      { id: 6, name: 'utile' }
-    ],
-    isFavorite: true,
-    activeAlerts: [],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-];
+import { backendApi } from '../../services/backend-api';
+import { useAuthStore } from '../../stores/auth';
+import { FilterKey, FilterOptions, ItemFormData, ItemWithLocation } from '../../types/inventory';
+import { clearAdvancedFilters, filterItems } from '../../utils/inventory/filters';
+import { transformItemsToItemsWithLocation } from '../../utils/inventory/transforms';
 
 export const useInventoryItems = () => {
-  const [items, setItems] = useState<ItemWithLocation[]>(mockItems);
+  const { user } = useAuthStore();
+  const [items, setItems] = useState<ItemWithLocation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<FilterKey>('all');
@@ -87,6 +23,29 @@ export const useInventoryItems = () => {
     statuses: [],
     favoritesOnly: false,
   });
+
+  // Load items from API
+  const loadItems = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const apiItems = await backendApi.getItems();
+      
+      // Transform API items to ItemWithLocation format
+      const transformedItems = transformItemsToItemsWithLocation(apiItems, user?.id);
+      setItems(transformedItems);
+    } catch (err: any) {
+      console.error('Error loading items:', err);
+      setError(err.message || 'Failed to load items');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load items on component mount
+  useEffect(() => {
+    loadItems();
+  }, []);
 
   // Debounce search query
   useEffect(() => {
@@ -135,54 +94,124 @@ export const useInventoryItems = () => {
   };
 
   // Item operations
-  const addItem = (itemData: ItemFormData) => {
-    const newItem: ItemWithLocation = {
-      id: Date.now(),
-      name: itemData.name,
-      quantity: itemData.quantity,
-      status: itemData.status,
-      consumable: itemData.consumable,
-      price: itemData.price,
-      sellprice: itemData.sellprice,
-      placeId: itemData.placeId,
-      roomId: itemData.roomId,
-      containerId: itemData.containerId,
-      itemLink: itemData.itemLink,
-      location: 'Non localisé', // Will be computed based on room/place/container
-      tags: [], // Will be populated from tagIds
-      isFavorite: false,
-      activeAlerts: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    
-    setItems(prev => [...prev, newItem]);
+  const addItem = async (itemData: ItemFormData) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      await backendApi.createItem({
+        name: itemData.name,
+        quantity: itemData.quantity,
+        status: itemData.status,
+        consumable: itemData.consumable,
+        price: itemData.price,
+        sellprice: itemData.sellprice,
+        placeId: itemData.placeId,
+        roomId: itemData.roomId,
+        containerId: itemData.containerId,
+        itemLink: itemData.itemLink,
+      });
+      
+      // Reload items to get the updated list
+      await loadItems();
+    } catch (err: any) {
+      console.error('Error adding item:', err);
+      setError(err.message || 'Failed to add item');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const updateItem = (itemId: number, updates: Partial<ItemWithLocation>) => {
-    setItems(prev => prev.map(item => 
-      item.id === itemId ? { ...item, ...updates } : item
-    ));
+  const updateItem = async (itemId: number, updates: Partial<ItemFormData>) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      await backendApi.updateItem(itemId, updates);
+      
+      // Reload items to get the updated list
+      await loadItems();
+    } catch (err: any) {
+      console.error('Error updating item:', err);
+      setError(err.message || 'Failed to update item');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const deleteItem = (itemId: number) => {
-    setItems(prev => prev.filter(item => item.id !== itemId));
+  const deleteItem = async (itemId: number) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      await backendApi.deleteItem(itemId);
+      
+      // Remove item from local state immediately for better UX
+      setItems(prev => prev.filter(item => item.id !== itemId));
+    } catch (err: any) {
+      console.error('Error deleting item:', err);
+      setError(err.message || 'Failed to delete item');
+      // Reload items to restore state if deletion failed
+      await loadItems();
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const deleteItems = (itemIds: number[]) => {
-    setItems(prev => prev.filter(item => !itemIds.includes(item.id)));
+  const deleteItems = async (itemIds: number[]) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      await backendApi.deleteItems(itemIds);
+      
+      // Remove items from local state immediately for better UX
+      setItems(prev => prev.filter(item => !itemIds.includes(item.id)));
+    } catch (err: any) {
+      console.error('Error deleting items:', err);
+      setError(err.message || 'Failed to delete items');
+      // Reload items to restore state if deletion failed
+      await loadItems();
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const toggleFavorite = (itemId: number) => {
-    updateItem(itemId, { 
-      isFavorite: !items.find(item => item.id === itemId)?.isFavorite 
-    });
+  // Note: Favorites functionality integrated with backend API
+  const toggleFavorite = async (itemId: number) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const item = items.find(item => item.id === itemId);
+      if (!item) return;
+
+      if (item.isFavorite) {
+        await backendApi.removeFromFavorites(itemId);
+      } else {
+        await backendApi.addToFavorites(itemId);
+      }
+      
+      // Update local state immediately for better UX
+      setItems(prev => prev.map(item => 
+        item.id === itemId ? { ...item, isFavorite: !item.isFavorite } : item
+      ));
+    } catch (err: any) {
+      console.error('Error toggling favorite:', err);
+      setError(err.message || 'Failed to toggle favorite');
+      // Reload items to restore correct state if toggle failed
+      await loadItems();
+    } finally {
+      setLoading(false);
+    }
   };
 
   return {
     // State
     items,
     filteredItems,
+    loading,
+    error,
     searchQuery,
     selectedFilter,
     advancedFilters,
@@ -197,5 +226,6 @@ export const useInventoryItems = () => {
     deleteItem,
     deleteItems,
     toggleFavorite,
+    loadItems, // Expose loadItems for manual refresh
   };
 };

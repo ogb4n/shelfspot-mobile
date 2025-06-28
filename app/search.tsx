@@ -1,116 +1,63 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  StyleSheet, 
-  TextInput, 
-  TouchableOpacity, 
-  FlatList, 
-  SafeAreaView,
-  Keyboard,
-  StatusBar,
-  Platform
-} from 'react-native';
-import { router } from 'expo-router';
 import { ThemedText } from '@/components/ThemedText';
-
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-
-interface SearchResult {
-  id: string;
-  name: string;
-  quantity: number;
-  location: string;
-  status: 'available' | 'running_low' | 'out_of_stock' | 'expired';
-  tags: string[];
-  isFavorite: boolean;
-}
+import { backendApi } from '@/services/backend-api';
+import { useAuthStore } from '@/stores/auth';
+import { ItemWithLocation } from '@/types/inventory';
+import { transformItemsToItemsWithLocation } from '@/utils/inventory/transforms';
+import { router } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import {
+  FlatList,
+  Keyboard,
+  Platform,
+  SafeAreaView,
+  StatusBar,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View
+} from 'react-native';
 
 export default function SearchScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
+  const { user } = useAuthStore();
   const [searchQuery, setSearchQuery] = useState('');
-  const [results, setResults] = useState<SearchResult[]>([]);
+  const [results, setResults] = useState<ItemWithLocation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock data - in a real app, this would come from your search API
-  const allItems: SearchResult[] = React.useMemo(() => [
-    {
-      id: '1',
-      name: 'Dentifrice Colgate',
-      quantity: 2,
-      location: 'Salle de bain → Armoire → Étagère du haut',
-      status: 'running_low',
-      tags: ['hygiène', 'consommable'],
-      isFavorite: false,
-    },
-    {
-      id: '2',
-      name: 'Yaourts nature',
-      quantity: 0,
-      location: 'Cuisine → Réfrigérateur → Étagère du milieu',
-      status: 'out_of_stock',
-      tags: ['nourriture', 'périssable'],
-      isFavorite: true,
-    },
-    {
-      id: '3',
-      name: 'Aspirine',
-      quantity: 15,
-      location: 'Chambre → Table de chevet → Tiroir',
-      status: 'available',
-      tags: ['médicament', 'santé'],
-      isFavorite: false,
-    },
-    {
-      id: '4',
-      name: 'Piles AA',
-      quantity: 8,
-      location: 'Bureau → Tiroir',
-      status: 'available',
-      tags: ['électronique', 'utile'],
-      isFavorite: true,
-    },
-    {
-      id: '5',
-      name: 'Café en grains',
-      quantity: 1,
-      location: 'Cuisine → Placard → Étagère du haut',
-      status: 'running_low',
-      tags: ['boisson', 'consommable'],
-      isFavorite: false,
-    },
-  ], []);
-
-  // Search function
-  const searchItems = React.useCallback((query: string) => {
+  // Search function using real API
+  const searchItems = React.useCallback(async (query: string) => {
     if (!query.trim()) {
       setResults([]);
       return;
     }
 
     setIsLoading(true);
-    
-    // Simulate API delay
-    setTimeout(() => {
-      const filteredItems = allItems.filter(item =>
-        item.name.toLowerCase().includes(query.toLowerCase()) ||
-        item.location.toLowerCase().includes(query.toLowerCase()) ||
-        item.tags.some(tag => tag.toLowerCase().includes(query.toLowerCase()))
-      );
-      
-      setResults(filteredItems);
+    setError(null);
+
+    try {
+      const apiItems = await backendApi.getItems(query);
+      const transformedItems = transformItemsToItemsWithLocation(apiItems, user?.id);
+      setResults(transformedItems);
+    } catch (err: any) {
+      console.error('Search error:', err);
+      setError(err.message || 'Search failed');
+      setResults([]);
+    } finally {
       setIsLoading(false);
-    }, 300);
-  }, [allItems]);
+    }
+  }, [user?.id]);
 
   // Handle search query changes
   useEffect(() => {
     searchItems(searchQuery);
   }, [searchQuery, searchItems]);
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string | undefined) => {
     switch (status) {
       case 'available': return colors.success || '#22C55E';
       case 'running_low': return colors.warning || '#F59E0B';
@@ -120,20 +67,21 @@ export default function SearchScreen() {
     }
   };
 
-  const getStatusText = (status: string) => {
+  const getStatusText = (status: string | undefined) => {
     switch (status) {
-      case 'available': return 'Disponible';
-      case 'running_low': return 'Stock faible';
-      case 'out_of_stock': return 'Épuisé';
-      case 'expired': return 'Expiré';
-      default: return status;
+      case 'available': return 'Available';
+      case 'running_low': return 'Running Low';
+      case 'out_of_stock': return 'Out of Stock';
+      case 'expired': return 'Expired';
+      default: return status || 'Unknown';
     }
   };
 
-  const renderSearchResult = ({ item }: { item: SearchResult }) => (
-    <TouchableOpacity 
+  const renderSearchResult = ({ item }: { item: ItemWithLocation }) => (
+    <TouchableOpacity
       style={[styles.resultCard, { backgroundColor: colors.card }]}
       activeOpacity={0.7}
+      onPress={() => router.push(`/item/${item.id}`)}
     >
       <View style={styles.resultHeader}>
         <View style={styles.resultInfo}>
@@ -145,24 +93,24 @@ export default function SearchScreen() {
           </ThemedText>
         </View>
         <TouchableOpacity style={styles.favoriteButton}>
-          <IconSymbol 
-            name={item.isFavorite ? "heart.fill" : "heart"} 
-            size={20} 
-            color={item.isFavorite ? colors.error : colors.textSecondary} 
+          <IconSymbol
+            name={item.isFavorite ? "heart.fill" : "heart"}
+            size={20}
+            color={item.isFavorite ? colors.error : colors.textSecondary}
           />
         </TouchableOpacity>
       </View>
-      
+
       <View style={styles.resultDetails}>
         <View style={styles.quantityContainer}>
           <ThemedText style={[styles.quantityLabel, { color: colors.textSecondary }]}>
-            Quantité:
+            Quantity:
           </ThemedText>
           <ThemedText type="defaultSemiBold" style={[styles.quantity, { color: colors.text }]}>
             {item.quantity}
           </ThemedText>
         </View>
-        
+
         <View style={[styles.statusBadge, { backgroundColor: `${getStatusColor(item.status)}20` }]}>
           <ThemedText style={[styles.statusText, { color: getStatusColor(item.status) }]}>
             {getStatusText(item.status)}
@@ -174,7 +122,7 @@ export default function SearchScreen() {
         {item.tags.map((tag, index) => (
           <View key={index} style={[styles.tag, { backgroundColor: colors.backgroundSecondary }]}>
             <ThemedText style={[styles.tagText, { color: colors.textSecondary }]}>
-              {tag}
+              {tag.name}
             </ThemedText>
           </View>
         ))}
@@ -188,20 +136,20 @@ export default function SearchScreen() {
         <>
           <IconSymbol name="magnifyingglass" size={64} color={colors.textSecondary} />
           <ThemedText type="subtitle" style={[styles.emptyTitle, { color: colors.text }]}>
-            Aucun résultat trouvé
+            No results found
           </ThemedText>
           <ThemedText style={[styles.emptyDescription, { color: colors.textSecondary }]}>
-            Essayez avec d&apos;autres mots-clés ou vérifiez l&apos;orthographe.
+            Try different keywords or check spelling.
           </ThemedText>
         </>
       ) : (
         <>
           <IconSymbol name="magnifyingglass.circle" size={64} color={colors.textSecondary} />
           <ThemedText type="subtitle" style={[styles.emptyTitle, { color: colors.text }]}>
-            Rechercher dans votre inventaire
+            Search your inventory
           </ThemedText>
           <ThemedText style={[styles.emptyDescription, { color: colors.textSecondary }]}>
-            Tapez le nom d&apos;un objet, un lieu ou un tag pour commencer.
+            Type an item name, location or tag to start.
           </ThemedText>
         </>
       )}
@@ -210,18 +158,18 @@ export default function SearchScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar 
-        barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} 
-        backgroundColor={colors.background} 
+      <StatusBar
+        barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'}
+        backgroundColor={colors.background}
       />
-      
+
       {/* Header with Search Bar */}
       <View style={[styles.header, { backgroundColor: colors.background }]}>
         <View style={[styles.searchContainer, { backgroundColor: colors.backgroundSecondary }]}>
           <IconSymbol name="magnifyingglass" size={20} color={colors.textSecondary} />
           <TextInput
             style={[styles.searchInput, { color: colors.text }]}
-            placeholder="Rechercher un objet, lieu, tag..."
+            placeholder="Search for an item, location, tag..."
             placeholderTextColor={colors.textSecondary}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -235,13 +183,13 @@ export default function SearchScreen() {
             </TouchableOpacity>
           )}
         </View>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={styles.cancelButton}
           onPress={() => router.back()}
         >
           <ThemedText style={[styles.cancelText, { color: colors.primary }]}>
-            Annuler
+            Cancel
           </ThemedText>
         </TouchableOpacity>
       </View>
@@ -257,11 +205,21 @@ export default function SearchScreen() {
 
       {/* Results List */}
       <View style={styles.content}>
-        {results.length > 0 ? (
+        {error ? (
+          <View style={styles.emptyState}>
+            <IconSymbol name="exclamationmark.triangle" size={64} color={colors.error} />
+            <ThemedText type="subtitle" style={[styles.emptyTitle, { color: colors.text }]}>
+              Search Error
+            </ThemedText>
+            <ThemedText style={[styles.emptyDescription, { color: colors.textSecondary }]}>
+              {error}
+            </ThemedText>
+          </View>
+        ) : results.length > 0 ? (
           <FlatList
             data={results}
             renderItem={renderSearchResult}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item) => item.id.toString()}
             style={styles.list}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}

@@ -1,16 +1,15 @@
-import React from 'react';
-import { 
-  Modal, 
-  View, 
-  TouchableOpacity, 
-  ScrollView, 
-  StyleSheet 
+import {
+  Modal,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View
 } from 'react-native';
+import { useThemeColor } from '../../hooks/useThemeColor';
+import { TriggeredAlert } from '../../utils/inventory/alerts';
 import { ThemedText } from '../ThemedText';
 import { ThemedView } from '../ThemedView';
 import { IconSymbol } from '../ui/IconSymbol';
-import { TriggeredAlert } from '../../utils/inventory/alerts';
-import { useThemeColor } from '../../hooks/useThemeColor';
 
 interface AlertsModalProps {
   visible: boolean;
@@ -43,7 +42,7 @@ export function AlertsModal({ visible, onClose, triggeredAlerts }: AlertsModalPr
             <IconSymbol name="xmark" size={24} color={colors.textSecondary} />
           </TouchableOpacity>
           <ThemedText type="defaultSemiBold" style={[styles.title, { color: colors.text }]}>
-            Alertes actives
+            Active Alerts
           </ThemedText>
           <View style={styles.headerSpace} />
         </View>
@@ -55,17 +54,17 @@ export function AlertsModal({ visible, onClose, triggeredAlerts }: AlertsModalPr
               <View style={styles.emptyState}>
                 <IconSymbol name="bell.slash" size={48} color={colors.textSecondary} />
                 <ThemedText style={[styles.emptyStateText, { color: colors.textSecondary }]}>
-                  Aucune alerte active
+                  No active alerts
                 </ThemedText>
                 <ThemedText style={[styles.emptyStateDescription, { color: colors.textSecondary }]}>
-                  Toutes vos alertes sont sous contrôle !
+                  All your alerts are under control!
                 </ThemedText>
               </View>
             ) : (
               triggeredAlerts.map(({ item, alert }, index) => (
-                <View 
-                  key={`${item.id}-${alert.id}`} 
-                  style={[styles.alertCard, { 
+                <View
+                  key={`${item.id}-${alert.id}`}
+                  style={[styles.alertCard, {
                     backgroundColor: colors.card,
                     borderLeftColor: colors.warning,
                   }]}
@@ -76,19 +75,19 @@ export function AlertsModal({ visible, onClose, triggeredAlerts }: AlertsModalPr
                     </View>
                     <View style={styles.alertInfo}>
                       <ThemedText type="defaultSemiBold" style={[styles.alertTitle, { color: colors.text }]}>
-                        {alert.name || `Stock faible: ${item.name}`}
+                        {alert.name || `Low stock: ${item.name}`}
                       </ThemedText>
                       <ThemedText style={[styles.alertSubtitle, { color: colors.textSecondary }]}>
-                        {item.name} - Quantité: {item.quantity}
+                        {item.name} - Quantity: {item.quantity}
                       </ThemedText>
                     </View>
                     <View style={[styles.alertBadge, { backgroundColor: colors.warning }]}>
                       <ThemedText style={styles.alertBadgeText}>
-                        Seuil: {alert.threshold}
+                        Threshold: {alert.threshold}
                       </ThemedText>
                     </View>
                   </View>
-                  
+
                   <View style={styles.alertDetails}>
                     <ThemedText style={[styles.alertLocation, { color: colors.textSecondary }]}>
                       📍 {item.location}

@@ -1,10 +1,9 @@
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { IconSymbol } from '@/components/ui/IconSymbol';
-import { useConfigStore } from '@/stores/config';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { useConfigStore } from '@/stores/config';
+import { StyleSheet, View } from 'react-native';
 
 interface ConnectionStatusProps {
   showDetails?: boolean;
@@ -14,12 +13,12 @@ interface ConnectionStatusProps {
 export function ConnectionStatus({ showDetails = true, style }: ConnectionStatusProps) {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
-  
-  const { 
-    connectionStatus, 
-    serverInfo, 
-    error, 
-    isLoading 
+
+  const {
+    connectionStatus,
+    serverInfo,
+    error,
+    isLoading
   } = useConfigStore();
 
   const getStatusColor = () => {
@@ -33,10 +32,10 @@ export function ConnectionStatus({ showDetails = true, style }: ConnectionStatus
 
   const getStatusText = () => {
     switch (connectionStatus) {
-      case 'testing': return isLoading ? 'Test en cours...' : 'Test en cours';
-      case 'success': return 'Connexion réussie';
-      case 'error': return 'Échec de la connexion';
-      default: return 'Non testé';
+      case 'testing': return isLoading ? 'Testing...' : 'Testing';
+      case 'success': return 'Connection successful';
+      case 'error': return 'Connection failed';
+      default: return 'Not tested';
     }
   };
 
@@ -52,16 +51,16 @@ export function ConnectionStatus({ showDetails = true, style }: ConnectionStatus
   return (
     <View style={[styles.container, style]}>
       <View style={styles.statusRow}>
-        <IconSymbol 
-          name={getStatusIcon()} 
-          size={16} 
-          color={getStatusColor()} 
+        <IconSymbol
+          name={getStatusIcon()}
+          size={16}
+          color={getStatusColor()}
         />
         <ThemedText style={[styles.statusText, { color: getStatusColor() }]}>
           État: {getStatusText()}
         </ThemedText>
       </View>
-      
+
       {showDetails && connectionStatus === 'success' && serverInfo && (
         <View style={[styles.detailsContainer, { borderTopColor: colors.border }]}>
           <ThemedText style={[styles.detailText, { color: colors.textSecondary }]}>
@@ -72,7 +71,7 @@ export function ConnectionStatus({ showDetails = true, style }: ConnectionStatus
           </ThemedText>
         </View>
       )}
-      
+
       {showDetails && connectionStatus === 'error' && error && (
         <View style={styles.errorContainer}>
           <ThemedText style={styles.errorText}>

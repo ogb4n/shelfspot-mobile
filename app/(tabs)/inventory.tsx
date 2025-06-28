@@ -1,37 +1,53 @@
-import React, { useState } from 'react';
-import { FlatList, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { router } from 'expo-router';
+import { useState } from 'react';
+import { Alert, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ThemedText } from '../../components/ThemedText';
 import { ThemedView } from '../../components/ThemedView';
 import { IconSymbol } from '../../components/ui/IconSymbol';
-import { useColorScheme } from '../../hooks/useColorScheme';
 import { Colors } from '../../constants/Colors';
+import { useColorScheme } from '../../hooks/useColorScheme';
 
 // Import refactored components and hooks
-import { InventoryHeader } from '../../components/inventory/InventoryHeader';
-import { InventorySearch } from '../../components/inventory/InventorySearch';
-import { InventoryFilters } from '../../components/inventory/InventoryFilters';
-import { InventoryItem } from '../../components/inventory/InventoryItem';
 import { AddItemModal } from '../../components/inventory/AddItemModal';
 import { AlertsModal } from '../../components/inventory/AlertsModal';
 import { CreateAlertModal } from '../../components/inventory/CreateAlertModal';
+import { EditItemModal } from '../../components/inventory/EditItemModal';
+import { InventoryFilters } from '../../components/inventory/InventoryFilters';
+import { InventoryHeader } from '../../components/inventory/InventoryHeader';
+import { InventoryItem } from '../../components/inventory/InventoryItem';
+import { InventorySearch } from '../../components/inventory/InventorySearch';
+import { ItemContextMenu } from '../../components/inventory/ItemContextMenu';
+import { useInventoryAlerts } from '../../hooks/inventory/useInventoryAlerts';
 import { useInventoryItems } from '../../hooks/inventory/useInventoryItems';
 import { useInventorySelection } from '../../hooks/inventory/useInventorySelection';
-import { useInventoryAlerts } from '../../hooks/inventory/useInventoryAlerts';
+import { ItemWithLocation } from '../../types/inventory';
 import { hasActiveAdvancedFilters } from '../../utils/inventory/filters';
 
 export default function InventoryScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
-  
+
   // Show/hide advanced filters
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
-  
+
   // Add item modal
   const [showAddModal, setShowAddModal] = useState(false);
+
+  // Context menu state
+  const [showContextMenu, setShowContextMenu] = useState(false);
+  const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 });
+  const [selectedItemForContext, setSelectedItemForContext] = useState<ItemWithLocation | null>(null);
+
+  // Edit item modal
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedItemForEdit, setSelectedItemForEdit] = useState<ItemWithLocation | null>(null);
 
   // Use custom hooks
   const {
     items,
     filteredItems,
+    loading,
+    error,
     searchQuery,
     selectedFilter,
     advancedFilters,
@@ -42,6 +58,8 @@ export default function InventoryScreen() {
     deleteItems,
     toggleFavorite,
     addItem,
+    updateItem,
+    deleteItem,
   } = useInventoryItems();
 
   const {
@@ -83,12 +101,12 @@ export default function InventoryScreen() {
 
   const handleDeleteSelected = () => {
     Alert.alert(
-      'Confirmer la suppression',
-      `Êtes-vous sûr de vouloir supprimer ${selectedItemsCount} objet${selectedItemsCount > 1 ? 's' : ''} ?`,
+      'Confirm Deletion',
+      `Are you sure you want to delete ${selectedItemsCount} item${selectedItemsCount > 1 ? 's' : ''}?`,
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Supprimer',
+          text: 'Delete',
           style: 'destructive',
           onPress: () => {
             deleteItems(selectedItems);
@@ -105,8 +123,76 @@ export default function InventoryScreen() {
 
   const handleCreateAlert = (alertData: any) => {
     createAlert(() => {
-      Alert.alert('Succès', 'L&apos;alerte a été créée !');
+      Alert.alert('Success', 'Alert has been created!');
     });
+  };
+
+  // Context menu handlers
+  const handleItemLongPress = (item: ItemWithLocation, position: { x: number; y: number }) => {
+    setSelectedItemForContext(item);
+    setContextMenuPosition(position);
+    setShowContextMenu(true);
+  };
+
+  const handleCloseContextMenu = () => {
+    setShowContextMenu(false);
+    setSelectedItemForContext(null);
+  };
+
+  const handleEditItem = (item: ItemWithLocation) => {
+    setSelectedItemForEdit(item);
+    setShowEditModal(true);
+  };
+
+  const handleCloseEditModal = () => {
+    setShowEditModal(false);
+    setSelectedItemForEdit(null);
+  };
+
+  const handleUpdateItem = async (itemId: number, updatedData: any) => {
+    try {
+      await updateItem(itemId, updatedData);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update item. Please try again.');
+    }
+  };
+
+  const handleDeleteItem = (itemId: number) => {
+    Alert.alert(
+      'Confirm Deletion',
+      'Are you sure you want to delete this item?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteItem(itemId);
+              Alert.alert('Success', 'Item has been deleted!');
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete item. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleAddToProject = (item: ItemWithLocation) => {
+    // Placeholder for future project functionality
+    Alert.alert('Add to Project', `This feature will be available soon!\n\nItem: ${item.name}`, [
+      { text: 'OK' }
+    ]);
+  };
+
+  const handleItemPress = (item: ItemWithLocation) => {
+    if (isSelectionMode) {
+      handleItemSelection(item.id);
+    } else {
+      // Navigate to item detail page
+      router.push(`/item/${item.id}`);
+    }
   };
 
   const renderInventoryItem = ({ item }: { item: any }) => (
@@ -114,7 +200,8 @@ export default function InventoryScreen() {
       item={item}
       isSelected={isItemSelected(item.id)}
       isSelectionMode={isSelectionMode}
-      onPress={() => isSelectionMode ? handleItemSelection(item.id) : undefined}
+      onPress={() => handleItemPress(item)}
+      onLongPress={handleItemLongPress}
       onToggleFavorite={toggleFavorite}
       onCreateAlert={openCreateAlertModal}
     />
@@ -155,17 +242,33 @@ export default function InventoryScreen() {
       />
 
       {/* Inventory List */}
-      <FlatList
-        data={filteredItems}
-        renderItem={renderInventoryItem}
-        keyExtractor={(item) => item.id.toString()}
-        style={styles.list}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-      />
+      {loading ? (
+        <View style={[styles.list, { justifyContent: 'center', alignItems: 'center' }]}>
+          <ThemedText style={{ color: colors.textSecondary }}>Loading inventory...</ThemedText>
+        </View>
+      ) : error ? (
+        <View style={[styles.list, { justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20 }]}>
+          <IconSymbol name="exclamationmark.triangle" size={48} color={colors.error} />
+          <ThemedText style={{ color: colors.text, textAlign: 'center', marginTop: 16, marginBottom: 8 }}>
+            Error Loading Inventory
+          </ThemedText>
+          <ThemedText style={{ color: colors.textSecondary, textAlign: 'center' }}>
+            {error}
+          </ThemedText>
+        </View>
+      ) : (
+        <FlatList
+          data={filteredItems}
+          renderItem={renderInventoryItem}
+          keyExtractor={(item) => item.id.toString()}
+          style={styles.list}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
 
       {/* Floating Action Button */}
-      <TouchableOpacity 
+      <TouchableOpacity
         style={[styles.fab, { backgroundColor: colors.primary }]}
         onPress={handleOpenAddModal}
       >
@@ -177,6 +280,13 @@ export default function InventoryScreen() {
         visible={showAddModal}
         onClose={handleCloseAddModal}
         onAddItem={addItem}
+      />
+
+      <EditItemModal
+        visible={showEditModal}
+        onClose={handleCloseEditModal}
+        onUpdateItem={handleUpdateItem}
+        item={selectedItemForEdit}
       />
 
       <AlertsModal
@@ -191,6 +301,18 @@ export default function InventoryScreen() {
         onCreateAlert={handleCreateAlert}
         itemId={selectedItemForAlert}
         itemName={selectedItem?.name}
+      />
+
+      {/* Context Menu */}
+      <ItemContextMenu
+        visible={showContextMenu}
+        onClose={handleCloseContextMenu}
+        item={selectedItemForContext}
+        position={contextMenuPosition}
+        onEdit={handleEditItem}
+        onToggleFavorite={toggleFavorite}
+        onAddToProject={handleAddToProject}
+        onDelete={handleDeleteItem}
       />
     </ThemedView>
   );
