@@ -273,15 +273,28 @@ export default function SettingsScreen() {
             title="Theme"
             subtitle={themeMode === 'auto' ? `Auto (${currentTheme})` : themeMode === 'dark' ? 'Dark' : 'Light'}
             rightComponent={
-              <Switch
-                value={themeMode === 'dark'}
-                onValueChange={(value) => setThemeMode(value ? 'dark' : 'light')}
-                trackColor={{
-                  false: colors.border,
-                  true: colors.primary,
-                }}
-                thumbColor={themeMode === 'dark' ? '#FFFFFF' : colors.textSecondary}
-              />
+              <View style={styles.themeControls}>
+                {themeMode !== 'auto' && (
+                  <TouchableOpacity 
+                    onPress={() => setThemeMode('auto')}
+                    style={[styles.autoButton, { backgroundColor: colors.card, borderColor: colors.border }]}
+                  >
+                    <ThemedText style={[styles.autoButtonText, { color: colors.primary }]}>Auto</ThemedText>
+                  </TouchableOpacity>
+                )}
+                <Switch
+                  value={currentTheme === 'dark'}
+                  onValueChange={(value) => {
+                    // Si on change le switch, on sort du mode auto et on va en mode manuel
+                    setThemeMode(value ? 'dark' : 'light');
+                  }}
+                  trackColor={{
+                    false: colors.border,
+                    true: colors.primary,
+                  }}
+                  thumbColor={currentTheme === 'dark' ? '#FFFFFF' : colors.textSecondary}
+                />
+              </View>
             }
             showArrow={false}
           />
@@ -588,5 +601,20 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
+  },
+  themeControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  autoButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  autoButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
 });

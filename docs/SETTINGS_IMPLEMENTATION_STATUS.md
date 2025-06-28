@@ -42,6 +42,22 @@
 - ❌ `systemUpdates` - Pas d'endpoint backend
 - ❌ `lowStockAlerts` - Géré via les alertes personnalisées (`/alerts`)
 
+## ✅ **Amélioration du switch de thème** *(NOUVEAU)*
+
+### 5. **Switch de thème intelligent**
+- **✅ Mode automatique par défaut** : Suit le thème du système (clair/sombre)
+- **✅ Switch reflète le thème réel** : Utilise `currentTheme` au lieu de `themeMode`
+- **✅ Bouton "Auto" contextuel** : Apparaît seulement en mode manuel pour revenir au mode auto
+- **✅ UX intuitive** : 
+  - Mode auto : Switch suit le système, sous-titre indique "Auto (dark/light)"
+  - Mode manuel : Switch contrôle directement, bouton "Auto" pour revenir
+- **✅ Cohérence système** : Respecte les préférences d'accessibilité de l'utilisateur
+
+### Comportement :
+- **Par défaut** : Mode `auto` - suit les préférences système
+- **Interaction switch** : Bascule en mode manuel (`dark`/`light`)
+- **Bouton "Auto"** : Retour au mode automatique depuis le mode manuel
+
 ## 🎯 **Prochaines étapes recommandées**
 
 ### Priorité 1 - Corrections immédiates
