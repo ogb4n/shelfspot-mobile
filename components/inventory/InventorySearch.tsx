@@ -1,7 +1,6 @@
-import React from 'react';
-import { View, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
-import { IconSymbol } from '../ui/IconSymbol';
+import { StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { useThemeColor } from '../../hooks/useThemeColor';
+import { IconSymbol } from '../ui/IconSymbol';
 
 interface InventorySearchProps {
   searchQuery: string;
@@ -28,16 +27,16 @@ export function InventorySearch({
       <IconSymbol name="magnifyingglass" size={20} color={textSecondaryColor} />
       <TextInput
         style={[styles.searchInput, { color: textColor }]}
-        placeholder="Rechercher un objet..."
+        placeholder="Search for an item..."
         placeholderTextColor={textSecondaryColor}
         value={searchQuery}
         onChangeText={onSearchChange}
       />
       <TouchableOpacity onPress={onToggleAdvancedFilters} style={styles.filterButton}>
-        <IconSymbol 
-          name={showAdvancedFilters ? "chevron.up" : "slider.horizontal.3"} 
-          size={20} 
-          color={hasActiveFilters ? primaryColor : textSecondaryColor} 
+        <IconSymbol
+          name={showAdvancedFilters ? "chevron.up" : "slider.horizontal.3"}
+          size={20}
+          color={hasActiveFilters ? primaryColor : textSecondaryColor}
         />
         {hasActiveFilters && (
           <View style={[styles.activeFiltersBadge, { backgroundColor: primaryColor }]}>

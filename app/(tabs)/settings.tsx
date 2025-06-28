@@ -11,10 +11,10 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { useAuthStore } from '@/stores/auth';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
 
 export default function SettingsScreen() {
-  const { themeMode, setThemeMode } = useTheme();
+  const { themeMode, setThemeMode, currentTheme } = useTheme();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
 
@@ -113,13 +113,13 @@ export default function SettingsScreen() {
     router.push('/server-config');
   };
 
-  const SettingItem = ({ 
-    icon, 
-    title, 
-    subtitle, 
-    onPress, 
+  const SettingItem = ({
+    icon,
+    title,
+    subtitle,
+    onPress,
     showArrow = true,
-    rightComponent 
+    rightComponent
   }: {
     icon: any; // Type temporaire pour éviter l'erreur TypeScript
     title: string;
@@ -128,7 +128,7 @@ export default function SettingsScreen() {
     showArrow?: boolean;
     rightComponent?: React.ReactNode;
   }) => (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={[styles.settingItem, { backgroundColor: colors.card }]}
       onPress={onPress}
       disabled={!onPress}
@@ -162,7 +162,7 @@ export default function SettingsScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <ScrollView 
+      <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -170,7 +170,7 @@ export default function SettingsScreen() {
         {/* Header */}
         <View style={styles.header}>
           <ThemedText type="title" style={[styles.title, { color: colors.text }]}>
-            Paramètres
+            Settings
           </ThemedText>
         </View>
 
@@ -184,14 +184,14 @@ export default function SettingsScreen() {
             </View>
             <View style={styles.profileDetails}>
               <ThemedText type="defaultSemiBold" style={[styles.userName, { color: colors.text }]}>
-                {user?.name || 'Utilisateur'}
+                {user?.name || 'User'}
               </ThemedText>
               <ThemedText style={[styles.userEmail, { color: colors.textSecondary }]}>
-                {user?.email || 'Non défini'}
+                {user?.email || 'Not defined'}
               </ThemedText>
               <View style={[styles.roleBadge, { backgroundColor: colors.primary }]}>
                 <ThemedText style={[styles.roleText, { color: '#FFFFFF' }]}>
-                  {user?.admin ? 'Administrateur' : 'Utilisateur'}
+                  {user?.admin ? 'Administrator' : 'User'}
                 </ThemedText>
               </View>
             </View>
@@ -205,24 +205,24 @@ export default function SettingsScreen() {
         </View>
 
         {/* Account Settings */}
-        <SectionHeader title="Compte" />
+        <SectionHeader title="Account" />
         <View style={styles.section}>
           <SettingItem
             icon="person.circle"
-            title="Informations personnelles"
-            subtitle="Nom, email, mot de passe"
+            title="Personal Information"
+            subtitle="Name, email, password"
             onPress={() => setShowPersonalInfoModal(true)}
           />
           <SettingItem
             icon="bell"
             title="Notifications"
-            subtitle="Gérer les alertes et notifications"
+            subtitle="Manage alerts and notifications"
             onPress={() => setShowNotificationsModal(true)}
           />
           <SettingItem
             icon="lock"
-            title="Sécurité"
-            subtitle="Mot de passe et authentification"
+            title="Security"
+            subtitle="Password and authentication"
             onPress={() => setShowSecurityModal(true)}
           />
         </View>
@@ -230,102 +230,34 @@ export default function SettingsScreen() {
         {/* App Settings */}
         <SectionHeader title="Application" />
         <View style={styles.section}>
-          {/* Theme Section */}
-          <View style={[styles.themeSection, { backgroundColor: colors.card }]}>
-            <View style={styles.themeSectionHeader}>
-              <View style={[styles.settingIcon, { backgroundColor: colors.backgroundSecondary }]}>
-                <IconSymbol name="paintbrush" size={20} color={colors.primary} />
-              </View>
-              <ThemedText type="defaultSemiBold" style={[styles.settingTitle, { color: colors.text }]}>
-                Thème de l'application
-              </ThemedText>
-            </View>
-            
-            <View style={styles.themeOptions}>
-              {/* Auto Theme */}
-              <TouchableOpacity 
-                style={[styles.themeOption, { borderColor: colors.border }]}
-                onPress={() => setThemeMode('auto')}
-              >
-                <View style={styles.themeOptionLeft}>
-                  <IconSymbol name="gear" size={18} color={colors.textSecondary} />
-                  <ThemedText style={[styles.themeOptionText, { color: colors.text }]}>
-                    Automatique
-                  </ThemedText>
-                </View>
-                <View style={[
-                  styles.radioButton, 
-                  { 
-                    borderColor: themeMode === 'auto' ? colors.primary : colors.border,
-                    backgroundColor: themeMode === 'auto' ? colors.primary : 'transparent'
-                  }
-                ]}>
-                  {themeMode === 'auto' && (
-                    <View style={[styles.radioButtonInner, { backgroundColor: '#FFFFFF' }]} />
-                  )}
-                </View>
-              </TouchableOpacity>
-
-              {/* Light Theme */}
-              <TouchableOpacity 
-                style={[styles.themeOption, { borderColor: colors.border }]}
-                onPress={() => setThemeMode('light')}
-              >
-                <View style={styles.themeOptionLeft}>
-                  <IconSymbol name="sun.max.fill" size={18} color={colors.textSecondary} />
-                  <ThemedText style={[styles.themeOptionText, { color: colors.text }]}>
-                    Clair
-                  </ThemedText>
-                </View>
-                <View style={[
-                  styles.radioButton, 
-                  { 
-                    borderColor: themeMode === 'light' ? colors.primary : colors.border,
-                    backgroundColor: themeMode === 'light' ? colors.primary : 'transparent'
-                  }
-                ]}>
-                  {themeMode === 'light' && (
-                    <View style={[styles.radioButtonInner, { backgroundColor: '#FFFFFF' }]} />
-                  )}
-                </View>
-              </TouchableOpacity>
-
-              {/* Dark Theme */}
-              <TouchableOpacity 
-                style={[styles.themeOption, { borderColor: colors.border }]}
-                onPress={() => setThemeMode('dark')}
-              >
-                <View style={styles.themeOptionLeft}>
-                  <IconSymbol name="moon.fill" size={18} color={colors.textSecondary} />
-                  <ThemedText style={[styles.themeOptionText, { color: colors.text }]}>
-                    Sombre
-                  </ThemedText>
-                </View>
-                <View style={[
-                  styles.radioButton, 
-                  { 
-                    borderColor: themeMode === 'dark' ? colors.primary : colors.border,
-                    backgroundColor: themeMode === 'dark' ? colors.primary : 'transparent'
-                  }
-                ]}>
-                  {themeMode === 'dark' && (
-                    <View style={[styles.radioButtonInner, { backgroundColor: '#FFFFFF' }]} />
-                  )}
-                </View>
-              </TouchableOpacity>
-            </View>
-          </View>
+          <SettingItem
+            icon="paintbrush"
+            title="Theme"
+            subtitle={themeMode === 'auto' ? `Auto (${currentTheme})` : themeMode === 'dark' ? 'Dark' : 'Light'}
+            rightComponent={
+              <Switch
+                value={themeMode === 'dark'}
+                onValueChange={(value) => setThemeMode(value ? 'dark' : 'light')}
+                trackColor={{
+                  false: colors.border,
+                  true: colors.primary,
+                }}
+                thumbColor={themeMode === 'dark' ? '#FFFFFF' : colors.textSecondary}
+              />
+            }
+            showArrow={false}
+          />
           <SettingItem
             icon="globe"
-            title="Langue"
-            subtitle="Français"
-            onPress={() => {}}
+            title="Language"
+            subtitle="English"
+            onPress={() => { }}
           />
           <SettingItem
             icon="arrow.down.circle"
-            title="Sauvegarde"
-            subtitle="Exporter les données"
-            onPress={() => {}}
+            title="Backup"
+            subtitle="Export data"
+            onPress={() => { }}
           />
         </View>
 
@@ -336,26 +268,26 @@ export default function SettingsScreen() {
             <View style={styles.section}>
               <SettingItem
                 icon="person.2"
-                title="Gestion des utilisateurs"
-                subtitle="Ajouter, modifier, supprimer des utilisateurs"
-                onPress={() => {}}
+                title="User Management"
+                subtitle="Add, modify, delete users"
+                onPress={() => { }}
               />
               <SettingItem
                 icon="chart.bar"
-                title="Statistiques"
-                subtitle="Tableau de bord avancé"
-                onPress={() => {}}
+                title="Statistics"
+                subtitle="Advanced dashboard"
+                onPress={() => { }}
               />
               <SettingItem
                 icon="gear"
-                title="Configuration système"
-                subtitle="Paramètres globaux"
-                onPress={() => {}}
+                title="System Configuration"
+                subtitle="Global settings"
+                onPress={() => { }}
               />
               <SettingItem
                 icon="server.rack"
-                title="Configuration Serveur"
-                subtitle="Modifier l'adresse IP du serveur"
+                title="Server Configuration"
+                subtitle="Modify server IP address"
                 onPress={handleServerConfig}
               />
             </View>
@@ -367,33 +299,33 @@ export default function SettingsScreen() {
         <View style={styles.section}>
           <SettingItem
             icon="questionmark.circle"
-            title="Aide"
-            subtitle="FAQ et documentation"
-            onPress={() => {}}
+            title="Help"
+            subtitle="FAQ and documentation"
+            onPress={() => { }}
           />
           <SettingItem
             icon="envelope"
-            title="Nous contacter"
-            subtitle="Envoyer vos commentaires"
-            onPress={() => {}}
+            title="Contact Us"
+            subtitle="Send your feedback"
+            onPress={() => { }}
           />
           <SettingItem
             icon="info.circle"
-            title="À propos"
+            title="About"
             subtitle="Version 1.0.0"
-            onPress={() => {}}
+            onPress={() => { }}
           />
         </View>
 
         {/* Logout */}
         <View style={styles.section}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.logoutButton, { backgroundColor: colors.error }]}
             onPress={handleLogout}
           >
             <IconSymbol name="arrow.right.square" size={20} color="#FFFFFF" />
             <ThemedText style={[styles.logoutText, { color: '#FFFFFF' }]}>
-              Se déconnecter
+              Sign Out
             </ThemedText>
           </TouchableOpacity>
         </View>

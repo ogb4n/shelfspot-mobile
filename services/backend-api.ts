@@ -129,10 +129,12 @@ class BackendApiService {
     });
   }
 
-  // Items methods (for future use)
+  // Items methods
   async getItems(search?: string): Promise<any[]> {
-    const searchParam = search ? `?q=${encodeURIComponent(search)}` : '';
-    return this.request<any[]>(`/items/search${searchParam}`);
+    if (search) {
+      return this.request<any[]>(`/items/search?q=${encodeURIComponent(search)}`);
+    }
+    return this.request<any[]>('/items');
   }
 
   async getItem(id: number): Promise<any> {
@@ -157,6 +159,156 @@ class BackendApiService {
     return this.request<{ message: string }>(`/items/${id}`, {
       method: 'DELETE',
     });
+  }
+
+  async deleteItems(ids: number[]): Promise<{ message: string }> {
+    const deletePromises = ids.map(id => this.deleteItem(id));
+    await Promise.all(deletePromises);
+    return { message: `${ids.length} items deleted successfully` };
+  }
+
+  // Alerts methods
+  async getAlerts(): Promise<any[]> {
+    return this.request<any[]>('/alerts');
+  }
+
+  async createAlert(data: { itemId: number; threshold: number; name?: string }): Promise<any> {
+    return this.request<any>('/alerts', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateAlert(id: number, data: { threshold?: number; name?: string; isActive?: boolean }): Promise<any> {
+    return this.request<any>(`/alerts/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteAlert(id: number): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/alerts/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async checkAlerts(): Promise<any[]> {
+    return this.request<any[]>('/alerts/check');
+  }
+
+  // Rooms, Places, Containers methods
+  async getRooms(): Promise<any[]> {
+    return this.request<any[]>('/rooms');
+  }
+
+  async getRoom(id: number): Promise<any> {
+    return this.request<any>(`/rooms/${id}`);
+  }
+
+  async createRoom(data: { name: string; icon?: string }): Promise<any> {
+    return this.request<any>('/rooms', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getPlaces(): Promise<any[]> {
+    return this.request<any[]>('/places');
+  }
+
+  async getPlace(id: number): Promise<any> {
+    return this.request<any>(`/places/${id}`);
+  }
+
+  async createPlace(data: { name: string; roomId: number; icon?: string }): Promise<any> {
+    return this.request<any>('/places', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getContainers(): Promise<any[]> {
+    return this.request<any[]>('/containers');
+  }
+
+  async getContainer(id: number): Promise<any> {
+    return this.request<any>(`/containers/${id}`);
+  }
+
+  async createContainer(data: { name: string; placeId: number; roomId?: number; icon?: string }): Promise<any> {
+    return this.request<any>('/containers', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getTags(): Promise<any[]> {
+    return this.request<any[]>('/tags');
+  }
+
+  // Favorites methods
+  async getFavorites(userId?: number): Promise<any[]> {
+    const params = userId ? `?userId=${userId}` : '';
+    return this.request<any[]>(`/favourites${params}`);
+  }
+
+  async addToFavorites(itemId: number): Promise<any> {
+    return this.request<any>(`/favourites/item/${itemId}`, {
+      method: 'POST',
+    });
+  }
+
+  async removeFromFavorites(itemId: number): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/favourites/item/${itemId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async removeFavoriteById(favoriteId: number): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/favourites/${favoriteId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Projects methods
+  async getProjects(): Promise<any[]> {
+    return this.request<any[]>('/projects');
+  }
+
+  async getProject(id: number): Promise<any> {
+    return this.request<any>(`/projects/${id}`);
+  }
+
+  async createProject(data: { name: string; description?: string }): Promise<any> {
+    return this.request<any>('/projects', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateProject(id: number, data: { 
+    name?: string; 
+    description?: string; 
+    status?: string;
+    priority?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<any> {
+    return this.request<any>(`/projects/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteProject(id: number): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/projects/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Public request method for custom endpoints
+  async makeRequest<T>(endpoint: string, options?: RequestInit): Promise<T> {
+    return this.request<T>(endpoint, options);
   }
 
   // Test connection with more detailed information

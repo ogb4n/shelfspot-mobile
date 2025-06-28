@@ -1,74 +1,41 @@
-import React from 'react';
-import { ScrollView, StyleSheet, View, TouchableOpacity, FlatList } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
+import { useFavorites } from '@/hooks/inventory';
 import { useColorScheme } from '@/hooks/useColorScheme';
-
-interface FavoriteItem {
-  id: string;
-  name: string;
-  quantity: number;
-  location: string;
-  status: 'available' | 'running_low' | 'out_of_stock' | 'expired';
-  lastUpdated: string;
-}
+import { ItemWithLocation } from '@/types/inventory';
+import { getStatusColor, getStatusText } from '@/utils/inventory/filters';
+import { router } from 'expo-router';
+import { Alert, FlatList, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 export default function FavoritesScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
 
-  // Mock data
-  const favoriteItems: FavoriteItem[] = [
-    {
-      id: '1',
-      name: 'Piles AA',
-      quantity: 8,
-      location: 'Bureau → Tiroir',
-      status: 'available',
-      lastUpdated: 'Il y a 2 jours',
-    },
-    {
-      id: '2',
-      name: 'Yaourts nature',
-      quantity: 0,
-      location: 'Cuisine → Réfrigérateur',
-      status: 'out_of_stock',
-      lastUpdated: 'Il y a 1 heure',
-    },
-    {
-      id: '3',
-      name: 'Café en grains',
-      quantity: 1,
-      location: 'Cuisine → Placard',
-      status: 'running_low',
-      lastUpdated: 'Il y a 3 jours',
-    },
-  ];
+  // Use favorites hook instead of mock data
+  const { favoriteItems, loading, error, removeFromFavorites } = useFavorites();
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'available': return colors.success;
-      case 'running_low': return colors.warning;
-      case 'out_of_stock': return colors.error;
-      case 'expired': return '#805AD5';
-      default: return colors.textSecondary;
-    }
+  const handleRemoveFromFavorites = (itemId: number, itemName: string) => {
+    Alert.alert(
+      'Remove from Favorites',
+      `Are you sure you want to remove "${itemName}" from your favorites?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: () => removeFromFavorites(itemId),
+        },
+      ]
+    );
   };
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'available': return 'Disponible';
-      case 'running_low': return 'Stock faible';
-      case 'out_of_stock': return 'Épuisé';
-      case 'expired': return 'Expiré';
-      default: return status;
-    }
-  };
-
-  const renderFavoriteItem = ({ item }: { item: FavoriteItem }) => (
-    <TouchableOpacity style={[styles.itemCard, { backgroundColor: colors.card }]}>
+  const renderFavoriteItem = ({ item }: { item: ItemWithLocation }) => (
+    <TouchableOpacity
+      style={[styles.itemCard, { backgroundColor: colors.card }]}
+      onPress={() => router.push(`/item/${item.id}`)}
+    >
       <View style={styles.itemHeader}>
         <View style={styles.itemInfo}>
           <ThemedText type="defaultSemiBold" style={[styles.itemName, { color: colors.text }]}>
@@ -78,24 +45,27 @@ export default function FavoritesScreen() {
             {item.location}
           </ThemedText>
           <ThemedText style={[styles.lastUpdated, { color: colors.textSecondary }]}>
-            Mis à jour {item.lastUpdated}
+            Updated {new Date(item.updatedAt || '').toLocaleDateString()}
           </ThemedText>
         </View>
-        <TouchableOpacity style={styles.favoriteButton}>
+        <TouchableOpacity
+          style={styles.favoriteButton}
+          onPress={() => handleRemoveFromFavorites(item.id, item.name)}
+        >
           <IconSymbol name="heart.fill" size={24} color={colors.error} />
         </TouchableOpacity>
       </View>
-      
+
       <View style={styles.itemDetails}>
         <View style={styles.quantityContainer}>
           <ThemedText style={[styles.quantityLabel, { color: colors.textSecondary }]}>
-            Quantité:
+            Quantity:
           </ThemedText>
           <ThemedText type="defaultSemiBold" style={[styles.quantity, { color: colors.text }]}>
             {item.quantity}
           </ThemedText>
         </View>
-        
+
         <View style={[styles.statusBadge, { backgroundColor: `${getStatusColor(item.status)}20` }]}>
           <ThemedText style={[styles.statusText, { color: getStatusColor(item.status) }]}>
             {getStatusText(item.status)}
@@ -107,13 +77,13 @@ export default function FavoritesScreen() {
         <TouchableOpacity style={[styles.actionButton, { backgroundColor: colors.backgroundSecondary }]}>
           <IconSymbol name="pencil" size={16} color={colors.primary} />
           <ThemedText style={[styles.actionText, { color: colors.primary }]}>
-            Modifier
+            Edit
           </ThemedText>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.actionButton, { backgroundColor: colors.backgroundSecondary }]}>
           <IconSymbol name="eye" size={16} color={colors.textSecondary} />
           <ThemedText style={[styles.actionText, { color: colors.textSecondary }]}>
-            Voir
+            View
           </ThemedText>
         </TouchableOpacity>
       </View>
@@ -124,14 +94,14 @@ export default function FavoritesScreen() {
     <View style={styles.emptyState}>
       <IconSymbol name="heart" size={64} color={colors.textSecondary} />
       <ThemedText type="subtitle" style={[styles.emptyTitle, { color: colors.text }]}>
-        Aucun favori
+        No Favorites
       </ThemedText>
       <ThemedText style={[styles.emptyDescription, { color: colors.textSecondary }]}>
-        Ajoutez des objets à vos favoris pour les retrouver rapidement ici.
+        Add items to your favorites to find them quickly here.
       </ThemedText>
       <TouchableOpacity style={[styles.emptyButton, { backgroundColor: colors.primary }]}>
         <ThemedText style={[styles.emptyButtonText, { color: '#FFFFFF' }]}>
-          Explorer l'inventaire
+          Explore Inventory
         </ThemedText>
       </TouchableOpacity>
     </View>
@@ -142,18 +112,18 @@ export default function FavoritesScreen() {
       {/* Header */}
       <View style={styles.header}>
         <ThemedText type="title" style={[styles.title, { color: colors.text }]}>
-          Favoris
+          Favorites
         </ThemedText>
         <View style={styles.headerStats}>
           <ThemedText style={[styles.statsText, { color: colors.textSecondary }]}>
-            {favoriteItems.length} objet{favoriteItems.length > 1 ? 's' : ''}
+            {favoriteItems.length} item{favoriteItems.length > 1 ? 's' : ''}
           </ThemedText>
         </View>
       </View>
 
       {/* Quick Actions */}
-      <ScrollView 
-        horizontal 
+      <ScrollView
+        horizontal
         showsHorizontalScrollIndicator={false}
         style={styles.quickActions}
         contentContainerStyle={styles.quickActionsContent}
@@ -161,31 +131,47 @@ export default function FavoritesScreen() {
         <TouchableOpacity style={[styles.quickActionCard, { backgroundColor: colors.primary }]}>
           <IconSymbol name="square.grid.2x2" size={20} color="#FFFFFF" />
           <ThemedText style={[styles.quickActionText, { color: '#FFFFFF' }]}>
-            Voir tout l'inventaire
+            View All Inventory
           </ThemedText>
         </TouchableOpacity>
-        
+
         <TouchableOpacity style={[styles.quickActionCard, { backgroundColor: colors.warning }]}>
           <IconSymbol name="exclamationmark.triangle" size={20} color="#FFFFFF" />
           <ThemedText style={[styles.quickActionText, { color: '#FFFFFF' }]}>
-            Stock faible uniquement
+            Low Stock Only
           </ThemedText>
         </TouchableOpacity>
-        
+
         <TouchableOpacity style={[styles.quickActionCard, { backgroundColor: colors.info }]}>
           <IconSymbol name="clock" size={20} color="#FFFFFF" />
           <ThemedText style={[styles.quickActionText, { color: '#FFFFFF' }]}>
-            Récemment ajoutés
+            Recently Added
           </ThemedText>
         </TouchableOpacity>
       </ScrollView>
 
       {/* Favorites List */}
-      {favoriteItems.length > 0 ? (
+      {loading ? (
+        <View style={styles.emptyState}>
+          <ThemedText style={[styles.emptyDescription, { color: colors.textSecondary }]}>
+            Loading favorites...
+          </ThemedText>
+        </View>
+      ) : error ? (
+        <View style={styles.emptyState}>
+          <IconSymbol name="exclamationmark.triangle" size={64} color={colors.error} />
+          <ThemedText type="subtitle" style={[styles.emptyTitle, { color: colors.text }]}>
+            Error Loading Favorites
+          </ThemedText>
+          <ThemedText style={[styles.emptyDescription, { color: colors.textSecondary }]}>
+            {error}
+          </ThemedText>
+        </View>
+      ) : favoriteItems.length > 0 ? (
         <FlatList
           data={favoriteItems}
           renderItem={renderFavoriteItem}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item.id.toString()}
           style={styles.list}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}

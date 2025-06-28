@@ -18,14 +18,14 @@ export default function LoginScreen() {
   const [isLogin, setIsLogin] = useState(true);
 
   // Use Zustand stores
-  const { 
-    login, 
-    register, 
-    loading: authLoading, 
-    error: authError, 
-    clearError 
+  const {
+    login,
+    register,
+    loading: authLoading,
+    error: authError,
+    clearError
   } = useAuthStore();
-  
+
   const { serverIp } = useConfigStore();
 
   const handleLogin = async () => {
@@ -57,7 +57,7 @@ export default function LoginScreen() {
     }
 
     if (password.length < 8) {
-      console.error('Register error: Password must be at least 8 characters long'); 
+      console.error('Register error: Password must be at least 8 characters long');
       return;
     }
 
@@ -88,7 +88,7 @@ export default function LoginScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         style={styles.content}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
@@ -101,14 +101,14 @@ export default function LoginScreen() {
             ShelfSpot
           </ThemedText>
           <ThemedText style={[styles.tagline, { color: colors.textSecondary }]}>
-            Votre inventaire domestique intelligent
+            Your smart home inventory
           </ThemedText>
         </View>
 
         {/* Form Section */}
         <View style={styles.formSection}>
           <ThemedText type="subtitle" style={[styles.formTitle, { color: colors.text }]}>
-            {isLogin ? 'Connexion' : 'Inscription'}
+            {isLogin ? 'Login' : 'Sign Up'}
           </ThemedText>
 
           {!isLogin && (
@@ -116,7 +116,7 @@ export default function LoginScreen() {
               <IconSymbol name="person" size={20} color={colors.textSecondary} />
               <TextInput
                 style={[styles.input, { color: colors.text }]}
-                placeholder="Nom complet"
+                placeholder="Full Name"
                 placeholderTextColor={colors.textSecondary}
                 value={name}
                 onChangeText={setName}
@@ -142,7 +142,7 @@ export default function LoginScreen() {
             <IconSymbol name="lock" size={20} color={colors.textSecondary} />
             <TextInput
               style={[styles.input, { color: colors.text }]}
-              placeholder="Mot de passe"
+              placeholder="Password"
               placeholderTextColor={colors.textSecondary}
               value={password}
               onChangeText={setPassword}
@@ -153,7 +153,7 @@ export default function LoginScreen() {
           {isLogin && (
             <TouchableOpacity style={styles.forgotPassword}>
               <ThemedText style={[styles.forgotPasswordText, { color: colors.primary }]}>
-                Mot de passe oublié ?
+                Forgot password?
               </ThemedText>
             </TouchableOpacity>
           )}
@@ -168,27 +168,27 @@ export default function LoginScreen() {
             </View>
           ) : null}
 
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[
-              styles.primaryButton, 
+              styles.primaryButton,
               { backgroundColor: authLoading ? colors.textSecondary : colors.primary },
             ]}
             onPress={handleSubmit}
             disabled={authLoading}
           >
             <ThemedText style={[styles.primaryButtonText, { color: '#FFFFFF' }]}>
-              {authLoading ? 'Chargement...' : (isLogin ? 'Se connecter' : "S'inscrire")}
+              {authLoading ? 'Loading...' : (isLogin ? 'Sign In' : "Sign Up")}
             </ThemedText>
           </TouchableOpacity>
 
           {/* Server Configuration Button */}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.secondaryButton, { borderColor: colors.border }]}
             onPress={navigateToServerConfig}
           >
             <IconSymbol name="gear" size={16} color={colors.primary} />
             <ThemedText style={[styles.secondaryButtonText, { color: colors.primary }]}>
-              Configuration du serveur
+              Server Configuration
             </ThemedText>
           </TouchableOpacity>
         </View>
@@ -196,11 +196,11 @@ export default function LoginScreen() {
         {/* Footer */}
         <View style={styles.footer}>
           <ThemedText style={[styles.footerText, { color: colors.textSecondary }]}>
-            {isLogin ? "Vous n'avez pas de compte ?" : 'Vous avez déjà un compte ?'}
+            {isLogin ? "Don't have an account?" : 'Already have an account?'}
           </ThemedText>
           <TouchableOpacity onPress={() => setIsLogin(!isLogin)}>
             <ThemedText style={[styles.footerLink, { color: colors.primary }]}>
-              {isLogin ? "S'inscrire" : 'Se connecter'}
+              {isLogin ? "Sign Up" : 'Sign In'}
             </ThemedText>
           </TouchableOpacity>
         </View>

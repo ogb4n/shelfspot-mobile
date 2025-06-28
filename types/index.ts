@@ -74,3 +74,35 @@ export interface DashboardStats {
   lowStockItems: Item[];
   favoriteItems: Item[];
 }
+
+export interface Project {
+  id: number;
+  name: string;
+  description?: string;
+  status?: 'ACTIVE' | 'COMPLETED' | 'PAUSED' | 'CANCELLED';
+  priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  startDate?: string;
+  endDate?: string;
+  createdAt: string;
+  updatedAt?: string;
+  itemCount?: number;
+  totalImportanceScore?: number;
+}
+
+export interface CreateProjectDto {
+  name: string;
+  description?: string;
+  status?: 'ACTIVE' | 'COMPLETED' | 'PAUSED' | 'CANCELLED';
+  priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface UpdateProjectDto {
+  name?: string;
+  description?: string;
+  status?: 'ACTIVE' | 'COMPLETED' | 'PAUSED' | 'CANCELLED';
+  priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  startDate?: string;
+  endDate?: string;
+}

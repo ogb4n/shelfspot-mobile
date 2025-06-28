@@ -12,17 +12,17 @@ import { Alert, KeyboardAvoidingView, Platform, StyleSheet, TextInput, Touchable
 export default function ServerConfigScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
-  
+
   const [serverIp, setServerIpInput] = useState('');
-  
-  const { 
-    serverIp: currentServerIp, 
-    connectionStatus, 
+
+  const {
+    serverIp: currentServerIp,
+    connectionStatus,
     serverInfo,
     isLoading,
-    setServerIp, 
+    setServerIp,
     testConnection,
-    clearError 
+    clearError
   } = useConfigStore();
 
   useEffect(() => {
@@ -32,37 +32,37 @@ export default function ServerConfigScreen() {
 
   const handleTestConnection = async () => {
     if (!serverIp.trim()) {
-      Alert.alert('Erreur', 'Veuillez entrer une adresse IP');
+      Alert.alert('Error', 'Please enter an IP address');
       return;
     }
 
     clearError();
-    
+
     try {
       // Save IP first if different
       if (serverIp.trim() !== currentServerIp) {
         await setServerIp(serverIp.trim());
       }
-      
+
       const success = await testConnection();
-      
+
       if (success && serverInfo) {
         Alert.alert(
-          'Connexion réussie ✅',
-          `Le serveur ShelfSpot est accessible.\nVersion: ${serverInfo.version}\n\nVoulez-vous continuer vers l'écran de connexion ?`,
+          'Connection Successful ✅',
+          `The ShelfSpot server is accessible.\nVersion: ${serverInfo.version}\n\nDo you want to continue to the login screen?`,
           [
-            { text: 'Retester', style: 'cancel' },
-            { text: 'Continuer', onPress: () => router.replace('/login') }
+            { text: 'Retest', style: 'cancel' },
+            { text: 'Continue', onPress: () => router.replace('/login') }
           ]
         );
       } else if (!success) {
-        const errorMsg = 'Erreur de connexion';
+        const errorMsg = 'Connection error';
         Alert.alert(
-          'Échec de la connexion ❌',
-          `Impossible de se connecter au serveur ShelfSpot.\n\nErreur: ${errorMsg}\n\nVérifiez:\n• L'adresse URL est correcte\n• Le serveur est démarré\n• Vous êtes sur le même réseau`,
+          'Connection Failed ❌',
+          `Unable to connect to the ShelfSpot server.\n\nError: ${errorMsg}\n\nCheck:\n• The URL address is correct\n• The server is running\n• You are on the same network`,
           [
-            { text: 'Réessayer', style: 'default' },
-            { text: 'Continuer quand même', style: 'destructive', onPress: () => router.replace('/login') }
+            { text: 'Retry', style: 'default' },
+            { text: 'Continue anyway', style: 'destructive', onPress: () => router.replace('/login') }
           ]
         );
       }
@@ -78,7 +78,7 @@ export default function ServerConfigScreen() {
 
   const handleSubmit = async () => {
     if (!serverIp.trim()) {
-      Alert.alert('Erreur', 'Veuillez entrer une adresse URL valide');
+      Alert.alert('Error', 'Please enter a valid URL address');
       return;
     }
 
@@ -86,20 +86,20 @@ export default function ServerConfigScreen() {
       await setServerIp(serverIp.trim());
       router.replace('/login');
     } catch {
-      Alert.alert('Erreur', 'Impossible de sauvegarder l\'adresse URL');
+      Alert.alert('Error', 'Unable to save the URL address');
     }
   };
 
   return (
     <ThemedView style={styles.container}>
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         style={styles.content}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         {/* Skip Button */}
         <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
           <ThemedText style={[styles.skipText, { color: colors.textSecondary }]}>
-            Ignorer
+            Skip
           </ThemedText>
         </TouchableOpacity>
 
@@ -112,14 +112,14 @@ export default function ServerConfigScreen() {
             ShelfSpot
           </ThemedText>
           <ThemedText style={[styles.tagline, { color: colors.textSecondary }]}>
-            Configuration du serveur
+            Server Configuration
           </ThemedText>
         </View>
 
         {/* Form Section */}
         <View style={styles.formSection}>
           <ThemedText type="subtitle" style={[styles.formTitle, { color: colors.text }]}>
-            Adresse du serveur
+            Server Address
           </ThemedText>
 
           <View style={[styles.inputContainer, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}>
@@ -139,40 +139,40 @@ export default function ServerConfigScreen() {
           <ConnectionStatus
             status={
               isLoading ? 'testing' :
-              connectionStatus === 'success' ? 'success' :
-              connectionStatus === 'error' ? 'error' : 'idle'
+                connectionStatus === 'success' ? 'success' :
+                  connectionStatus === 'error' ? 'error' : 'idle'
             }
             serverInfo={serverInfo}
-            error={connectionStatus === 'error' ? 'Erreur de connexion' : undefined}
+            error={connectionStatus === 'error' ? 'Connection error' : undefined}
             onRetry={handleTestConnection}
             showDetails={true}
           />
 
           <ThemedText style={[styles.description, { color: colors.textSecondary }]}>
-            Saisissez l&apos;URL complète de votre serveur local (exemple: http://192.168.1.100:3001)
+            Enter the complete URL of your local server (example: http://192.168.1.100:3001)
           </ThemedText>
 
           {/* Buttons */}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[
-              styles.primaryButton, 
+              styles.primaryButton,
               { backgroundColor: isLoading ? colors.textSecondary : colors.primary }
             ]}
             onPress={handleTestConnection}
             disabled={isLoading}
           >
             <ThemedText style={[styles.primaryButtonText, { color: '#FFFFFF' }]}>
-              {isLoading ? 'Test en cours...' : 'Tester la connexion'}
+              {isLoading ? 'Testing...' : 'Test Connection'}
             </ThemedText>
           </TouchableOpacity>
 
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.secondaryButton, { borderColor: colors.border }]}
             onPress={handleSubmit}
             disabled={isLoading}
           >
             <ThemedText style={[styles.secondaryButtonText, { color: colors.primary }]}>
-              Confirmer et continuer
+              Confirm and Continue
             </ThemedText>
           </TouchableOpacity>
         </View>
@@ -180,7 +180,7 @@ export default function ServerConfigScreen() {
         {/* Footer */}
         <View style={styles.footer}>
           <ThemedText style={[styles.footerText, { color: colors.textSecondary }]}>
-            Vous pouvez modifier cette configuration plus tard dans les paramètres
+            You can modify this configuration later in settings
           </ThemedText>
         </View>
       </KeyboardAvoidingView>
