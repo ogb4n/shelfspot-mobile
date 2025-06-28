@@ -1,3 +1,4 @@
+import { AddItemModal } from '@/components/inventory/AddItemModal';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
@@ -5,7 +6,7 @@ import { Colors } from '@/constants/Colors';
 import { useFavorites, useInventoryAlerts, useInventoryData, useInventoryItems } from '@/hooks/inventory';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { router } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 interface RecentAlert {
@@ -19,12 +20,15 @@ export default function DashboardScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
 
-  const { items, loading: itemsLoading } = useInventoryItems();
+  const { items, loading: itemsLoading, addItem } = useInventoryItems();
   const { favoriteItems, loading: favoritesLoading } = useFavorites();
   const { rooms, places, loading: dataLoading } = useInventoryData();
   const { triggeredAlerts, loading: alertsLoading, loadAlerts } = useInventoryAlerts(items);
 
   const loading = itemsLoading || favoritesLoading || dataLoading || alertsLoading;
+
+  // Add item modal state
+  const [showAddModal, setShowAddModal] = useState(false);
 
   // Load alerts when items are available
   useEffect(() => {
@@ -47,13 +51,13 @@ export default function DashboardScreen() {
       icon: 'plus.circle.fill' as const,
       title: 'Add Item',
       color: colors.primary,
-      onPress: () => router.push('/inventory')
+      onPress: () => setShowAddModal(true)
     },
     {
-      icon: 'barcode.viewfinder' as const,
-      title: 'Scan',
+      icon: 'cube.box.fill' as const,
+      title: 'Consumables',
       color: colors.secondary,
-      onPress: () => {/* TODO: Implement scanner */ }
+      onPress: () => router.push('/consumables' as any)
     },
     {
       icon: 'magnifyingglass' as const,
@@ -65,7 +69,7 @@ export default function DashboardScreen() {
       icon: 'heart.fill' as const,
       title: 'Favorites',
       color: colors.error,
-      onPress: () => router.push('/favorites')
+      onPress: () => router.push('/favorites' as any)
     },
   ];
 
@@ -88,6 +92,24 @@ export default function DashboardScreen() {
     time: triggeredAlert.alert.lastSent ? formatAlertTime(triggeredAlert.alert.lastSent) : 'New',
   }));
 
+  // Add item modal handlers
+  const handleOpenAddModal = () => {
+    setShowAddModal(true);
+  };
+
+  const handleCloseAddModal = () => {
+    setShowAddModal(false);
+  };
+
+  const handleAddItem = async (itemData: any) => {
+    try {
+      await addItem(itemData);
+      // Optional: Show success message or perform additional actions
+    } catch (error) {
+      console.error('Error adding item:', error);
+    }
+  };
+
   return (
     <ThemedView style={styles.container}>
       <ScrollView
@@ -105,7 +127,10 @@ export default function DashboardScreen() {
               Manage your inventory easily
             </ThemedText>
           </View>
-          <TouchableOpacity style={[styles.profileButton, { backgroundColor: colors.backgroundSecondary }]}>
+          <TouchableOpacity
+            style={[styles.profileButton, { backgroundColor: colors.backgroundSecondary }]}
+            onPress={() => router.push('/settings')}
+          >
             <IconSymbol name="person.circle.fill" size={32} color={colors.primary} />
           </TouchableOpacity>
         </View>
@@ -121,7 +146,11 @@ export default function DashboardScreen() {
           <>
             {/* Stats Cards */}
             <View style={styles.statsGrid}>
-              <View style={[styles.statsCard, { backgroundColor: colors.card }]}>
+              <TouchableOpacity
+                style={[styles.statsCard, { backgroundColor: colors.card }]}
+                onPress={() => router.push('/inventory')}
+                activeOpacity={0.7}
+              >
                 <View style={[styles.iconContainer, { backgroundColor: `${colors.primary}20` }]}>
                   <IconSymbol name="cube.fill" size={24} color={colors.primary} />
                 </View>
@@ -133,9 +162,13 @@ export default function DashboardScreen() {
                     Total Items
                   </ThemedText>
                 </View>
-              </View>
+              </TouchableOpacity>
 
-              <View style={[styles.statsCard, { backgroundColor: colors.card }]}>
+              <TouchableOpacity
+                style={[styles.statsCard, { backgroundColor: colors.card }]}
+                onPress={() => router.push('/inventory' as any)}
+                activeOpacity={0.7}
+              >
                 <View style={[styles.iconContainer, { backgroundColor: `${colors.secondary}20` }]}>
                   <IconSymbol name="house.fill" size={24} color={colors.secondary} />
                 </View>
@@ -147,23 +180,49 @@ export default function DashboardScreen() {
                     Rooms
                   </ThemedText>
                 </View>
-              </View>
+              </TouchableOpacity>
 
-              <View style={[styles.statsCard, { backgroundColor: colors.card }]}>
+              <TouchableOpacity
+                style={[styles.statsCard, { backgroundColor: colors.card }]}
+                onPress={() => router.push('/consumables' as any)}
+                activeOpacity={0.7}
+              >
                 <View style={[styles.iconContainer, { backgroundColor: `${colors.warning}20` }]}>
-                  <IconSymbol name="exclamationmark.triangle.fill" size={24} color={colors.warning} />
+                  <IconSymbol name="cube.box.fill" size={24} color={colors.warning} />
                 </View>
                 <View style={styles.statsContent}>
                   <ThemedText type="subtitle" style={[styles.statsNumber, { color: colors.warning }]}>
+                    {stats.totalPlaces}
+                  </ThemedText>
+                  <ThemedText style={[styles.statsLabel, { color: colors.textSecondary }]}>
+                    Places
+                  </ThemedText>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.statsCard, { backgroundColor: colors.card }]}
+                onPress={() => router.push('/inventory' as any)}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.iconContainer, { backgroundColor: `${colors.secondary}20` }]}>
+                  <IconSymbol name="exclamationmark.triangle.fill" size={24} color={colors.secondary} />
+                </View>
+                <View style={styles.statsContent}>
+                  <ThemedText type="subtitle" style={[styles.statsNumber, { color: colors.secondary }]}>
                     {stats.lowStockItems}
                   </ThemedText>
                   <ThemedText style={[styles.statsLabel, { color: colors.textSecondary }]}>
                     Low Stock
                   </ThemedText>
                 </View>
-              </View>
+              </TouchableOpacity>
 
-              <View style={[styles.statsCard, { backgroundColor: colors.card }]}>
+              <TouchableOpacity
+                style={[styles.statsCard, { backgroundColor: colors.card }]}
+                onPress={() => router.push('/favorites' as any)}
+                activeOpacity={0.7}
+              >
                 <View style={[styles.iconContainer, { backgroundColor: `${colors.error}20` }]}>
                   <IconSymbol name="heart.fill" size={24} color={colors.error} />
                 </View>
@@ -175,7 +234,7 @@ export default function DashboardScreen() {
                     Favorites
                   </ThemedText>
                 </View>
-              </View>
+              </TouchableOpacity>
             </View>
 
             {/* Quick Actions */}
@@ -261,6 +320,13 @@ export default function DashboardScreen() {
       >
         <IconSymbol name="magnifyingglass" size={24} color="#FFFFFF" />
       </TouchableOpacity>
+
+      {/* Add Item Modal */}
+      <AddItemModal
+        visible={showAddModal}
+        onClose={handleCloseAddModal}
+        onAddItem={handleAddItem}
+      />
     </ThemedView>
   );
 }
