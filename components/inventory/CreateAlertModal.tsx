@@ -53,7 +53,7 @@ export function CreateAlertModal({
       setFormData(prev => ({
         ...prev,
         itemId,
-        name: `Low stock alert - ${itemName || 'Item'} (threshold: ${prev.threshold})`,
+        name: '', // User must provide their own name
       }));
     }
   }, [itemId, itemName]);

@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { DEFAULT_ALERT_THRESHOLD } from '../../constants/inventory';
 import { backendApi } from '../../services/backend-api';
 import { AlertFormData, ItemWithLocation } from '../../types/inventory';
-import { generateDefaultAlertName, getTriggeredAlerts, sortAlertsByPriority } from '../../utils/inventory/alerts';
+import { getTriggeredAlerts, sortAlertsByPriority } from '../../utils/inventory/alerts';
 
 export const useInventoryAlerts = (items: ItemWithLocation[]) => {
   const [showAlertsModal, setShowAlertsModal] = useState(false);
@@ -59,7 +59,7 @@ export const useInventoryAlerts = (items: ItemWithLocation[]) => {
     setAlertFormData({
       itemId,
       threshold: DEFAULT_ALERT_THRESHOLD,
-      name: generateDefaultAlertName(item, DEFAULT_ALERT_THRESHOLD),
+      name: '', // User must provide their own name
       isActive: true,
     });
     setShowCreateAlertModal(true);
@@ -118,15 +118,28 @@ export const useInventoryAlerts = (items: ItemWithLocation[]) => {
       setLoading(true);
       setError(null);
       
-      // Find the alert to get its current state
-      const item = items.find(i => i.id === itemId);
-      const alert = item?.activeAlerts.find(a => a.id === alertId);
+      console.log('toggleAlert called with:', { itemId, alertId, alertIdType: typeof alertId });
+      console.log('Available alerts:', allAlerts.map(a => ({ id: a.id, idType: typeof a.id, isActive: a.isActive })));
+      
+      // Ensure alertId is a number
+      const numericAlertId = typeof alertId === 'string' ? parseInt(alertId, 10) : alertId;
+      
+      // Find the alert in allAlerts to get its current state
+      const alert = allAlerts.find(a => a.id === numericAlertId);
       
       if (alert) {
-        await backendApi.updateAlert(alertId, { isActive: !alert.isActive });
-        console.log('Alert toggled:', { itemId, alertId });
+        console.log('Alert found:', { id: alert.id, currentStatus: alert.isActive });
+        const newStatus = !alert.isActive;
+        
+        await backendApi.updateAlert(numericAlertId, { isActive: newStatus });
+        console.log('Backend API call successful, new status:', newStatus);
+        
         await loadAlerts(); // Reload alerts after toggling
+        console.log('Alerts reloaded');
         onSuccess?.();
+      } else {
+        console.error('Alert not found:', { alertId: numericAlertId, itemId, availableIds: allAlerts.map(a => a.id) });
+        setError('Alert not found');
       }
     } catch (err: any) {
       console.error('Error toggling alert:', err);
@@ -148,6 +161,28 @@ export const useInventoryAlerts = (items: ItemWithLocation[]) => {
     } catch (err: any) {
       console.error('Error deleting alert:', err);
       setError(err.message || 'Failed to delete alert');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateAlert = async (alertId: number, alertData: Partial<AlertFormData>, onSuccess?: () => void) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      await backendApi.updateAlert(alertId, {
+        threshold: alertData.threshold,
+        name: alertData.name,
+        isActive: alertData.isActive,
+      });
+      
+      console.log('Alert updated successfully:', { alertId, alertData });
+      await loadAlerts(); // Reload alerts after updating
+      onSuccess?.();
+    } catch (err: any) {
+      console.error('Error updating alert:', err);
+      setError(err.message || 'Failed to update alert');
     } finally {
       setLoading(false);
     }
@@ -179,6 +214,7 @@ export const useInventoryAlerts = (items: ItemWithLocation[]) => {
     createAlert,
     toggleAlert,
     deleteAlert,
+    updateAlert,
     loadAlerts,
   };
 };
