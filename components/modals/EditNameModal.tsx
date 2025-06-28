@@ -3,22 +3,24 @@ import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 interface EditNameModalProps {
   visible: boolean;
   onClose: () => void;
   currentName: string;
-  onSave: (name: string) => void;
+  onSave: (name: string) => Promise<void>;
+  loading?: boolean;
 }
 
 export default function EditNameModal({
@@ -26,16 +28,28 @@ export default function EditNameModal({
   onClose,
   currentName,
   onSave,
+  loading = false,
 }: EditNameModalProps) {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
   
   const [name, setName] = useState(currentName);
 
-  const handleSave = () => {
-    if (name.trim()) {
-      onSave(name.trim());
-      onClose();
+  // Mettre à jour le champ quand les props changent
+  useEffect(() => {
+    setName(currentName);
+  }, [currentName]);
+
+  // Validation du nom
+  const isValidName = name.trim().length >= 5; // Selon l'API (min 5 caractères)
+
+  const handleSave = async () => {
+    try {
+      await onSave(name.trim());
+      // La modal sera fermée par le parent en cas de succès
+    } catch (error) {
+      // L'erreur sera gérée par le parent
+      console.error('Erreur dans EditNameModal:', error);
     }
   };
 
@@ -59,8 +73,15 @@ export default function EditNameModal({
         <ThemedView style={[styles.content, { backgroundColor: colors.background }]}>
           {/* Header */}
           <View style={[styles.header, { borderBottomColor: colors.border }]}>
-            <TouchableOpacity onPress={handleClose} style={styles.headerButton}>
-              <ThemedText style={[styles.headerButtonText, { color: colors.primary }]}>
+            <TouchableOpacity 
+              onPress={handleClose} 
+              style={styles.headerButton}
+              disabled={loading}
+            >
+              <ThemedText style={[
+                styles.headerButtonText, 
+                { color: loading ? colors.textSecondary : colors.primary }
+              ]}>
                 Annuler
               </ThemedText>
             </TouchableOpacity>
@@ -72,18 +93,22 @@ export default function EditNameModal({
             <TouchableOpacity 
               onPress={handleSave} 
               style={styles.headerButton}
-              disabled={!name.trim()}
+              disabled={loading || !isValidName}
             >
-              <ThemedText 
-                style={[
-                  styles.headerButtonText, 
-                  { 
-                    color: name.trim() ? colors.primary : colors.textSecondary 
-                  }
-                ]}
-              >
-                Sauvegarder
-              </ThemedText>
+              {loading ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : (
+                <ThemedText 
+                  style={[
+                    styles.headerButtonText, 
+                    { 
+                      color: !isValidName ? colors.textSecondary : colors.primary 
+                    }
+                  ]}
+                >
+                  Sauvegarder
+                </ThemedText>
+              )}
             </TouchableOpacity>
           </View>
 
@@ -109,8 +134,11 @@ export default function EditNameModal({
                   styles.input,
                   {
                     backgroundColor: colors.card,
-                    borderColor: colors.border,
+                    borderColor: !isValidName && name.trim().length > 0 
+                      ? colors.error 
+                      : colors.border,
                     color: colors.text,
+                    opacity: loading ? 0.6 : 1,
                   }
                 ]}
                 value={name}
@@ -119,7 +147,13 @@ export default function EditNameModal({
                 placeholderTextColor={colors.textSecondary}
                 autoCapitalize="words"
                 autoFocus
+                editable={!loading}
               />
+              {!isValidName && name.trim().length > 0 && (
+                <ThemedText style={[styles.errorText, { color: colors.error }]}>
+                  Le nom doit contenir au moins 5 caractères
+                </ThemedText>
+              )}
             </View>
 
             {/* Info Card */}
@@ -207,6 +241,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
+  },
+  errorText: {
+    fontSize: 14,
+    marginTop: 6,
   },
   infoCard: {
     padding: 16,

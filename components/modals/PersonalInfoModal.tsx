@@ -3,16 +3,17 @@ import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 interface PersonalInfoModalProps {
@@ -20,7 +21,8 @@ interface PersonalInfoModalProps {
   onClose: () => void;
   currentName: string;
   currentEmail: string;
-  onSave: (name: string, email: string) => void;
+  onSave: (name: string, email: string) => Promise<void>;
+  loading?: boolean;
 }
 
 export default function PersonalInfoModal({
@@ -29,6 +31,7 @@ export default function PersonalInfoModal({
   currentName,
   currentEmail,
   onSave,
+  loading = false,
 }: PersonalInfoModalProps) {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
@@ -36,9 +39,28 @@ export default function PersonalInfoModal({
   const [name, setName] = useState(currentName);
   const [email, setEmail] = useState(currentEmail);
 
-  const handleSave = () => {
-    onSave(name, email);
-    onClose();
+  // Mettre à jour les champs quand les props changent
+  useEffect(() => {
+    setName(currentName);
+    setEmail(currentEmail);
+  }, [currentName, currentEmail]);
+
+  // Validation des champs
+  const isValidEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const isFormValid = name.trim().length > 0 && email.trim().length > 0 && isValidEmail(email.trim());
+
+  const handleSave = async () => {
+    try {
+      await onSave(name.trim(), email.trim());
+      // La modal sera fermée par le parent en cas de succès
+    } catch (error) {
+      // L'erreur sera gérée par le parent
+      console.error('Erreur dans PersonalInfoModal:', error);
+    }
   };
 
   const handleClose = () => {
@@ -62,8 +84,15 @@ export default function PersonalInfoModal({
         <ThemedView style={[styles.content, { backgroundColor: colors.background }]}>
           {/* Header */}
           <View style={[styles.header, { borderBottomColor: colors.border }]}>
-            <TouchableOpacity onPress={handleClose} style={styles.headerButton}>
-              <ThemedText style={[styles.headerButtonText, { color: colors.primary }]}>
+            <TouchableOpacity 
+              onPress={handleClose} 
+              style={styles.headerButton}
+              disabled={loading}
+            >
+              <ThemedText style={[
+                styles.headerButtonText, 
+                { color: loading ? colors.textSecondary : colors.primary }
+              ]}>
                 Annuler
               </ThemedText>
             </TouchableOpacity>
@@ -72,10 +101,25 @@ export default function PersonalInfoModal({
               Informations personnelles
             </ThemedText>
             
-            <TouchableOpacity onPress={handleSave} style={styles.headerButton}>
-              <ThemedText style={[styles.headerButtonText, { color: colors.primary }]}>
-                Sauvegarder
-              </ThemedText>
+            <TouchableOpacity 
+              onPress={handleSave} 
+              style={styles.headerButton}
+              disabled={loading || !isFormValid}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : (
+                <ThemedText style={[
+                  styles.headerButtonText, 
+                  { 
+                    color: !isFormValid 
+                      ? colors.textSecondary 
+                      : colors.primary 
+                  }
+                ]}>
+                  Sauvegarder
+                </ThemedText>
+              )}
             </TouchableOpacity>
           </View>
 
@@ -93,6 +137,7 @@ export default function PersonalInfoModal({
                       backgroundColor: colors.card,
                       borderColor: colors.border,
                       color: colors.text,
+                      opacity: loading ? 0.6 : 1,
                     }
                   ]}
                   value={name}
@@ -100,6 +145,7 @@ export default function PersonalInfoModal({
                   placeholder="Entrez votre nom"
                   placeholderTextColor={colors.textSecondary}
                   autoCapitalize="words"
+                  editable={!loading}
                 />
               </View>
 
@@ -112,8 +158,11 @@ export default function PersonalInfoModal({
                     styles.input,
                     {
                       backgroundColor: colors.card,
-                      borderColor: colors.border,
+                      borderColor: email.trim() && !isValidEmail(email.trim()) 
+                        ? colors.error 
+                        : colors.border,
                       color: colors.text,
+                      opacity: loading ? 0.6 : 1,
                     }
                   ]}
                   value={email}
@@ -123,7 +172,13 @@ export default function PersonalInfoModal({
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
+                  editable={!loading}
                 />
+                {email.trim() && !isValidEmail(email.trim()) && (
+                  <ThemedText style={[styles.errorText, { color: colors.error }]}>
+                    Format d'email invalide
+                  </ThemedText>
+                )}
               </View>
             </View>
 
@@ -141,6 +196,22 @@ export default function PersonalInfoModal({
                 Vos informations personnelles sont stockées de manière sécurisée et ne sont 
                 jamais partagées avec des tiers. Seuls les administrateurs autorisés peuvent 
                 accéder à ces données dans le cadre de la gestion de votre compte.
+              </ThemedText>
+            </View>
+
+            {/* Email limitation notice */}
+            <View style={[styles.infoCard, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}>
+              <View style={styles.infoHeader}>
+                <View style={[styles.infoIcon, { backgroundColor: colors.textSecondary + '20' }]}>
+                  <IconSymbol name="info.circle" size={20} color={colors.textSecondary} />
+                </View>
+                <ThemedText type="defaultSemiBold" style={[styles.infoTitle, { color: colors.text }]}>
+                  Modification d'email
+                </ThemedText>
+              </View>
+              <ThemedText style={[styles.infoText, { color: colors.textSecondary }]}>
+                La modification de l'adresse email nécessite une validation supplémentaire. 
+                Contactez un administrateur si vous devez changer votre adresse email.
               </ThemedText>
             </View>
           </ScrollView>
@@ -196,6 +267,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
+  },
+  errorText: {
+    fontSize: 12,
+    marginTop: 4,
+    fontWeight: '500',
   },
   infoCard: {
     margin: 20,
