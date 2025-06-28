@@ -1,19 +1,87 @@
+import EditNameModal from '@/components/modals/EditNameModal';
+import NotificationsModal from '@/components/modals/NotificationsModal';
+import PersonalInfoModal from '@/components/modals/PersonalInfoModal';
+import SecurityModal from '@/components/modals/SecurityModal';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
+import { useTheme } from '@/contexts/ThemeContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useAuthStore } from '@/stores/auth';
 import { router } from 'expo-router';
-import React from 'react';
+import React, { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
 
 export default function SettingsScreen() {
+  const { themeMode, setThemeMode, currentTheme } = useTheme();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
 
   // Use Zustand stores
   const { user, logout } = useAuthStore();
+
+  // États pour les modales
+  const [showPersonalInfoModal, setShowPersonalInfoModal] = useState(false);
+  const [showEditNameModal, setShowEditNameModal] = useState(false);
+  const [showSecurityModal, setShowSecurityModal] = useState(false);
+  const [showNotificationsModal, setShowNotificationsModal] = useState(false);
+
+  // États pour les paramètres de notification
+  const [notificationSettings, setNotificationSettings] = useState({
+    pushNotifications: true,
+    emailNotifications: false,
+    inventoryAlerts: true,
+    systemUpdates: false,
+    lowStockAlerts: true,
+    weeklyReports: false,
+  });
+
+  // Fonctions de gestion des modales
+  const handleSavePersonalInfo = async (name: string, email: string) => {
+    try {
+      // TODO: Implémenter la logique de sauvegarde des informations personnelles
+      console.log('Sauvegarde des informations personnelles:', { name, email });
+      setShowPersonalInfoModal(false);
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde:', error);
+      Alert.alert('Erreur', 'Impossible de sauvegarder les informations');
+    }
+  };
+
+  const handleSaveName = async (name: string) => {
+    try {
+      // TODO: Implémenter la logique de sauvegarde du nom
+      console.log('Sauvegarde du nom:', name);
+      setShowEditNameModal(false);
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde du nom:', error);
+      Alert.alert('Erreur', 'Impossible de sauvegarder le nom');
+    }
+  };
+
+  const handleChangePassword = async (currentPassword: string, newPassword: string) => {
+    try {
+      // TODO: Implémenter la logique de changement de mot de passe
+      console.log('Changement de mot de passe');
+      setShowSecurityModal(false);
+      Alert.alert('Succès', 'Mot de passe modifié avec succès');
+    } catch (error) {
+      console.error('Erreur lors du changement de mot de passe:', error);
+      Alert.alert('Erreur', 'Impossible de modifier le mot de passe');
+    }
+  };
+
+  const handleSaveNotifications = (settings: typeof notificationSettings) => {
+    try {
+      setNotificationSettings(settings);
+      setShowNotificationsModal(false);
+      Alert.alert('Succès', 'Paramètres de notification sauvegardés');
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde des notifications:', error);
+      Alert.alert('Erreur', 'Impossible de sauvegarder les paramètres');
+    }
+  };
 
   const handleLogout = async () => {
     Alert.alert(
@@ -53,7 +121,7 @@ export default function SettingsScreen() {
     showArrow = true,
     rightComponent
   }: {
-    icon: string;
+    icon: any; // Type temporaire pour éviter l'erreur TypeScript
     title: string;
     subtitle?: string;
     onPress?: () => void;
@@ -128,7 +196,10 @@ export default function SettingsScreen() {
               </View>
             </View>
           </View>
-          <TouchableOpacity style={[styles.editProfileButton, { backgroundColor: colors.backgroundSecondary }]}>
+          <TouchableOpacity 
+            style={[styles.editProfileButton, { backgroundColor: colors.backgroundSecondary }]}
+            onPress={() => setShowEditNameModal(true)}
+          >
             <IconSymbol name="pencil" size={16} color={colors.primary} />
           </TouchableOpacity>
         </View>
@@ -140,19 +211,19 @@ export default function SettingsScreen() {
             icon="person.circle"
             title="Personal Information"
             subtitle="Name, email, password"
-            onPress={() => { }}
+            onPress={() => setShowPersonalInfoModal(true)}
           />
           <SettingItem
             icon="bell"
             title="Notifications"
             subtitle="Manage alerts and notifications"
-            onPress={() => { }}
+            onPress={() => setShowNotificationsModal(true)}
           />
           <SettingItem
             icon="lock"
             title="Security"
             subtitle="Password and authentication"
-            onPress={() => { }}
+            onPress={() => setShowSecurityModal(true)}
           />
         </View>
 
@@ -162,16 +233,16 @@ export default function SettingsScreen() {
           <SettingItem
             icon="paintbrush"
             title="Theme"
-            subtitle={colorScheme === 'dark' ? 'Dark' : 'Light'}
+            subtitle={themeMode === 'auto' ? `Auto (${currentTheme})` : themeMode === 'dark' ? 'Dark' : 'Light'}
             rightComponent={
               <Switch
-                value={colorScheme === 'dark'}
-                onValueChange={() => { }}
+                value={themeMode === 'dark'}
+                onValueChange={(value) => setThemeMode(value ? 'dark' : 'light')}
                 trackColor={{
                   false: colors.border,
                   true: colors.primary,
                 }}
-                thumbColor={colorScheme === 'dark' ? '#FFFFFF' : colors.textSecondary}
+                thumbColor={themeMode === 'dark' ? '#FFFFFF' : colors.textSecondary}
               />
             }
             showArrow={false}
@@ -259,6 +330,38 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Modal des informations personnelles */}
+      <PersonalInfoModal
+        visible={showPersonalInfoModal}
+        onClose={() => setShowPersonalInfoModal(false)}
+        currentName={user?.name || ''}
+        currentEmail={user?.email || ''}
+        onSave={handleSavePersonalInfo}
+      />
+
+      {/* Modal d'édition du nom */}
+      <EditNameModal
+        visible={showEditNameModal}
+        onClose={() => setShowEditNameModal(false)}
+        currentName={user?.name || ''}
+        onSave={handleSaveName}
+      />
+
+      {/* Modal de sécurité */}
+      <SecurityModal
+        visible={showSecurityModal}
+        onClose={() => setShowSecurityModal(false)}
+        onChangePassword={handleChangePassword}
+      />
+
+      {/* Modal des notifications */}
+      <NotificationsModal
+        visible={showNotificationsModal}
+        onClose={() => setShowNotificationsModal(false)}
+        currentSettings={notificationSettings}
+        onSave={handleSaveNotifications}
+      />
     </ThemedView>
   );
 }
@@ -399,5 +502,51 @@ const styles = StyleSheet.create({
   logoutText: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  // Theme section styles
+  themeSection: {
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  themeSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 12,
+  },
+  themeOptions: {
+    gap: 8,
+  },
+  themeOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  themeOptionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  themeOptionText: {
+    fontSize: 15,
+    fontWeight: '500',
+  },
+  radioButton: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radioButtonInner: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
 });
