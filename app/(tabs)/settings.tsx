@@ -1,7 +1,7 @@
-import PersonalInfoModal from '@/components/modals/PersonalInfoModal';
 import EditNameModal from '@/components/modals/EditNameModal';
-import SecurityModal from '@/components/modals/SecurityModal';
 import NotificationsModal from '@/components/modals/NotificationsModal';
+import PersonalInfoModal from '@/components/modals/PersonalInfoModal';
+import SecurityModal from '@/components/modals/SecurityModal';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
