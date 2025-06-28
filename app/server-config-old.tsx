@@ -1,34 +1,29 @@
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { ConnectionStatus } from '@/components/ui/ConnectionStatus';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import { ConnectionStatus } from '@/components/ui/ConnectionStatus';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { useConfigStore } from '@/stores/config';
+import { useServerConnection } from '@/hooks/useServerConnection';
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { useState, useEffect } from 'react';
+import { KeyboardAvoidingView, Platform, StyleSheet, TextInput, TouchableOpacity, View, Alert } from 'react-native';
+import { configService } from '@/services/config';
 
 export default function ServerConfigScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
-  
-  const [serverIp, setServerIpInput] = useState('');
-  
-  const { 
-    serverIp: currentServerIp, 
-    connectionStatus, 
-    serverInfo,
-    isLoading,
-    setServerIp, 
-    testConnection,
-    clearError 
-  } = useConfigStore();
+  const [serverIp, setServerIp] = useState('');
+  const { connectionState, testConnection } = useServerConnection();
 
   useEffect(() => {
     // Load current server IP
-    setServerIpInput(currentServerIp);
-  }, [currentServerIp]);
+    const loadCurrentIp = async () => {
+      const currentIp = await configService.getServerIp();
+      setServerIp(currentIp);
+    };
+    loadCurrentIp();
+  }, []);
 
   const handleTestConnection = async () => {
     if (!serverIp.trim()) {
@@ -36,38 +31,27 @@ export default function ServerConfigScreen() {
       return;
     }
 
-    clearError();
+    const success = await testConnection(serverIp.trim());
     
-    try {
-      // Save IP first if different
-      if (serverIp.trim() !== currentServerIp) {
-        await setServerIp(serverIp.trim());
-      }
-      
-      const success = await testConnection();
-      
-      if (success && serverInfo) {
-        Alert.alert(
-          'Connexion réussie ✅',
-          `Le serveur ShelfSpot est accessible.\nVersion: ${serverInfo.version}\n\nVoulez-vous continuer vers l'écran de connexion ?`,
-          [
-            { text: 'Retester', style: 'cancel' },
-            { text: 'Continuer', onPress: () => router.replace('/login') }
-          ]
-        );
-      } else if (!success) {
-        const errorMsg = 'Erreur de connexion';
-        Alert.alert(
-          'Échec de la connexion ❌',
-          `Impossible de se connecter au serveur ShelfSpot.\n\nErreur: ${errorMsg}\n\nVérifiez:\n• L'adresse URL est correcte\n• Le serveur est démarré\n• Vous êtes sur le même réseau`,
-          [
-            { text: 'Réessayer', style: 'default' },
-            { text: 'Continuer quand même', style: 'destructive', onPress: () => router.replace('/login') }
-          ]
-        );
-      }
-    } catch (error) {
-      console.error('Test connection error:', error);
+    if (success && connectionState.serverInfo) {
+      Alert.alert(
+        'Connexion réussie ✅',
+        `Le serveur ShelfSpot est accessible.\nVersion: ${connectionState.serverInfo.version}\n\nVoulez-vous continuer vers l'écran de connexion ?`,
+        [
+          { text: 'Retester', style: 'cancel' },
+          { text: 'Continuer', onPress: () => router.replace('/login') }
+        ]
+      );
+    } else if (!success) {
+      const errorMsg = connectionState.error || 'Erreur de connexion inconnue';
+      Alert.alert(
+        'Échec de la connexion ❌',
+        `Impossible de se connecter au serveur ShelfSpot.\n\nErreur: ${errorMsg}\n\nVérifiez:\n• L'adresse IP est correcte\n• Le serveur est démarré\n• Vous êtes sur le même réseau`,
+        [
+          { text: 'Réessayer', style: 'default' },
+          { text: 'Continuer quand même', style: 'destructive', onPress: () => router.replace('/login') }
+        ]
+      );
     }
   };
 
@@ -78,15 +62,15 @@ export default function ServerConfigScreen() {
 
   const handleSubmit = async () => {
     if (!serverIp.trim()) {
-      Alert.alert('Erreur', 'Veuillez entrer une adresse URL valide');
+      Alert.alert('Erreur', 'Veuillez entrer une adresse IP');
       return;
     }
 
     try {
-      await setServerIp(serverIp.trim());
+      await configService.setServerIp(serverIp.trim());
       router.replace('/login');
     } catch {
-      Alert.alert('Erreur', 'Impossible de sauvegarder l\'adresse URL');
+      Alert.alert('Erreur', 'Impossible de sauvegarder l\'adresse IP');
     }
   };
 
@@ -126,11 +110,11 @@ export default function ServerConfigScreen() {
             <IconSymbol name="server.rack" size={20} color={colors.textSecondary} />
             <TextInput
               style={[styles.input, { color: colors.text }]}
-              placeholder="http://192.168.1.100:3001"
+              placeholder="192.168.1.100"
               placeholderTextColor={colors.textSecondary}
               value={serverIp}
-              onChangeText={setServerIpInput}
-              keyboardType="url"
+              onChangeText={setServerIp}
+              keyboardType="numeric"
               autoCapitalize="none"
             />
           </View>
@@ -138,38 +122,38 @@ export default function ServerConfigScreen() {
           {/* Connection Status */}
           <ConnectionStatus
             status={
-              isLoading ? 'testing' :
-              connectionStatus === 'success' ? 'success' :
-              connectionStatus === 'error' ? 'error' : 'idle'
+              connectionState.isLoading ? 'testing' :
+              connectionState.isConnected ? 'success' :
+              connectionState.error ? 'error' : 'idle'
             }
-            serverInfo={serverInfo}
-            error={connectionStatus === 'error' ? 'Erreur de connexion' : undefined}
+            serverInfo={connectionState.serverInfo}
+            error={connectionState.error}
             onRetry={handleTestConnection}
             showDetails={true}
           />
 
           <ThemedText style={[styles.description, { color: colors.textSecondary }]}>
-            Saisissez l&apos;URL complète de votre serveur local (exemple: http://192.168.1.100:3001)
+            Saisissez l&apos;adresse IP de votre serveur local (exemple: 192.168.1.100)
           </ThemedText>
 
           {/* Buttons */}
           <TouchableOpacity 
             style={[
               styles.primaryButton, 
-              { backgroundColor: isLoading ? colors.textSecondary : colors.primary }
+              { backgroundColor: connectionState.isLoading ? colors.textSecondary : colors.primary }
             ]}
             onPress={handleTestConnection}
-            disabled={isLoading}
+            disabled={connectionState.isLoading}
           >
             <ThemedText style={[styles.primaryButtonText, { color: '#FFFFFF' }]}>
-              {isLoading ? 'Test en cours...' : 'Tester la connexion'}
+              {connectionState.isLoading ? 'Test en cours...' : 'Tester la connexion'}
             </ThemedText>
           </TouchableOpacity>
 
           <TouchableOpacity 
             style={[styles.secondaryButton, { borderColor: colors.border }]}
             onPress={handleSubmit}
-            disabled={isLoading}
+            disabled={connectionState.isLoading}
           >
             <ThemedText style={[styles.secondaryButtonText, { color: colors.primary }]}>
               Confirmer et continuer
@@ -268,6 +252,45 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     fontWeight: '500',
+  },
+  statusContainer: {
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  statusText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  serverInfoContainer: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.1)',
+    alignItems: 'center',
+  },
+  serverInfoText: {
+    fontSize: 12,
+    marginVertical: 2,
+  },
+  errorContainer: {
+    marginTop: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.2)',
+  },
+  errorText: {
+    fontSize: 12,
+    textAlign: 'center',
+    lineHeight: 16,
   },
   description: {
     fontSize: 14,

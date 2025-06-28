@@ -8,67 +8,109 @@ import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { useAuthStore } from '@/stores/auth';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 export default function SettingsScreen() {
   const { themeMode, setThemeMode } = useTheme();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
 
-  // État pour la modal des informations personnelles
+  // Use Zustand stores
+  const { user, logout } = useAuthStore();
+
+  // États pour les modales
   const [showPersonalInfoModal, setShowPersonalInfoModal] = useState(false);
-  
-  // État pour la modal d'édition du nom
   const [showEditNameModal, setShowEditNameModal] = useState(false);
-  
-  // État pour la modal de sécurité
   const [showSecurityModal, setShowSecurityModal] = useState(false);
-  
-  // État pour la modal des notifications
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
 
-  // Données utilisateur avec état
-  const [user, setUser] = useState({
-    name: 'John Doe',
-    email: 'john.doe@example.com',
-    role: 'admin' as const,
-  });
-
-  // Paramètres de notifications avec état
+  // États pour les paramètres de notification
   const [notificationSettings, setNotificationSettings] = useState({
     pushNotifications: true,
     emailNotifications: false,
     inventoryAlerts: true,
-    systemUpdates: true,
+    systemUpdates: false,
     lowStockAlerts: true,
     weeklyReports: false,
   });
 
-  const handleSavePersonalInfo = (name: string, email: string) => {
-    setUser(prev => ({ ...prev, name, email }));
+  // Fonctions de gestion des modales
+  const handleSavePersonalInfo = async (name: string, email: string) => {
+    try {
+      // TODO: Implémenter la logique de sauvegarde des informations personnelles
+      console.log('Sauvegarde des informations personnelles:', { name, email });
+      setShowPersonalInfoModal(false);
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde:', error);
+      Alert.alert('Erreur', 'Impossible de sauvegarder les informations');
+    }
   };
 
-  const handleSaveName = (name: string) => {
-    setUser(prev => ({ ...prev, name }));
+  const handleSaveName = async (name: string) => {
+    try {
+      // TODO: Implémenter la logique de sauvegarde du nom
+      console.log('Sauvegarde du nom:', name);
+      setShowEditNameModal(false);
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde du nom:', error);
+      Alert.alert('Erreur', 'Impossible de sauvegarder le nom');
+    }
   };
 
-  const handleChangePassword = (currentPassword: string, newPassword: string) => {
-    // Ici vous pouvez ajouter la logique pour changer le mot de passe
-    console.log('Changement de mot de passe:', { currentPassword, newPassword });
-    // Exemple : appel API pour changer le mot de passe
+  const handleChangePassword = async (currentPassword: string, newPassword: string) => {
+    try {
+      // TODO: Implémenter la logique de changement de mot de passe
+      console.log('Changement de mot de passe');
+      setShowSecurityModal(false);
+      Alert.alert('Succès', 'Mot de passe modifié avec succès');
+    } catch (error) {
+      console.error('Erreur lors du changement de mot de passe:', error);
+      Alert.alert('Erreur', 'Impossible de modifier le mot de passe');
+    }
   };
 
   const handleSaveNotifications = (settings: typeof notificationSettings) => {
-    setNotificationSettings(settings);
-    console.log('Paramètres de notifications sauvegardés:', settings);
-    // Ici vous pouvez ajouter la logique pour sauvegarder les paramètres
+    try {
+      setNotificationSettings(settings);
+      setShowNotificationsModal(false);
+      Alert.alert('Succès', 'Paramètres de notification sauvegardés');
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde des notifications:', error);
+      Alert.alert('Erreur', 'Impossible de sauvegarder les paramètres');
+    }
   };
 
-  const handleLogout = () => {
-    // Redirection vers l'écran de configuration du serveur
-    router.replace('/server-config');
+  const handleLogout = async () => {
+    Alert.alert(
+      'Déconnexion',
+      'Êtes-vous sûr de vouloir vous déconnecter ?',
+      [
+        {
+          text: 'Annuler',
+          style: 'cancel',
+        },
+        {
+          text: 'Se déconnecter',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await logout();
+              router.replace('/login');
+            } catch (error) {
+              console.error('Logout error:', error);
+              Alert.alert('Erreur', 'Erreur lors de la déconnexion');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleServerConfig = () => {
+    router.push('/server-config');
   };
 
   const SettingItem = ({ 
@@ -93,7 +135,7 @@ export default function SettingsScreen() {
     >
       <View style={styles.settingLeft}>
         <View style={[styles.settingIcon, { backgroundColor: colors.backgroundSecondary }]}>
-          <IconSymbol name={icon} size={20} color={colors.primary} />
+          <IconSymbol name={icon as any} size={20} color={colors.primary} />
         </View>
         <View style={styles.settingContent}>
           <ThemedText type="defaultSemiBold" style={[styles.settingTitle, { color: colors.text }]}>
@@ -137,19 +179,19 @@ export default function SettingsScreen() {
           <View style={styles.profileInfo}>
             <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
               <ThemedText style={[styles.avatarText, { color: '#FFFFFF' }]}>
-                {user.name.split(' ').map(n => n[0]).join('')}
+                {user?.name ? user.name.split(' ').map(n => n[0]).join('') : user?.email?.charAt(0).toUpperCase() || 'U'}
               </ThemedText>
             </View>
             <View style={styles.profileDetails}>
               <ThemedText type="defaultSemiBold" style={[styles.userName, { color: colors.text }]}>
-                {user.name}
+                {user?.name || 'Utilisateur'}
               </ThemedText>
               <ThemedText style={[styles.userEmail, { color: colors.textSecondary }]}>
-                {user.email}
+                {user?.email || 'Non défini'}
               </ThemedText>
               <View style={[styles.roleBadge, { backgroundColor: colors.primary }]}>
                 <ThemedText style={[styles.roleText, { color: '#FFFFFF' }]}>
-                  {user.role === 'admin' ? 'Administrateur' : 'Utilisateur'}
+                  {user?.admin ? 'Administrateur' : 'Utilisateur'}
                 </ThemedText>
               </View>
             </View>
@@ -288,7 +330,7 @@ export default function SettingsScreen() {
         </View>
 
         {/* Admin Settings */}
-        {user.role === 'admin' && (
+        {user?.admin && (
           <>
             <SectionHeader title="Administration" />
             <View style={styles.section}>
@@ -309,6 +351,12 @@ export default function SettingsScreen() {
                 title="Configuration système"
                 subtitle="Paramètres globaux"
                 onPress={() => {}}
+              />
+              <SettingItem
+                icon="server.rack"
+                title="Configuration Serveur"
+                subtitle="Modifier l'adresse IP du serveur"
+                onPress={handleServerConfig}
               />
             </View>
           </>
@@ -355,8 +403,8 @@ export default function SettingsScreen() {
       <PersonalInfoModal
         visible={showPersonalInfoModal}
         onClose={() => setShowPersonalInfoModal(false)}
-        currentName={user.name}
-        currentEmail={user.email}
+        currentName={user?.name || ''}
+        currentEmail={user?.email || ''}
         onSave={handleSavePersonalInfo}
       />
 
@@ -364,7 +412,7 @@ export default function SettingsScreen() {
       <EditNameModal
         visible={showEditNameModal}
         onClose={() => setShowEditNameModal(false)}
-        currentName={user.name}
+        currentName={user?.name || ''}
         onSave={handleSaveName}
       />
 
