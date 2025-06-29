@@ -131,7 +131,7 @@ export default function DashboardScreen() {
             style={[styles.profileButton, { backgroundColor: colors.backgroundSecondary }]}
             onPress={() => router.push('/settings')}
           >
-            <IconSymbol name="person.circle.fill" size={32} color={colors.primary} />
+            <IconSymbol name="gearshape.fill" size={32} color={colors.primary} />
           </TouchableOpacity>
         </View>
 
@@ -144,100 +144,7 @@ export default function DashboardScreen() {
           </View>
         ) : (
           <>
-            {/* Stats Cards */}
-            <View style={styles.statsGrid}>
-              <TouchableOpacity
-                style={[styles.statsCard, { backgroundColor: colors.card }]}
-                onPress={() => router.push('/inventory')}
-                activeOpacity={0.7}
-              >
-                <View style={[styles.iconContainer, { backgroundColor: `${colors.primary}20` }]}>
-                  <IconSymbol name="cube.fill" size={24} color={colors.primary} />
-                </View>
-                <View style={styles.statsContent}>
-                  <ThemedText type="subtitle" style={[styles.statsNumber, { color: colors.primary }]}>
-                    {stats.totalItems}
-                  </ThemedText>
-                  <ThemedText style={[styles.statsLabel, { color: colors.textSecondary }]}>
-                    Total Items
-                  </ThemedText>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.statsCard, { backgroundColor: colors.card }]}
-                onPress={() => router.push('/inventory' as any)}
-                activeOpacity={0.7}
-              >
-                <View style={[styles.iconContainer, { backgroundColor: `${colors.secondary}20` }]}>
-                  <IconSymbol name="house.fill" size={24} color={colors.secondary} />
-                </View>
-                <View style={styles.statsContent}>
-                  <ThemedText type="subtitle" style={[styles.statsNumber, { color: colors.secondary }]}>
-                    {stats.totalRooms}
-                  </ThemedText>
-                  <ThemedText style={[styles.statsLabel, { color: colors.textSecondary }]}>
-                    Rooms
-                  </ThemedText>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.statsCard, { backgroundColor: colors.card }]}
-                onPress={() => router.push('/consumables' as any)}
-                activeOpacity={0.7}
-              >
-                <View style={[styles.iconContainer, { backgroundColor: `${colors.warning}20` }]}>
-                  <IconSymbol name="cube.box.fill" size={24} color={colors.warning} />
-                </View>
-                <View style={styles.statsContent}>
-                  <ThemedText type="subtitle" style={[styles.statsNumber, { color: colors.warning }]}>
-                    {stats.totalPlaces}
-                  </ThemedText>
-                  <ThemedText style={[styles.statsLabel, { color: colors.textSecondary }]}>
-                    Places
-                  </ThemedText>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.statsCard, { backgroundColor: colors.card }]}
-                onPress={() => router.push('/inventory' as any)}
-                activeOpacity={0.7}
-              >
-                <View style={[styles.iconContainer, { backgroundColor: `${colors.secondary}20` }]}>
-                  <IconSymbol name="exclamationmark.triangle.fill" size={24} color={colors.secondary} />
-                </View>
-                <View style={styles.statsContent}>
-                  <ThemedText type="subtitle" style={[styles.statsNumber, { color: colors.secondary }]}>
-                    {stats.lowStockItems}
-                  </ThemedText>
-                  <ThemedText style={[styles.statsLabel, { color: colors.textSecondary }]}>
-                    Low Stock
-                  </ThemedText>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.statsCard, { backgroundColor: colors.card }]}
-                onPress={() => router.push('/favorites' as any)}
-                activeOpacity={0.7}
-              >
-                <View style={[styles.iconContainer, { backgroundColor: `${colors.error}20` }]}>
-                  <IconSymbol name="heart.fill" size={24} color={colors.error} />
-                </View>
-                <View style={styles.statsContent}>
-                  <ThemedText type="subtitle" style={[styles.statsNumber, { color: colors.error }]}>
-                    {stats.favoriteItems}
-                  </ThemedText>
-                  <ThemedText style={[styles.statsLabel, { color: colors.textSecondary }]}>
-                    Favorites
-                  </ThemedText>
-                </View>
-              </TouchableOpacity>
-            </View>
-
-            {/* Quick Actions */}
+            {/* Quick Actions - Moved to top */}
             <View style={styles.section}>
               <ThemedText type="subtitle" style={[styles.sectionTitle, { color: colors.text }]}>
                 Quick Actions
@@ -256,6 +163,105 @@ export default function DashboardScreen() {
                     </ThemedText>
                   </TouchableOpacity>
                 ))}
+              </View>
+            </View>
+
+            {/* Stats Cards - Bento Grid Layout */}
+            <View style={styles.section}>
+              <ThemedText type="subtitle" style={[styles.sectionTitle, { color: colors.text }]}>
+                Overview
+              </ThemedText>
+              <View style={styles.bentoGrid}>
+                {/* Large card - Total Items */}
+                <TouchableOpacity
+                  style={[styles.bentoCardLarge, { backgroundColor: colors.card }]}
+                  onPress={() => router.push('/inventory')}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.bentoContent}>
+                    <View style={[styles.bentoIcon, { backgroundColor: `${colors.primary}20` }]}>
+                      <IconSymbol name="cube.fill" size={32} color={colors.primary} />
+                    </View>
+                    <View style={styles.bentoStats}>
+                      <ThemedText type="title" style={[styles.bentoNumber, { color: colors.primary }]}>
+                        {stats.totalItems}
+                      </ThemedText>
+                      <ThemedText style={[styles.bentoLabel, { color: colors.textSecondary }]}>
+                        Total Items
+                      </ThemedText>
+                      <ThemedText style={[styles.bentoDescription, { color: colors.textSecondary }]}>
+                        Items in inventory
+                      </ThemedText>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+
+                {/* Small cards grid */}
+                <View style={styles.bentoSmallGrid}>
+                  <TouchableOpacity
+                    style={[styles.bentoCardSmall, { backgroundColor: colors.card }]}
+                    onPress={() => router.push('/inventory' as any)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[styles.bentoIconSmall, { backgroundColor: `${colors.secondary}20` }]}>
+                      <IconSymbol name="house.fill" size={20} color={colors.secondary} />
+                    </View>
+                    <ThemedText type="subtitle" style={[styles.bentoNumberSmall, { color: colors.secondary }]}>
+                      {stats.totalRooms}
+                    </ThemedText>
+                    <ThemedText style={[styles.bentoLabelSmall, { color: colors.textSecondary }]}>
+                      Rooms
+                    </ThemedText>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.bentoCardSmall, { backgroundColor: colors.card }]}
+                    onPress={() => router.push('/consumables' as any)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[styles.bentoIconSmall, { backgroundColor: `${colors.warning}20` }]}>
+                      <IconSymbol name="cube.box.fill" size={20} color={colors.warning} />
+                    </View>
+                    <ThemedText type="subtitle" style={[styles.bentoNumberSmall, { color: colors.warning }]}>
+                      {stats.totalPlaces}
+                    </ThemedText>
+                    <ThemedText style={[styles.bentoLabelSmall, { color: colors.textSecondary }]}>
+                      Places
+                    </ThemedText>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.bentoCardSmall, { backgroundColor: colors.card }]}
+                    onPress={() => router.push('/inventory' as any)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[styles.bentoIconSmall, { backgroundColor: `${colors.error}20` }]}>
+                      <IconSymbol name="exclamationmark.triangle.fill" size={20} color={colors.error} />
+                    </View>
+                    <ThemedText type="subtitle" style={[styles.bentoNumberSmall, { color: colors.error }]}>
+                      {stats.lowStockItems}
+                    </ThemedText>
+                    <ThemedText style={[styles.bentoLabelSmall, { color: colors.textSecondary }]}>
+                      Low Stock
+                    </ThemedText>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.bentoCardSmall, { backgroundColor: colors.card }]}
+                    onPress={() => router.push('/favorites' as any)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[styles.bentoIconSmall, { backgroundColor: `${colors.info}20` }]}>
+                      <IconSymbol name="heart.fill" size={20} color={colors.info} />
+                    </View>
+                    <ThemedText type="subtitle" style={[styles.bentoNumberSmall, { color: colors.info }]}>
+                      {stats.favoriteItems}
+                    </ThemedText>
+                    <ThemedText style={[styles.bentoLabelSmall, { color: colors.textSecondary }]}>
+                      Favorites
+                    </ThemedText>
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
 
@@ -484,5 +490,86 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
+  },
+  // Bento Grid Styles
+  bentoGrid: {
+    flexDirection: 'row',
+    gap: 12,
+    height: 220, // Increased height
+  },
+  bentoCardLarge: {
+    flex: 1.5, // Reduced flex to give more space to small cards
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  bentoContent: {
+    flex: 1,
+    justifyContent: 'space-between',
+  },
+  bentoIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  bentoStats: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  bentoNumber: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  bentoLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  bentoDescription: {
+    fontSize: 12,
+    opacity: 0.8,
+  },
+  bentoSmallGrid: {
+    flex: 1.2, // Increased flex for more space
+    gap: 8, // Reduced gap to fit better
+  },
+  bentoCardSmall: {
+    flex: 1,
+    borderRadius: 12,
+    padding: 12, // Increased padding
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  bentoIconSmall: {
+    width: 28, // Slightly smaller icon
+    height: 28,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6, // Reduced margin
+  },
+  bentoNumberSmall: {
+    fontSize: 20, // Increased font size
+    fontWeight: 'bold',
+    marginBottom: 3,
+  },
+  bentoLabelSmall: {
+    fontSize: 11, // Increased font size
+    fontWeight: '500',
+    textAlign: 'center',
+    lineHeight: 12,
   },
 });
