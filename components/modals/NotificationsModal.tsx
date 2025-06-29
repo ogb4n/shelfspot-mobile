@@ -15,10 +15,6 @@ import {
 
 interface NotificationSettings {
   pushNotifications: boolean;
-  emailNotifications: boolean;
-  inventoryAlerts: boolean;
-  systemUpdates: boolean;
-  lowStockAlerts: boolean;
   weeklyReports: boolean;
 }
 
@@ -135,14 +131,14 @@ export default function NotificationsModal({
               Préférences de notifications
             </ThemedText>
             <ThemedText style={[styles.iconSubtitle, { color: colors.textSecondary }]}>
-              Gérez comment et quand vous souhaitez être notifié
+              Contrôlez vos notifications essentielles
             </ThemedText>
           </View>
 
-          {/* General Section */}
+          {/* Notifications Section */}
           <View style={styles.section}>
             <ThemedText type="defaultSemiBold" style={[styles.sectionTitle, { color: colors.text }]}>
-              Général
+              Notifications
             </ThemedText>
             
             <NotificationItem
@@ -151,52 +147,6 @@ export default function NotificationsModal({
               icon="bell"
               value={settings.pushNotifications}
               onToggle={(value) => updateSetting('pushNotifications', value)}
-            />
-            
-            <NotificationItem
-              title="Notifications email"
-              description="Recevoir des notifications par email"
-              icon="envelope"
-              value={settings.emailNotifications}
-              onToggle={(value) => updateSetting('emailNotifications', value)}
-            />
-          </View>
-
-          {/* Inventory Section */}
-          <View style={styles.section}>
-            <ThemedText type="defaultSemiBold" style={[styles.sectionTitle, { color: colors.text }]}>
-              Inventaire
-            </ThemedText>
-            
-            <NotificationItem
-              title="Alertes d'inventaire"
-              description="Notifications pour les changements d'inventaire"
-              icon="cube.box"
-              value={settings.inventoryAlerts}
-              onToggle={(value) => updateSetting('inventoryAlerts', value)}
-            />
-            
-            <NotificationItem
-              title="Stock faible"
-              description="Alertes quand les stocks sont bas"
-              icon="exclamationmark.triangle"
-              value={settings.lowStockAlerts}
-              onToggle={(value) => updateSetting('lowStockAlerts', value)}
-            />
-          </View>
-
-          {/* System Section */}
-          <View style={styles.section}>
-            <ThemedText type="defaultSemiBold" style={[styles.sectionTitle, { color: colors.text }]}>
-              Système
-            </ThemedText>
-            
-            <NotificationItem
-              title="Mises à jour système"
-              description="Notifications pour les mises à jour importantes"
-              icon="gear"
-              value={settings.systemUpdates}
-              onToggle={(value) => updateSetting('systemUpdates', value)}
             />
             
             <NotificationItem
@@ -219,8 +169,9 @@ export default function NotificationsModal({
               </ThemedText>
             </View>
             <ThemedText style={[styles.infoText, { color: colors.textSecondary }]}>
-              Vous pouvez modifier ces paramètres à tout moment. Les notifications push 
-              nécessitent l'autorisation de votre système d'exploitation pour fonctionner.
+              Ces paramètres de base vous permettent de contrôler les notifications 
+              essentielles. Les notifications push nécessitent l'autorisation de votre 
+              système d'exploitation pour fonctionner.
             </ThemedText>
           </View>
         </ScrollView>

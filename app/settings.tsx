@@ -19,7 +19,7 @@ export default function SettingsScreen() {
   const colors = Colors[colorScheme];
 
   // Use Zustand stores
-  const { user, logout } = useAuthStore();
+  const { user, logout, updateProfile, loading } = useAuthStore();
 
   // États pour les modales
   const [showPersonalInfoModal, setShowPersonalInfoModal] = useState(false);
@@ -30,42 +30,80 @@ export default function SettingsScreen() {
   // États pour les paramètres de notification
   const [notificationSettings, setNotificationSettings] = useState({
     pushNotifications: true,
-    emailNotifications: false,
-    inventoryAlerts: true,
-    systemUpdates: false,
-    lowStockAlerts: true,
     weeklyReports: false,
   });
 
   // Fonctions de gestion des modales
   const handleSavePersonalInfo = async (name: string, email: string) => {
     try {
-      // TODO: Implémenter la logique de sauvegarde des informations personnelles
-      console.log('Sauvegarde des informations personnelles:', { name, email });
+      console.log('🔄 Saving personal info:', { name, email, currentName: user?.name, currentEmail: user?.email });
+      
+      let hasChanges = false;
+      let successMessages = [];
+      
+      // Vérifier et mettre à jour le nom si nécessaire
+      if (name.trim() !== user?.name?.trim()) {
+        console.log('📝 Updating name from', user?.name, 'to', name.trim());
+        await updateProfile(name.trim());
+        hasChanges = true;
+        successMessages.push('Nom mis à jour');
+      }
+      
+      // Pour l'email, vérifier s'il a changé et informer l'utilisateur
+      if (email.trim() !== user?.email?.trim()) {
+        console.log('📧 Email change requested from', user?.email, 'to', email.trim());
+        Alert.alert(
+          'Information',
+          'La modification de l\'adresse email n\'est pas encore disponible via cette interface. Contactez un administrateur si vous devez changer votre email.',
+          [{ text: 'OK' }]
+        );
+      }
+      
+      if (hasChanges) {
+        Alert.alert('Succès', successMessages.join(' et ') + ' avec succès');
+        console.log('✅ Personal info saved successfully');
+      } else if (email.trim() === user?.email?.trim()) {
+        console.log('ℹ️ No changes detected');
+      }
+      
       setShowPersonalInfoModal(false);
     } catch (error) {
-      console.error('Erreur lors de la sauvegarde:', error);
+      console.error('❌ Error saving personal info:', error);
       Alert.alert('Erreur', 'Impossible de sauvegarder les informations');
+      throw error; // Propager l'erreur pour que la modal reste ouverte
     }
   };
 
   const handleSaveName = async (name: string) => {
     try {
-      // TODO: Implémenter la logique de sauvegarde du nom
-      console.log('Sauvegarde du nom:', name);
+      // Utiliser l'API pour mettre à jour le nom
+      await updateProfile(name);
+      
+      console.log('✅ Name updated successfully');
       setShowEditNameModal(false);
     } catch (error) {
-      console.error('Erreur lors de la sauvegarde du nom:', error);
+      console.error('❌ Error saving name:', error);
       Alert.alert('Erreur', 'Impossible de sauvegarder le nom');
+      throw error; // Propager l'erreur pour que la modal reste ouverte
     }
   };
 
   const handleChangePassword = async (currentPassword: string, newPassword: string) => {
     try {
-      // TODO: Implémenter la logique de changement de mot de passe
-      console.log('Changement de mot de passe');
+      // ⚠️ LIMITATION BACKEND: Il n'y a pas d'endpoint pour changer le mot de passe de façon sécurisée
+      // Seule option disponible : "reset password" qui ne vérifie PAS l'ancien mot de passe
+      // Cette fonction pourrait utiliser resetPassword du store, mais ce n'est pas sécurisé
+      
+      // Pour l'instant, on affiche un message d'information à l'utilisateur
+      Alert.alert(
+        'Information',
+        'La modification sécurisée du mot de passe n\'est pas encore disponible. ' +
+        'Seule la réinitialisation du mot de passe est possible (sans vérification de l\'ancien mot de passe). ' +
+        'Cette fonctionnalité nécessite une amélioration côté backend.',
+        [{ text: 'OK' }]
+      );
+      
       setShowSecurityModal(false);
-      Alert.alert('Succès', 'Mot de passe modifié avec succès');
     } catch (error) {
       console.error('Erreur lors du changement de mot de passe:', error);
       Alert.alert('Erreur', 'Impossible de modifier le mot de passe');
@@ -235,15 +273,28 @@ export default function SettingsScreen() {
             title="Theme"
             subtitle={themeMode === 'auto' ? `Auto (${currentTheme})` : themeMode === 'dark' ? 'Dark' : 'Light'}
             rightComponent={
-              <Switch
-                value={themeMode === 'dark'}
-                onValueChange={(value) => setThemeMode(value ? 'dark' : 'light')}
-                trackColor={{
-                  false: colors.border,
-                  true: colors.primary,
-                }}
-                thumbColor={themeMode === 'dark' ? '#FFFFFF' : colors.textSecondary}
-              />
+              <View style={styles.themeControls}>
+                {themeMode !== 'auto' && (
+                  <TouchableOpacity 
+                    onPress={() => setThemeMode('auto')}
+                    style={[styles.autoButton, { backgroundColor: colors.card, borderColor: colors.border }]}
+                  >
+                    <ThemedText style={[styles.autoButtonText, { color: colors.primary }]}>Auto</ThemedText>
+                  </TouchableOpacity>
+                )}
+                <Switch
+                  value={currentTheme === 'dark'}
+                  onValueChange={(value) => {
+                    // Si on change le switch, on sort du mode auto et on va en mode manuel
+                    setThemeMode(value ? 'dark' : 'light');
+                  }}
+                  trackColor={{
+                    false: colors.border,
+                    true: colors.primary,
+                  }}
+                  thumbColor={currentTheme === 'dark' ? '#FFFFFF' : colors.textSecondary}
+                />
+              </View>
             }
             showArrow={false}
           />
@@ -338,6 +389,7 @@ export default function SettingsScreen() {
         currentName={user?.name || ''}
         currentEmail={user?.email || ''}
         onSave={handleSavePersonalInfo}
+        loading={loading}
       />
 
       {/* Modal d'édition du nom */}
@@ -346,6 +398,7 @@ export default function SettingsScreen() {
         onClose={() => setShowEditNameModal(false)}
         currentName={user?.name || ''}
         onSave={handleSaveName}
+        loading={loading}
       />
 
       {/* Modal de sécurité */}
@@ -548,5 +601,20 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
+  },
+  themeControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  autoButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  autoButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
 });
