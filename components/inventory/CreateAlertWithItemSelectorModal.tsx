@@ -94,257 +94,251 @@ export function CreateAlertWithItemSelectorModal({
     };
 
     const renderItemSelector = () => (
-        <Modal
-            visible={showItemSelector}
-            animationType="slide"
-            presentationStyle="pageSheet"
-            onRequestClose={() => setShowItemSelector(false)}
-        >
-            <ThemedView style={styles.selectorContainer}>
-                {/* Selector Header */}
-                <View style={[styles.selectorHeader, { borderBottomColor: colors.border }]}>
-                    <TouchableOpacity onPress={() => setShowItemSelector(false)} style={styles.closeButton}>
-                        <IconSymbol name="xmark" size={24} color={colors.textSecondary} />
-                    </TouchableOpacity>
-                    <ThemedText type="defaultSemiBold" style={[styles.selectorTitle, { color: colors.text }]}>
-                        Select Item
-                    </ThemedText>
-                    <View style={styles.headerSpace} />
-                </View>
+        <View style={styles.selectorContainer}>
+            {/* Selector Header */}
+            <View style={[styles.selectorHeader, { borderBottomColor: colors.border }]}>
+                <TouchableOpacity onPress={() => setShowItemSelector(false)} style={styles.closeButton}>
+                    <IconSymbol name="arrow.left" size={24} color={colors.textSecondary} />
+                </TouchableOpacity>
+                <ThemedText type="defaultSemiBold" style={[styles.selectorTitle, { color: colors.text }]}>
+                    Select Item
+                </ThemedText>
+                <View style={styles.headerSpace} />
+            </View>
 
-                {/* Search */}
-                <View style={styles.selectorSearchContainer}>
-                    <View style={[styles.selectorSearchBar, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}>
-                        <IconSymbol name="magnifyingglass" size={16} color={colors.textSecondary} />
-                        <TextInput
-                            style={[styles.selectorSearchInput, { color: colors.text }]}
-                            placeholder="Search items..."
-                            placeholderTextColor={colors.textSecondary}
-                            value={itemSearchQuery}
-                            onChangeText={setItemSearchQuery}
-                        />
-                    </View>
+            {/* Search */}
+            <View style={styles.selectorSearchContainer}>
+                <View style={[styles.selectorSearchBar, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}>
+                    <IconSymbol name="magnifyingglass" size={16} color={colors.textSecondary} />
+                    <TextInput
+                        style={[styles.selectorSearchInput, { color: colors.text }]}
+                        placeholder="Search items..."
+                        placeholderTextColor={colors.textSecondary}
+                        value={itemSearchQuery}
+                        onChangeText={setItemSearchQuery}
+                    />
                 </View>
+            </View>
 
-                {/* Items List */}
-                <FlatList
-                    data={filteredItems}
-                    keyExtractor={(item) => item.id.toString()}
-                    style={styles.itemsList}
-                    contentContainerStyle={styles.itemsListContent}
-                    renderItem={({ item }) => (
-                        <TouchableOpacity
-                            style={[styles.itemOption, { backgroundColor: colors.card, borderBottomColor: colors.border }]}
-                            onPress={() => handleItemSelect(item)}
-                        >
-                            <View style={styles.itemOptionContent}>
-                                <ThemedText style={[styles.itemOptionName, { color: colors.text }]}>
-                                    {item.name}
-                                </ThemedText>
-                                <ThemedText style={[styles.itemOptionDetails, { color: colors.textSecondary }]}>
-                                    Quantity: {item.quantity} • {item.location}
-                                </ThemedText>
-                            </View>
-                            <IconSymbol name="chevron.right" size={16} color={colors.textSecondary} />
-                        </TouchableOpacity>
-                    )}
-                    ListEmptyComponent={() => (
-                        <View style={styles.emptyItems}>
-                            <IconSymbol name="cube.box" size={48} color={colors.textSecondary} />
-                            <ThemedText style={[styles.emptyItemsText, { color: colors.textSecondary }]}>
-                                {itemSearchQuery ? 'No items found' : 'No items available'}
+            {/* Items List */}
+            <FlatList
+                data={filteredItems}
+                keyExtractor={(item) => item.id.toString()}
+                style={styles.itemsList}
+                contentContainerStyle={styles.itemsListContent}
+                renderItem={({ item }) => (
+                    <TouchableOpacity
+                        style={[styles.itemOption, { backgroundColor: colors.card, borderBottomColor: colors.border }]}
+                        onPress={() => handleItemSelect(item)}
+                    >
+                        <View style={styles.itemOptionContent}>
+                            <ThemedText style={[styles.itemOptionName, { color: colors.text }]}>
+                                {item.name}
+                            </ThemedText>
+                            <ThemedText style={[styles.itemOptionDetails, { color: colors.textSecondary }]}>
+                                Quantity: {item.quantity} • {item.location}
                             </ThemedText>
                         </View>
-                    )}
-                />
-            </ThemedView>
-        </Modal>
+                        <IconSymbol name="chevron.right" size={16} color={colors.textSecondary} />
+                    </TouchableOpacity>
+                )}
+                ListEmptyComponent={() => (
+                    <View style={styles.emptyItems}>
+                        <IconSymbol name="cube.box" size={48} color={colors.textSecondary} />
+                        <ThemedText style={[styles.emptyItemsText, { color: colors.textSecondary }]}>
+                            {itemSearchQuery ? 'No items found' : 'No items available'}
+                        </ThemedText>
+                    </View>
+                )}
+            />
+        </View>
     );
 
     return (
-        <>
-            <Modal
-                visible={visible}
-                animationType="slide"
-                presentationStyle="pageSheet"
-                onRequestClose={handleClose}
-            >
-                <ThemedView style={styles.container}>
-                    {/* Header */}
-                    <View style={[styles.header, { borderBottomColor: colors.backgroundSecondary }]}>
-                        <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-                            <IconSymbol name="xmark" size={24} color={colors.textSecondary} />
-                        </TouchableOpacity>
-                        <ThemedText type="defaultSemiBold" style={[styles.title, { color: colors.text }]}>
-                            Create Alert
-                        </ThemedText>
-                        <View style={styles.headerSpace} />
-                    </View>
+        <Modal
+            visible={visible}
+            animationType="slide"
+            presentationStyle="pageSheet"
+            onRequestClose={handleClose}
+        >
+            <ThemedView style={styles.container}>
+                {showItemSelector ? (
+                    renderItemSelector()
+                ) : (
+                    <>
+                        {/* Header */}
+                        <View style={[styles.header, { borderBottomColor: colors.backgroundSecondary }]}>
+                            <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+                                <IconSymbol name="xmark" size={24} color={colors.textSecondary} />
+                            </TouchableOpacity>
+                            <ThemedText type="defaultSemiBold" style={[styles.title, { color: colors.text }]}>
+                                Create Alert
+                            </ThemedText>
+                            <View style={styles.headerSpace} />
+                        </View>
 
-                    {/* Content */}
-                    <ScrollView style={styles.content}>
-                        <View style={styles.formContainer}>
-                            {/* Item Selection */}
-                            <View style={styles.inputGroup}>
-                                <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
-                                    Select Item *
-                                </ThemedText>
-                                <TouchableOpacity
-                                    style={[styles.itemSelector, {
-                                        backgroundColor: colors.backgroundSecondary,
-                                        borderColor: colors.border
-                                    }]}
-                                    onPress={() => setShowItemSelector(true)}
-                                >
-                                    {selectedItem ? (
-                                        <View style={styles.selectedItemContent}>
-                                            <IconSymbol name="cube.box" size={20} color={colors.primary} />
-                                            <View style={styles.selectedItemInfo}>
-                                                <ThemedText style={[styles.selectedItemName, { color: colors.text }]}>
-                                                    {selectedItem.name}
-                                                </ThemedText>
-                                                <ThemedText style={[styles.selectedItemDetails, { color: colors.textSecondary }]}>
-                                                    Quantity: {selectedItem.quantity} • {selectedItem.location}
-                                                </ThemedText>
-                                            </View>
-                                        </View>
-                                    ) : (
-                                        <ThemedText style={[styles.placeholderText, { color: colors.textSecondary }]}>
-                                            Choose an item for the alert
-                                        </ThemedText>
-                                    )}
-                                    <IconSymbol name="chevron.down" size={16} color={colors.textSecondary} />
-                                </TouchableOpacity>
-                            </View>
-
-                            {/* Alert Name */}
-                            <View style={styles.inputGroup}>
-                                <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
-                                    Alert Name *
-                                </ThemedText>
-                                <TextInput
-                                    style={[styles.input, {
-                                        backgroundColor: colors.backgroundSecondary,
-                                        color: colors.text,
-                                        borderColor: colors.border
-                                    }]}
-                                    placeholder="E.g.: Stock running low"
-                                    placeholderTextColor={colors.textSecondary}
-                                    value={formData.name}
-                                    onChangeText={(text) => updateFormData('name', text)}
-                                />
-                            </View>
-
-                            {/* Threshold */}
-                            <View style={styles.inputGroup}>
-                                <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
-                                    Alert Threshold *
-                                </ThemedText>
-                                <View style={styles.thresholdContainer}>
+                        {/* Content */}
+                        <ScrollView style={styles.content}>
+                            <View style={styles.formContainer}>
+                                {/* Item Selection */}
+                                <View style={styles.inputGroup}>
+                                    <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                                        Select Item *
+                                    </ThemedText>
                                     <TouchableOpacity
-                                        style={[styles.thresholdButton, { backgroundColor: colors.backgroundSecondary }]}
-                                        onPress={() => updateFormData('threshold', Math.max(1, formData.threshold - 1))}
+                                        style={[styles.itemSelector, {
+                                            backgroundColor: colors.backgroundSecondary,
+                                            borderColor: colors.border
+                                        }]}
+                                        onPress={() => setShowItemSelector(true)}
                                     >
-                                        <IconSymbol name="minus" size={20} color={colors.textSecondary} />
+                                        {selectedItem ? (
+                                            <View style={styles.selectedItemContent}>
+                                                <IconSymbol name="cube.box" size={20} color={colors.primary} />
+                                                <View style={styles.selectedItemInfo}>
+                                                    <ThemedText style={[styles.selectedItemName, { color: colors.text }]}>
+                                                        {selectedItem.name}
+                                                    </ThemedText>
+                                                    <ThemedText style={[styles.selectedItemDetails, { color: colors.textSecondary }]}>
+                                                        Quantity: {selectedItem.quantity} • {selectedItem.location}
+                                                    </ThemedText>
+                                                </View>
+                                            </View>
+                                        ) : (
+                                            <ThemedText style={[styles.placeholderText, { color: colors.textSecondary }]}>
+                                                Choose an item for the alert
+                                            </ThemedText>
+                                        )}
+                                        <IconSymbol name="chevron.down" size={16} color={colors.textSecondary} />
                                     </TouchableOpacity>
+                                </View>
+
+                                {/* Alert Name */}
+                                <View style={styles.inputGroup}>
+                                    <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                                        Alert Name *
+                                    </ThemedText>
                                     <TextInput
-                                        style={[styles.thresholdInput, {
+                                        style={[styles.input, {
                                             backgroundColor: colors.backgroundSecondary,
                                             color: colors.text,
                                             borderColor: colors.border
                                         }]}
-                                        value={formData.threshold.toString()}
-                                        onChangeText={(text) => {
-                                            const num = parseInt(text) || 1;
-                                            updateFormData('threshold', Math.max(1, num));
-                                        }}
-                                        keyboardType="numeric"
+                                        placeholder="E.g.: Stock running low"
+                                        placeholderTextColor={colors.textSecondary}
+                                        value={formData.name}
+                                        onChangeText={(text) => updateFormData('name', text)}
                                     />
-                                    <TouchableOpacity
-                                        style={[styles.thresholdButton, { backgroundColor: colors.backgroundSecondary }]}
-                                        onPress={() => updateFormData('threshold', formData.threshold + 1)}
-                                    >
-                                        <IconSymbol name="plus" size={20} color={colors.textSecondary} />
-                                    </TouchableOpacity>
                                 </View>
-                                <ThemedText style={[styles.thresholdHelp, { color: colors.textSecondary }]}>
-                                    The alert will trigger when quantity is equal or below {formData.threshold}
-                                </ThemedText>
+
+                                {/* Threshold */}
+                                <View style={styles.inputGroup}>
+                                    <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                                        Alert Threshold *
+                                    </ThemedText>
+                                    <View style={styles.thresholdContainer}>
+                                        <TouchableOpacity
+                                            style={[styles.thresholdButton, { backgroundColor: colors.backgroundSecondary }]}
+                                            onPress={() => updateFormData('threshold', Math.max(1, formData.threshold - 1))}
+                                        >
+                                            <IconSymbol name="minus" size={20} color={colors.textSecondary} />
+                                        </TouchableOpacity>
+                                        <TextInput
+                                            style={[styles.thresholdInput, {
+                                                backgroundColor: colors.backgroundSecondary,
+                                                color: colors.text,
+                                                borderColor: colors.border
+                                            }]}
+                                            value={formData.threshold.toString()}
+                                            onChangeText={(text) => {
+                                                const num = parseInt(text) || 1;
+                                                updateFormData('threshold', Math.max(1, num));
+                                            }}
+                                            keyboardType="numeric"
+                                        />
+                                        <TouchableOpacity
+                                            style={[styles.thresholdButton, { backgroundColor: colors.backgroundSecondary }]}
+                                            onPress={() => updateFormData('threshold', formData.threshold + 1)}
+                                        >
+                                            <IconSymbol name="plus" size={20} color={colors.textSecondary} />
+                                        </TouchableOpacity>
+                                    </View>
+                                    <ThemedText style={[styles.thresholdHelp, { color: colors.textSecondary }]}>
+                                        The alert will trigger when quantity is equal or below {formData.threshold}
+                                    </ThemedText>
+                                </View>
+
+                                {/* Active Status */}
+                                <TouchableOpacity
+                                    style={styles.activeToggle}
+                                    onPress={() => updateFormData('isActive', !formData.isActive)}
+                                >
+                                    <IconSymbol
+                                        name={formData.isActive ? "checkmark.square" : "square"}
+                                        size={24}
+                                        color={formData.isActive ? colors.primary : colors.textSecondary}
+                                    />
+                                    <View style={styles.activeToggleText}>
+                                        <ThemedText style={[styles.activeLabel, { color: colors.text }]}>
+                                            Active Alert
+                                        </ThemedText>
+                                        <ThemedText style={[styles.activeDescription, { color: colors.textSecondary }]}>
+                                            The alert will be checked automatically
+                                        </ThemedText>
+                                    </View>
+                                </TouchableOpacity>
+
+                                {/* Info Card */}
+                                <View style={[styles.infoCard, { backgroundColor: colors.backgroundSecondary }]}>
+                                    <IconSymbol name="info.circle" size={20} color={colors.primary} />
+                                    <View style={styles.infoText}>
+                                        <ThemedText style={[styles.infoTitle, { color: colors.text }]}>
+                                            How does it work?
+                                        </ThemedText>
+                                        <ThemedText style={[styles.infoDescription, { color: colors.textSecondary }]}>
+                                            This alert will automatically check the stock of the selected item and notify you when the quantity reaches the defined threshold.
+                                        </ThemedText>
+                                    </View>
+                                </View>
                             </View>
+                        </ScrollView>
 
-                            {/* Active Status */}
-                            <TouchableOpacity
-                                style={styles.activeToggle}
-                                onPress={() => updateFormData('isActive', !formData.isActive)}
-                            >
-                                <IconSymbol
-                                    name={formData.isActive ? "checkmark.square" : "square"}
-                                    size={24}
-                                    color={formData.isActive ? colors.primary : colors.textSecondary}
-                                />
-                                <View style={styles.activeToggleText}>
-                                    <ThemedText style={[styles.activeLabel, { color: colors.text }]}>
-                                        Active Alert
+                        {/* Footer */}
+                        <View style={[styles.footer, { borderTopColor: colors.backgroundSecondary }]}>
+                            <View style={styles.footerButtons}>
+                                <TouchableOpacity
+                                    style={[styles.button, styles.secondaryButton, { borderColor: colors.textSecondary }]}
+                                    onPress={handleClose}
+                                >
+                                    <ThemedText style={[styles.secondaryButtonText, { color: colors.textSecondary }]}>
+                                        Cancel
                                     </ThemedText>
-                                    <ThemedText style={[styles.activeDescription, { color: colors.textSecondary }]}>
-                                        The alert will be checked automatically
-                                    </ThemedText>
-                                </View>
-                            </TouchableOpacity>
+                                </TouchableOpacity>
 
-                            {/* Info Card */}
-                            <View style={[styles.infoCard, { backgroundColor: colors.backgroundSecondary }]}>
-                                <IconSymbol name="info.circle" size={20} color={colors.primary} />
-                                <View style={styles.infoText}>
-                                    <ThemedText style={[styles.infoTitle, { color: colors.text }]}>
-                                        How does it work?
+                                <TouchableOpacity
+                                    style={[
+                                        styles.button,
+                                        styles.primaryButton,
+                                        {
+                                            backgroundColor: canCreateAlert() ? colors.primary : colors.backgroundSecondary,
+                                        }
+                                    ]}
+                                    onPress={handleSubmit}
+                                    disabled={!canCreateAlert()}
+                                >
+                                    <ThemedText style={[
+                                        styles.primaryButtonText,
+                                        { color: canCreateAlert() ? '#FFFFFF' : colors.textSecondary }
+                                    ]}>
+                                        Create Alert
                                     </ThemedText>
-                                    <ThemedText style={[styles.infoDescription, { color: colors.textSecondary }]}>
-                                        This alert will automatically check the stock of the selected item and notify you when the quantity reaches the defined threshold.
-                                    </ThemedText>
-                                </View>
+                                </TouchableOpacity>
                             </View>
                         </View>
-                    </ScrollView>
-
-                    {/* Footer */}
-                    <View style={[styles.footer, { borderTopColor: colors.backgroundSecondary }]}>
-                        <View style={styles.footerButtons}>
-                            <TouchableOpacity
-                                style={[styles.button, styles.secondaryButton, { borderColor: colors.textSecondary }]}
-                                onPress={handleClose}
-                            >
-                                <ThemedText style={[styles.secondaryButtonText, { color: colors.textSecondary }]}>
-                                    Cancel
-                                </ThemedText>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                                style={[
-                                    styles.button,
-                                    styles.primaryButton,
-                                    {
-                                        backgroundColor: canCreateAlert() ? colors.primary : colors.backgroundSecondary,
-                                    }
-                                ]}
-                                onPress={handleSubmit}
-                                disabled={!canCreateAlert()}
-                            >
-                                <ThemedText style={[
-                                    styles.primaryButtonText,
-                                    { color: canCreateAlert() ? '#FFFFFF' : colors.textSecondary }
-                                ]}>
-                                    Create Alert
-                                </ThemedText>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </ThemedView>
-            </Modal>
-
-            {/* Item Selector Modal */}
-            {renderItemSelector()}
-        </>
+                    </>
+                )}
+            </ThemedView>
+        </Modal>
     );
 }
 

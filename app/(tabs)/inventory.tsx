@@ -1,5 +1,5 @@
-import { router } from 'expo-router';
-import { useState } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { Alert, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { ThemedText } from '../../components/ThemedText';
 import { ThemedView } from '../../components/ThemedView';
@@ -26,6 +26,9 @@ import { hasActiveAdvancedFilters } from '../../utils/inventory/filters';
 export default function InventoryScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
+
+  // Get navigation parameters
+  const { filter } = useLocalSearchParams<{ filter?: string }>();
 
   // Show/hide advanced filters
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
@@ -85,6 +88,13 @@ export default function InventoryScreen() {
     closeCreateAlertModal,
     createAlert,
   } = useInventoryAlerts(items);
+
+  // Handle filter parameter from navigation
+  useEffect(() => {
+    if (filter && filter === 'consumables') {
+      setSelectedFilter('consumables');
+    }
+  }, [filter, setSelectedFilter]);
 
   // Handlers
   const handleToggleAdvancedFilters = () => {
