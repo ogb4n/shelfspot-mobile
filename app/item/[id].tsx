@@ -103,8 +103,7 @@ export default function ItemDetailScreen() {
     const handleToggleFavorite = async () => {
         try {
             await toggleFavorite(item.id);
-            // Update local item state
-            setItem(prev => prev ? { ...prev, isFavorite: !prev.isFavorite } : null);
+            // No need to manually update local state - the store will update and trigger a re-render
         } catch {
             Alert.alert('Error', 'Failed to update favorite status');
         }
@@ -159,13 +158,11 @@ export default function ItemDetailScreen() {
 
     const handleUpdateItem = async (itemId: number, updatedData: any) => {
         try {
+            // Update the item in the store
             await updateItem(itemId, updatedData);
-            // Refresh item data
-            const updatedItem = items.find(i => i.id === itemId);
-            if (updatedItem) {
-                setItem(updatedItem);
-            }
             setShowEditModal(false);
+            
+            // The useEffect will automatically update the local item state when the store updates
         } catch {
             Alert.alert('Error', 'Failed to update item');
         }

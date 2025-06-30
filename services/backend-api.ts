@@ -141,13 +141,18 @@ class BackendApiService {
     });
   }
 
-  async resetPassword(
-    email: string,
-    newPassword: string
-  ): Promise<{ message: string }> {
-    console.log("BackendAPI: Resetting password for email:", email);
-    return this.request<{ message: string }>("/auth/password/reset", {
-      method: "POST",
+  async updateEmail(email: string): Promise<User> {
+    console.log('BackendAPI: Updating user email');
+    return this.request<User>('/auth/profile/email', {
+      method: 'PUT',
+      body: JSON.stringify({ email }),
+    });
+  }
+
+  async resetPassword(email: string, newPassword: string): Promise<{ message: string }> {
+    console.log('BackendAPI: Resetting password for email:', email);
+    return this.request<{ message: string }>('/auth/password/reset', {
+      method: 'POST',
       body: JSON.stringify({ email, newPassword }),
     });
   }
@@ -358,6 +363,30 @@ class BackendApiService {
   async deleteTag(id: number): Promise<{ message: string }> {
     return this.request<{ message: string }>(`/tags/${id}`, {
       method: "DELETE",
+    });
+  }
+
+  // Item-Tag management methods
+  async addTagToItem(itemId: number, tagId: number): Promise<any> {
+    return this.request<any>(`/items/${itemId}/tags/${tagId}`, {
+      method: 'POST',
+    });
+  }
+
+  async removeTagFromItem(itemId: number, tagId: number): Promise<any> {
+    return this.request<any>(`/items/${itemId}/tags/${tagId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getItemTags(itemId: number): Promise<any[]> {
+    return this.request<any[]>(`/items/${itemId}/tags`);
+  }
+
+  async updateItemTags(itemId: number, tagIds: number[]): Promise<any> {
+    return this.request<any>(`/items/${itemId}/tags`, {
+      method: 'PUT',
+      body: JSON.stringify({ tagIds }),
     });
   }
 

@@ -1,21 +1,22 @@
 import { DEBOUNCE_DELAY, DEFAULT_ALERT_THRESHOLD } from '@/constants/inventory';
 import { backendApi } from '@/services/backend-api';
 import {
-    AlertFormData,
-    FilterKey,
-    FilterOptions,
-    ItemFormData,
-    ItemWithLocation
+  AlertFormData,
+  FilterKey,
+  FilterOptions,
+  ItemFormData,
+  ItemWithLocation
 } from '@/types/inventory';
 import {
-    getTriggeredAlerts,
-    sortAlertsByPriority,
-    transformItemsToItemsWithLocation,
-    TriggeredAlert
+  getTriggeredAlerts,
+  sortAlertsByPriority,
+  transformItemsToItemsWithLocation,
+  transformItemToItemWithLocation,
+  TriggeredAlert
 } from '@/utils/inventory';
 import {
-    clearAdvancedFilters,
-    filterItems
+  clearAdvancedFilters,
+  filterItems
 } from '@/utils/inventory/filters';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
@@ -55,6 +56,9 @@ export interface InventoryState {
   dataLoading: boolean;
   dataError: string | null;
   
+  // Local item-tag associations (temporary until backend supports it)
+  itemTagAssociations: { [itemId: number]: number[] };
+  
   // Alerts
   allAlerts: any[];
   triggeredAlerts: TriggeredAlert[];
@@ -69,6 +73,7 @@ export interface InventoryState {
   loadItems: () => Promise<void>;
   addItem: (itemData: ItemFormData) => Promise<void>;
   updateItem: (itemId: number, updates: Partial<ItemFormData>) => Promise<void>;
+  updateItemLocal: (itemId: number, updates: Partial<ItemWithLocation>) => void;
   deleteItem: (itemId: number) => Promise<void>;
   deleteItems: (itemIds: number[]) => Promise<void>;
   
@@ -94,6 +99,7 @@ export interface InventoryState {
   toggleFavorite: (itemId: number) => Promise<void>;
   addToFavorites: (itemId: number) => Promise<void>;
   removeFromFavorites: (itemId: number) => Promise<void>;
+  syncFavoritesWithItems: () => void;
   
   // Actions - Inventory data
   loadInventoryData: () => Promise<void>;
@@ -153,6 +159,9 @@ export const useInventoryStore = create<InventoryState>()(
         dataLoading: false,
         dataError: null,
         
+        // Local item-tag associations (temporary until backend supports it)
+        itemTagAssociations: {},
+        
         allAlerts: [],
         triggeredAlerts: [],
         alertsLoading: false,
@@ -173,12 +182,43 @@ export const useInventoryStore = create<InventoryState>()(
             set({ loading: true, error: null });
             const apiItems = await backendApi.getItems();
             const user = useAuthStore.getState().user;
+            const { itemTagAssociations, tags } = get();
             
-            const transformedItems = transformItemsToItemsWithLocation(apiItems, user?.id);
+            // Transform items and include local tag associations
+            const transformedItems = apiItems.map((item: any) => {
+              const transformed = transformItemToItemWithLocation(item, user?.id);
+              
+              // Add local tags if any exist for this item
+              const localTagIds = itemTagAssociations[item.id] || [];
+              if (localTagIds.length > 0) {
+                console.log(`Adding local tags to item ${item.id} (${item.name}):`, localTagIds);
+                const localTags = localTagIds.map(tagId => {
+                  const tag = tags.find(tag => tag.id === tagId);
+                  if (!tag) {
+                    console.warn(`Tag with id ${tagId} not found in available tags`);
+                  }
+                  return tag;
+                }).filter(Boolean);
+                
+                // Replace backend tags with local tags to avoid conflicts
+                transformed.tags = localTags;
+                
+                console.log(`Item ${item.id} (${item.name}) now has tags:`, transformed.tags.map(t => t.name));
+              }
+              
+              return transformed;
+            });
+            
             set({ items: transformedItems });
             
             // Apply current filters
             get().applyFilters();
+            
+            // Force sync favorites if they are already loaded
+            const { favoriteItems } = get();
+            if (favoriteItems.length > 0) {
+              get().syncFavoritesWithItems();
+            }
           } catch (err: any) {
             console.error('Error loading items:', err);
             set({ error: err.message || 'Failed to load items' });
@@ -215,16 +255,44 @@ export const useInventoryStore = create<InventoryState>()(
               roomId: defaultRoomId,
               placeId: defaultPlaceId,
               ...(itemData.containerId && { containerId: itemData.containerId }),
-              // Note: consumable property is not supported by the CreateItemDto schema
-              // ...(itemData.price && { price: itemData.price }),
+              ...(itemData.price && { price: itemData.price }),
+              ...(itemData.itemLink && { itemLink: itemData.itemLink }),
+              // Note: consumable, sellprice and image are not supported by the backend yet
+              // ...(typeof itemData.consumable === 'boolean' && { consumable: itemData.consumable }),
               // ...(itemData.sellprice && { sellprice: itemData.sellprice }),
-              // ...(itemData.itemLink && { itemLink: itemData.itemLink }),
               // ...(itemData.image && { image: itemData.image }),
             };
             
             console.log('Creating item with data:', createData);
-            await backendApi.createItem(createData);
+            const createdItem = await backendApi.createItem(createData);
+            console.log('Item created successfully:', createdItem);
             
+            // Store tags locally (temporary until backend supports it)
+            if (itemData.tagIds && itemData.tagIds.length > 0) {
+              console.log('Storing tags locally for item:', createdItem.id, itemData.tagIds);
+              const currentState = get();
+              console.log('Current itemTagAssociations:', currentState.itemTagAssociations);
+              console.log('Available tags:', currentState.tags.map(t => ({ id: t.id, name: t.name })));
+              
+              // Update tags locally first
+              set((state) => ({
+                itemTagAssociations: {
+                  ...state.itemTagAssociations,
+                  [createdItem.id]: itemData.tagIds
+                }
+              }));
+              
+              // Also try to update item tags on backend if supported
+              try {
+                await backendApi.updateItemTags(createdItem.id, itemData.tagIds);
+                console.log('Successfully added tags to item on backend');
+              } catch (tagError) {
+                console.warn('Failed to add tags to item on backend (may not be supported yet):', tagError);
+                // Tags are stored locally, so operation continues
+              }
+            }
+            
+            // Reload items to include the new item with tags
             await get().loadItems();
           } catch (err: any) {
             console.error('Error adding item:', err);
@@ -238,15 +306,76 @@ export const useInventoryStore = create<InventoryState>()(
         updateItem: async (itemId: number, updates: Partial<ItemFormData>) => {
           try {
             set({ loading: true, error: null });
-            await backendApi.updateItem(itemId, updates);
-            await get().loadItems();
+            
+            // Extract tags and fields not supported by backend from updates
+            const { tagIds, consumable, sellprice, image, ...itemUpdates } = updates;
+            
+            console.log('Updating item:', itemId, 'with updates:', updates);
+            
+            // Update tags locally first for immediate UI update
+            if (tagIds !== undefined) {
+              console.log('Updating item tags locally:', tagIds);
+              
+              const { tags } = get();
+              set((state) => ({
+                itemTagAssociations: {
+                  ...state.itemTagAssociations,
+                  [itemId]: tagIds
+                }
+              }));
+              
+              // Update the item in local state immediately with new tags
+              const localTags = tagIds.map(tagId => tags.find(tag => tag.id === tagId)).filter(Boolean);
+              get().updateItemLocal(itemId, { tags: localTags });
+            }
+            
+            // Update ALL properties locally first for immediate UI response (including consumable)
+            const allLocalUpdates = { ...updates };
+            delete allLocalUpdates.tagIds; // Remove tagIds as it's handled separately
+            
+            if (Object.keys(allLocalUpdates).length > 0) {
+              console.log('Updating item properties locally:', allLocalUpdates);
+              get().updateItemLocal(itemId, allLocalUpdates);
+            }
+            
+            // Update only backend-supported properties on backend
+            if (Object.keys(itemUpdates).length > 0) {
+              console.log('Updating item properties on backend:', itemUpdates);
+              await backendApi.updateItem(itemId, itemUpdates);
+            }
+            
+            // Try to update tags on backend if supported
+            if (tagIds !== undefined) {
+              try {
+                await backendApi.updateItemTags(itemId, tagIds);
+                console.log('Successfully updated tags on backend');
+              } catch (tagError) {
+                console.warn('Failed to update item tags on backend (may not be supported yet):', tagError);
+                // Tags are stored locally, so operation continues
+              }
+            }
+            
+            console.log('Item update completed successfully');
           } catch (err: any) {
             console.error('Error updating item:', err);
             set({ error: err.message || 'Failed to update item' });
+            // Reload items to restore correct state
+            await get().loadItems();
             throw err;
           } finally {
             set({ loading: false });
           }
+        },
+
+        updateItemLocal: (itemId: number, updates: Partial<ItemWithLocation>) => {
+          const { items } = get();
+          const updatedItems = items.map(item => 
+            item.id === itemId 
+              ? { ...item, ...updates }
+              : item
+          );
+          set({ items: updatedItems });
+          get().applyFilters();
         },
 
         deleteItem: async (itemId: number) => {
@@ -409,6 +538,12 @@ export const useInventoryStore = create<InventoryState>()(
             }));
             
             set({ favoriteItems: favoriteItemsWithFlag });
+            
+            // Sync favorites with main items list if items are already loaded
+            const { items: mainItems } = get();
+            if (mainItems.length > 0) {
+              get().syncFavoritesWithItems();
+            }
           } catch (err: any) {
             console.error('Error loading favorites:', err);
             set({ favoritesError: err.message || 'Failed to load favorites' });
@@ -425,6 +560,8 @@ export const useInventoryStore = create<InventoryState>()(
             const item = items.find(item => item.id === itemId);
             if (!item) return;
 
+            console.log('Toggling favorite for item:', itemId, 'Current state:', item.isFavorite);
+
             if (item.isFavorite) {
               await backendApi.removeFromFavorites(itemId);
             } else {
@@ -437,10 +574,16 @@ export const useInventoryStore = create<InventoryState>()(
             );
             set({ items: updatedItems });
             get().applyFilters();
+            
+            // Refresh favorites list to keep it in sync
+            await get().loadFavorites();
+            
+            console.log('Favorite toggled successfully for item:', itemId, 'New state:', !item.isFavorite);
           } catch (err: any) {
             console.error('Error toggling favorite:', err);
             set({ error: err.message || 'Failed to toggle favorite' });
-            await get().loadItems(); // Restore correct state
+            // Reload items to get the correct state from backend
+            await get().loadItems();
           } finally {
             set({ loading: false });
           }
@@ -468,6 +611,27 @@ export const useInventoryStore = create<InventoryState>()(
             set({ favoritesError: err.message || 'Failed to remove from favorites' });
             await get().loadFavorites(); // Restore state if removal failed
           }
+        },
+
+        syncFavoritesWithItems: () => {
+          const { items, favoriteItems } = get();
+          const favoriteItemIds = favoriteItems.map(fav => fav.id);
+          
+          console.log('Syncing favorites with items...', { 
+            totalItems: items.length, 
+            favoriteItemIds: favoriteItemIds 
+          });
+          
+          // Update items with correct favorite status based on loaded favorites
+          const syncedItems = items.map(item => ({
+            ...item,
+            isFavorite: favoriteItemIds.includes(item.id)
+          }));
+          
+          set({ items: syncedItems });
+          get().applyFilters();
+          
+          console.log('Favorites synced with items successfully');
         },
 
         // Inventory data actions
@@ -607,16 +771,36 @@ export const useInventoryStore = create<InventoryState>()(
         initialize: async () => {
           try {
             console.log('InventoryStore: Initializing inventory');
-            // Load items first
+            
+            // Load items first to get the base data
             await get().loadItems();
             
-            // Then load related data including alerts
+            // Then load related data including favorites and alerts
             await Promise.all([
               get().loadFavorites(),
               get().loadInventoryData(),
               get().loadAlerts(),
             ]);
-            console.log('InventoryStore: Inventory initialized successfully');
+            
+            // After loading favorites, sync the favorite status with items
+            const { items, favoriteItems } = get();
+            const favoriteItemIds = favoriteItems.map(fav => fav.id);
+            
+            console.log('InventoryStore: Syncing favorites...', { 
+              totalItems: items.length, 
+              favoriteItemIds: favoriteItemIds 
+            });
+            
+            // Update items with correct favorite status based on loaded favorites
+            const syncedItems = items.map(item => ({
+              ...item,
+              isFavorite: favoriteItemIds.includes(item.id)
+            }));
+            
+            set({ items: syncedItems });
+            get().applyFilters();
+            
+            console.log('InventoryStore: Inventory initialized successfully with synced favorites');
           } catch (error) {
             console.error('InventoryStore: Error initializing inventory:', error);
           }
@@ -625,10 +809,11 @@ export const useInventoryStore = create<InventoryState>()(
       {
         name: 'inventory-storage',
         storage: createJSONStorage(() => AsyncStorage),
-        // Only persist search/filter preferences, not the actual data
+        // Only persist search/filter preferences and local tag associations
         partialize: (state) => ({
           selectedFilter: state.selectedFilter,
           advancedFilters: state.advancedFilters,
+          itemTagAssociations: state.itemTagAssociations,
         }),
       }
     )
@@ -643,6 +828,7 @@ export const useInventoryItems = () => {
   const loadItems = useInventoryStore((state) => state.loadItems);
   const addItem = useInventoryStore((state) => state.addItem);
   const updateItem = useInventoryStore((state) => state.updateItem);
+  const updateItemLocal = useInventoryStore((state) => state.updateItemLocal);
   const deleteItem = useInventoryStore((state) => state.deleteItem);
   const deleteItems = useInventoryStore((state) => state.deleteItems);
   const toggleFavorite = useInventoryStore((state) => state.toggleFavorite);
@@ -655,6 +841,7 @@ export const useInventoryItems = () => {
     loadItems,
     addItem,
     updateItem,
+    updateItemLocal,
     deleteItem,
     deleteItems,
     toggleFavorite,
@@ -710,6 +897,7 @@ export const useInventoryFavorites = () => {
   const loadFavorites = useInventoryStore((state) => state.loadFavorites);
   const addToFavorites = useInventoryStore((state) => state.addToFavorites);
   const removeFromFavorites = useInventoryStore((state) => state.removeFromFavorites);
+  const syncFavoritesWithItems = useInventoryStore((state) => state.syncFavoritesWithItems);
   const clearFavoritesError = useInventoryStore((state) => state.clearFavoritesError);
   
   return {
@@ -719,6 +907,7 @@ export const useInventoryFavorites = () => {
     loadFavorites,
     addToFavorites,
     removeFromFavorites,
+    syncFavoritesWithItems,
     clearFavoritesError,
   };
 };

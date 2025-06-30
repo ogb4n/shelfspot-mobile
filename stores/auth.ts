@@ -1,7 +1,7 @@
+import { backendApi, BackendApiError, User } from '@/services/backend-api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { backendApi, User, BackendApiError } from '@/services/backend-api';
 
 export interface AuthState {
   // State
@@ -16,6 +16,7 @@ export interface AuthState {
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   updateProfile: (name: string) => Promise<void>;
+  updateEmail: (email: string) => Promise<void>;
   resetPassword: (email: string, newPassword: string) => Promise<void>;
   clearError: () => void;
   
@@ -175,6 +176,39 @@ export const useAuthStore = create<AuthState>()(
           console.error('AuthStore: Profile update failed:', error);
           set({ 
             error: 'Erreur lors de la mise à jour du profil',
+            loading: false 
+          });
+          throw error;
+        }
+      },
+
+      updateEmail: async (email: string) => {
+        try {
+          set({ loading: true, error: null });
+          console.log('AuthStore: Updating email to:', email);
+          
+          const updatedUser = await backendApi.updateEmail(email);
+          
+          set({ 
+            user: updatedUser,
+            loading: false 
+          });
+          
+          console.log('AuthStore: Email updated successfully');
+        } catch (error) {
+          console.error('AuthStore: Email update failed:', error);
+          let errorMessage = 'Erreur lors de la mise à jour de l\'email';
+          
+          if (error instanceof BackendApiError) {
+            if (error.status === 409) {
+              errorMessage = 'Cet email est déjà utilisé par un autre compte';
+            } else if (error.status === 400) {
+              errorMessage = 'Format d\'email invalide';
+            }
+          }
+          
+          set({ 
+            error: errorMessage,
             loading: false 
           });
           throw error;

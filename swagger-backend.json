@@ -2704,6 +2704,22 @@
             "type": "number",
             "example": 1,
             "description": "Container ID"
+          },
+          "price": {
+            "type": "number",
+            "example": 999.99,
+            "description": "Item price",
+            "minimum": 0
+          },
+          "consumable": {
+            "type": "boolean",
+            "example": false,
+            "description": "Whether the item is a consumable"
+          },
+          "itemLink": {
+            "type": "string",
+            "example": "https://example.com/item-link",
+            "description": "Link to the item details"
           }
         },
         "required": [
