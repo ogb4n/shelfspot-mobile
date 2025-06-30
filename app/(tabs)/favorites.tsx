@@ -2,8 +2,8 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
-import { useFavorites } from '@/hooks/inventory';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { useInventoryFavorites } from '@/stores/inventory';
 import { ItemWithLocation } from '@/types/inventory';
 import { getStatusColor, getStatusText } from '@/utils/inventory/filters';
 import { router } from 'expo-router';
@@ -15,7 +15,7 @@ export default function FavoritesScreen() {
   const colors = Colors[colorScheme];
 
   // Use favorites hook instead of mock data
-  const { favoriteItems, loading, error, removeFromFavorites } = useFavorites();
+  const { favoriteItems, favoritesLoading, favoritesError, removeFromFavorites } = useInventoryFavorites();
 
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -163,20 +163,20 @@ export default function FavoritesScreen() {
       </View>
 
       {/* Favorites List */}
-      {loading ? (
+      {favoritesLoading ? (
         <View style={styles.emptyState}>
           <ThemedText style={[styles.emptyDescription, { color: colors.textSecondary }]}>
             Loading favorites...
           </ThemedText>
         </View>
-      ) : error ? (
+      ) : favoritesError ? (
         <View style={styles.emptyState}>
           <IconSymbol name="exclamationmark.triangle" size={64} color={colors.error} />
           <ThemedText type="subtitle" style={[styles.emptyTitle, { color: colors.text }]}>
             Error Loading Favorites
           </ThemedText>
           <ThemedText style={[styles.emptyDescription, { color: colors.textSecondary }]}>
-            {error}
+            {favoritesError}
           </ThemedText>
         </View>
       ) : filteredFavorites.length > 0 ? (
@@ -195,7 +195,7 @@ export default function FavoritesScreen() {
             No Results Found
           </ThemedText>
           <ThemedText style={[styles.emptyDescription, { color: colors.textSecondary }]}>
-            No favorites match "{searchQuery}". Try a different search term.
+            No favorites match &quot;{searchQuery}&quot;. Try a different search term.
           </ThemedText>
           <TouchableOpacity
             style={[styles.emptyButton, { backgroundColor: colors.backgroundSecondary }]}

@@ -8,6 +8,7 @@ import { Colors } from '../../constants/Colors';
 import { useColorScheme } from '../../hooks/useColorScheme';
 
 // Import refactored components and hooks
+import { useInventoryAlerts, useInventoryFilters, useInventoryItems, useInventorySelection } from '@/stores/inventory';
 import { AddItemModal } from '../../components/inventory/AddItemModal';
 import { AddToProjectModal } from '../../components/inventory/AddToProjectModal';
 import { AlertsModal } from '../../components/inventory/AlertsModal';
@@ -18,9 +19,6 @@ import { InventoryHeader } from '../../components/inventory/InventoryHeader';
 import { InventoryItem } from '../../components/inventory/InventoryItem';
 import { InventorySearch } from '../../components/inventory/InventorySearch';
 import { ItemContextMenu } from '../../components/inventory/ItemContextMenu';
-import { useInventoryAlerts } from '../../hooks/inventory/useInventoryAlerts';
-import { useInventoryItems } from '../../hooks/inventory/useInventoryItems';
-import { useInventorySelection } from '../../hooks/inventory/useInventorySelection';
 import { ItemWithLocation } from '../../types/inventory';
 import { hasActiveAdvancedFilters } from '../../utils/inventory/filters';
 
@@ -56,6 +54,14 @@ export default function InventoryScreen() {
     filteredItems,
     loading,
     error,
+    deleteItems,
+    toggleFavorite,
+    addItem,
+    updateItem,
+    deleteItem,
+  } = useInventoryItems();
+
+  const {
     searchQuery,
     selectedFilter,
     advancedFilters,
@@ -63,12 +69,7 @@ export default function InventoryScreen() {
     setSelectedFilter,
     toggleAdvancedFilter,
     clearAllAdvancedFilters,
-    deleteItems,
-    toggleFavorite,
-    addItem,
-    updateItem,
-    deleteItem,
-  } = useInventoryItems();
+  } = useInventoryFilters();
 
   const {
     isSelectionMode,
@@ -85,14 +86,18 @@ export default function InventoryScreen() {
     showAlertsModal,
     showCreateAlertModal,
     selectedItemForAlert,
-    selectedItem,
     triggeredAlerts,
     openAlertsModal,
     closeAlertsModal,
     openCreateAlertModal,
     closeCreateAlertModal,
     createAlert,
-  } = useInventoryAlerts(items);
+  } = useInventoryAlerts();
+
+  // Computed values
+  const selectedItem = selectedItemForAlert 
+    ? items.find(item => item.id === selectedItemForAlert)
+    : null;
 
   // Handle filter parameter from navigation
   useEffect(() => {
@@ -136,10 +141,14 @@ export default function InventoryScreen() {
     selectAllItems(filteredItems.map(item => item.id));
   };
 
-  const handleCreateAlert = (alertData: any) => {
-    createAlert(() => {
-      Alert.alert('Success', 'Alert has been created!');
-    });
+  const handleCreateAlert = async (alertData: any) => {
+    try {
+      await createAlert(alertData, () => {
+        Alert.alert('Success', 'Alert has been created!');
+      });
+    } catch {
+      Alert.alert('Error', 'Failed to create alert');
+    }
   };
 
   // Context menu handlers
@@ -167,7 +176,7 @@ export default function InventoryScreen() {
   const handleUpdateItem = async (itemId: number, updatedData: any) => {
     try {
       await updateItem(itemId, updatedData);
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to update item. Please try again.');
     }
   };
@@ -185,7 +194,7 @@ export default function InventoryScreen() {
             try {
               await deleteItem(itemId);
               Alert.alert('Success', 'Item has been deleted!');
-            } catch (error) {
+            } catch {
               Alert.alert('Error', 'Failed to delete item. Please try again.');
             }
           },

@@ -1,3 +1,4 @@
+import { useInventoryAlerts, useInventoryItems } from '@/stores/inventory';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
@@ -17,8 +18,6 @@ import { ThemedText } from '../../components/ThemedText';
 import { ThemedView } from '../../components/ThemedView';
 import { IconSymbol } from '../../components/ui/IconSymbol';
 import { Colors } from '../../constants/Colors';
-import { useInventoryAlerts } from '../../hooks/inventory/useInventoryAlerts';
-import { useInventoryItems } from '../../hooks/inventory/useInventoryItems';
 import { useColorScheme } from '../../hooks/useColorScheme';
 import { ItemWithLocation } from '../../types/inventory';
 import { hasActiveAlerts } from '../../utils/inventory/alerts';
@@ -39,10 +38,8 @@ export default function ItemDetailScreen() {
 
     const { items, toggleFavorite, updateItem, deleteItem } = useInventoryItems();
     const {
-        triggeredAlerts,
-        createAlert,
         loadAlerts
-    } = useInventoryAlerts(items);
+    } = useInventoryAlerts();
 
     // Find the item by ID
     useEffect(() => {
@@ -81,7 +78,7 @@ export default function ItemDetailScreen() {
                         Item Not Found
                     </ThemedText>
                     <ThemedText style={[styles.errorDescription, { color: colors.textSecondary }]}>
-                        The item you're looking for doesn't exist or has been deleted.
+                        The item you&apos;re looking for doesn&apos;t exist or has been deleted.
                     </ThemedText>
                     <TouchableOpacity
                         style={[styles.backButton, { backgroundColor: colors.primary }]}
@@ -94,7 +91,7 @@ export default function ItemDetailScreen() {
         );
     }
 
-    const itemAlerts = triggeredAlerts.filter(alert => alert.item.id === item.id);
+    const itemAlerts = item.activeAlerts || [];
     const hasAlerts = hasActiveAlerts(item);
 
     const handleToggleFavorite = async () => {
@@ -102,7 +99,7 @@ export default function ItemDetailScreen() {
             await toggleFavorite(item.id);
             // Update local item state
             setItem(prev => prev ? { ...prev, isFavorite: !prev.isFavorite } : null);
-        } catch (error) {
+        } catch {
             Alert.alert('Error', 'Failed to update favorite status');
         }
     };
@@ -126,7 +123,7 @@ export default function ItemDetailScreen() {
                             Alert.alert('Success', 'Item has been deleted!', [
                                 { text: 'OK', onPress: () => router.back() }
                             ]);
-                        } catch (error) {
+                        } catch {
                             Alert.alert('Error', 'Failed to delete item');
                         }
                     },
@@ -163,7 +160,7 @@ export default function ItemDetailScreen() {
                 setItem(updatedItem);
             }
             setShowEditModal(false);
-        } catch (error) {
+        } catch {
             Alert.alert('Error', 'Failed to update item');
         }
     };
@@ -541,7 +538,7 @@ export default function ItemDetailScreen() {
                                                     Alert.alert('Error', 'Cannot open this link');
                                                 }
                                             }
-                                        } catch (error) {
+                                        } catch {
                                             Alert.alert('Error', 'Failed to open link');
                                         }
                                     }}
@@ -673,10 +670,10 @@ export default function ItemDetailScreen() {
                                                 Low Stock Alert
                                             </ThemedText>
                                             <ThemedText style={[styles.alertDescription, { color: colors.textSecondary }]}>
-                                                Alert when quantity is below {alert.alert.threshold}
+                                                Alert when quantity is below {alert.threshold}
                                             </ThemedText>
                                             <ThemedText style={[styles.alertMeta, { color: colors.textSecondary }]}>
-                                                Created {alert.alert.createdAt ? new Date(alert.alert.createdAt).toLocaleDateString() : 'Unknown'}
+                                                Created {alert.createdAt ? new Date(alert.createdAt).toLocaleDateString() : 'Unknown'}
                                             </ThemedText>
                                         </View>
                                     </View>

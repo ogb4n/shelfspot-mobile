@@ -53,6 +53,7 @@ export const useAppStore = create<AppState>()(
         // Import the stores directly and use their methods
         const { useAuthStore } = await import('./auth');
         const { useConfigStore } = await import('./config');
+        const { useInventoryStore } = await import('./inventory');
         const { configService } = await import('@/services/config');
         
         // Initialize config service first
@@ -72,7 +73,11 @@ export const useAppStore = create<AppState>()(
             authStore.setLoading(true);
             console.log('AppStore: Token found, refreshing user profile');
             await authStore.refreshUser();
-          } catch (error) {
+            
+            // Initialize inventory after successful auth
+            const inventoryStore = useInventoryStore.getState();
+            await inventoryStore.initialize();
+          } catch {
             console.log('AppStore: Token invalid, user will remain logged out');
             // refreshUser already handles cleanup
           } finally {
