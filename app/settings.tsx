@@ -52,10 +52,10 @@ export default function SettingsScreen() {
   const handleSavePersonalInfo = async (name: string, email: string) => {
     try {
       console.log('🔄 Saving personal info:', { name, email, currentName: user?.name, currentEmail: user?.email });
-      
+
       let hasChanges = false;
       let successMessages = [];
-      
+
       // Vérifier et mettre à jour le nom si nécessaire
       if (name.trim() !== user?.name?.trim()) {
         console.log('📝 Updating name from', user?.name, 'to', name.trim());
@@ -63,7 +63,7 @@ export default function SettingsScreen() {
         hasChanges = true;
         successMessages.push('Nom mis à jour');
       }
-      
+
       // Pour l'email, vérifier s'il a changé et informer l'utilisateur
       if (email.trim() !== user?.email?.trim()) {
         console.log('📧 Email change requested from', user?.email, 'to', email.trim());
@@ -73,14 +73,14 @@ export default function SettingsScreen() {
           [{ text: 'OK' }]
         );
       }
-      
+
       if (hasChanges) {
         Alert.alert('Succès', successMessages.join(' et ') + ' avec succès');
         console.log('✅ Personal info saved successfully');
       } else if (email.trim() === user?.email?.trim()) {
         console.log('ℹ️ No changes detected');
       }
-      
+
       setShowPersonalInfoModal(false);
     } catch (error) {
       console.error('❌ Error saving personal info:', error);
@@ -93,7 +93,7 @@ export default function SettingsScreen() {
     try {
       // Utiliser l'API pour mettre à jour le nom
       await updateProfile(name);
-      
+
       console.log('✅ Name updated successfully');
       setShowEditNameModal(false);
     } catch (error) {
@@ -194,8 +194,8 @@ export default function SettingsScreen() {
   return (
     <ThemedView style={styles.container}>
       {/* Custom Header */}
-      <View style={[styles.customHeader, { 
-        backgroundColor: colors.background, 
+      <View style={[styles.customHeader, {
+        backgroundColor: colors.background,
         borderBottomColor: colors.border,
         paddingTop: insets.top + 8
       }]}>
@@ -236,7 +236,7 @@ export default function SettingsScreen() {
               </View>
             </View>
           </View>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.editProfileButton, { backgroundColor: colors.backgroundSecondary }]}
             onPress={() => setShowEditNameModal(true)}
           >
@@ -270,6 +270,12 @@ export default function SettingsScreen() {
         {/* App Settings */}
         <SectionHeader title="Application" />
         <View style={styles.section}>
+          <SettingItem
+            icon="square.grid.2x2"
+            title="Inventory Management"
+            subtitle="Manage rooms, places, containers and tags"
+            onPress={() => router.push('/manage')}
+          />
           <SettingItem
             icon="paintbrush"
             title="Theme"
