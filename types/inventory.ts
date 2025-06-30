@@ -23,6 +23,7 @@ export interface Item {
   roomId?: number;
   containerId?: number;
   itemLink?: string;
+  importanceScore?: number;
   createdAt?: Date;
   updatedAt?: Date;
   alerts?: Alert[];
@@ -104,6 +105,7 @@ export interface ItemWithLocation extends Item {
   tags: Tag[]; // Extracted from itemTags
   isFavorite: boolean; // Computed from favourites
   activeAlerts: Alert[]; // Filtered active alerts
+  importanceScore?: number; // Optional importance score
 }
 
 export interface ItemFormData {
@@ -130,11 +132,12 @@ export interface FilterOptions {
   tagIds: number[];
   statuses: ItemStatus[];
   favoritesOnly: boolean;
+  consumablesOnly: boolean;
 }
 
 export type ItemStatus = 'available' | 'running_low' | 'out_of_stock' | 'expired';
 
-export type FilterKey = 'all' | 'available' | 'running_low' | 'out_of_stock' | 'favorites';
+export type FilterKey = 'all' | 'available' | 'running_low' | 'out_of_stock' | 'consumables' | 'favorites';
 
 export interface FilterChip {
   key: FilterKey;

@@ -12,6 +12,7 @@ export const FILTER_CHIPS: FilterChip[] = [
   { key: 'available', label: 'Available', icon: 'checkmark.circle' },
   { key: 'running_low', label: 'Running Low', icon: 'exclamationmark.triangle' },
   { key: 'out_of_stock', label: 'Out of Stock', icon: 'xmark.circle' },
+  { key: 'consumables', label: 'Consumables', icon: 'cube.box.fill' },
   { key: 'favorites', label: 'Favorites', icon: 'heart' },
 ];
 

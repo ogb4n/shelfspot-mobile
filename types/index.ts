@@ -106,3 +106,25 @@ export interface UpdateProjectDto {
   startDate?: string;
   endDate?: string;
 }
+
+export interface ProjectItem {
+  id: number;
+  projectId: number;
+  itemId: number;
+  importanceScore?: number;
+  notes?: string;
+  item: Item;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface AddItemToProjectDto {
+  itemId: number;
+  quantity: number;
+  isActive?: boolean;
+}
+
+export interface UpdateProjectItemDto {
+  importanceScore?: number;
+  notes?: string;
+}
