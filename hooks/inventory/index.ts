@@ -1,7 +1,8 @@
 // Barrel export for inventory hooks
-export { useFavorites } from './useFavorites';
-export { useInventoryAlerts } from './useInventoryAlerts';
-export { useInventoryData } from './useInventoryData';
-export { useInventoryItems } from './useInventoryItems';
-export { useInventorySelection } from './useInventorySelection';
+// All hooks now use the new Zustand store architecture
+
+// Re-export the Zustand store-based hooks
+export {
+    useInventoryAlerts, useInventoryData, useInventoryFavorites, useInventoryFilters, useInventoryItems, useInventorySelection, useInventoryStore
+} from '@/stores/inventory';
 

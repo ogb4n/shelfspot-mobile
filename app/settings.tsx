@@ -2,36 +2,48 @@ import EditNameModal from '@/components/modals/EditNameModal';
 import NotificationsModal from '@/components/modals/NotificationsModal';
 import PersonalInfoModal from '@/components/modals/PersonalInfoModal';
 import SecurityModal from '@/components/modals/SecurityModal';
+import { ThemeModal } from '@/components/modals/ThemeModal';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
-import { useTheme } from '@/contexts/ThemeContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useAuthStore } from '@/stores/auth';
+import { useThemeMode } from '@/stores/theme';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 export default function SettingsScreen() {
-  const { themeMode, setThemeMode, currentTheme } = useTheme();
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
 
   // Use Zustand stores
   const { user, logout, updateProfile, loading } = useAuthStore();
+  const { themeMode } = useThemeMode();
 
   // États pour les modales
   const [showPersonalInfoModal, setShowPersonalInfoModal] = useState(false);
   const [showEditNameModal, setShowEditNameModal] = useState(false);
   const [showSecurityModal, setShowSecurityModal] = useState(false);
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
+  const [showThemeModal, setShowThemeModal] = useState(false);
 
   // États pour les paramètres de notification
   const [notificationSettings, setNotificationSettings] = useState({
     pushNotifications: true,
     weeklyReports: false,
   });
+
+  // Fonctions utilitaires
+  const getThemeLabel = () => {
+    switch (themeMode) {
+      case 'light': return 'Light';
+      case 'dark': return 'Dark';
+      case 'auto': return 'Automatic';
+      default: return 'Automatic';
+    }
+  };
 
   // Fonctions de gestion des modales
   const handleSavePersonalInfo = async (name: string, email: string) => {
@@ -271,32 +283,8 @@ export default function SettingsScreen() {
           <SettingItem
             icon="paintbrush"
             title="Theme"
-            subtitle={themeMode === 'auto' ? `Auto (${currentTheme})` : themeMode === 'dark' ? 'Dark' : 'Light'}
-            rightComponent={
-              <View style={styles.themeControls}>
-                {themeMode !== 'auto' && (
-                  <TouchableOpacity 
-                    onPress={() => setThemeMode('auto')}
-                    style={[styles.autoButton, { backgroundColor: colors.card, borderColor: colors.border }]}
-                  >
-                    <ThemedText style={[styles.autoButtonText, { color: colors.primary }]}>Auto</ThemedText>
-                  </TouchableOpacity>
-                )}
-                <Switch
-                  value={currentTheme === 'dark'}
-                  onValueChange={(value) => {
-                    // Si on change le switch, on sort du mode auto et on va en mode manuel
-                    setThemeMode(value ? 'dark' : 'light');
-                  }}
-                  trackColor={{
-                    false: colors.border,
-                    true: colors.primary,
-                  }}
-                  thumbColor={currentTheme === 'dark' ? '#FFFFFF' : colors.textSecondary}
-                />
-              </View>
-            }
-            showArrow={false}
+            subtitle={getThemeLabel()}
+            onPress={() => setShowThemeModal(true)}
           />
           <SettingItem
             icon="globe"
@@ -414,6 +402,15 @@ export default function SettingsScreen() {
         onClose={() => setShowNotificationsModal(false)}
         currentSettings={notificationSettings}
         onSave={handleSaveNotifications}
+      />
+
+      {/* Theme Modal */}
+      <ThemeModal
+        visible={showThemeModal}
+        onClose={() => setShowThemeModal(false)}
+        onThemeChange={(theme) => {
+          console.log('Theme changed to:', theme);
+        }}
       />
     </ThemedView>
   );

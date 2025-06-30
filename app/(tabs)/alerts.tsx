@@ -3,8 +3,8 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
-import { useInventoryAlerts, useInventoryItems } from '@/hooks/inventory';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { useInventoryAlerts, useInventoryItems } from '@/stores/inventory';
 import { Alert, AlertFormData } from '@/types/inventory';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -26,18 +26,13 @@ export default function AlertsScreen() {
   const { items, loading: itemsLoading } = useInventoryItems();
   const {
     allAlerts,
-    triggeredAlerts,
-    loading: alertsLoading,
-    error,
-    toggleAlert,
-    deleteAlert,
-    updateAlert,
+    alertsLoading,
+    alertsError,
     loadAlerts,
-    showCreateAlertModal,
-    openCreateAlertModal,
-    closeCreateAlertModal,
-    createAlert
-  } = useInventoryAlerts(items);
+    createAlert,
+    updateAlert,
+    deleteAlert,
+  } = useInventoryAlerts();
 
   // Filter alerts based on search query
   const filteredAlerts = searchQuery.trim()
@@ -53,20 +48,21 @@ export default function AlertsScreen() {
     if (items.length > 0) {
       loadAlerts();
     }
-  }, [items.length]); // Only depend on items length, not the whole items array or loadAlerts
+  }, [items.length, loadAlerts]);
 
   const handleToggleAlert = async (alertId: number, currentStatus: boolean) => {
     const alert = allAlerts.find(a => a.id === alertId);
     if (alert) {
       try {
         console.log('Toggling alert:', { alertId, currentStatus, newStatus: !currentStatus });
-        await toggleAlert(alert.itemId, alertId);
+        // Use updateAlert to toggle the isActive status
+        await updateAlert(alertId, { isActive: !currentStatus });
         // Force reload after toggle
         setTimeout(() => {
           loadAlerts();
         }, 500);
-      } catch (error) {
-        console.error('Error toggling alert:', error);
+      } catch {
+        console.error('Error toggling alert');
         RNAlert.alert('Error', 'Failed to update alert status');
       }
     } else {
@@ -88,8 +84,8 @@ export default function AlertsScreen() {
             style: 'destructive',
             onPress: async () => {
               try {
-                await deleteAlert(alert.itemId, alertId);
-              } catch (error) {
+                await deleteAlert(alertId);
+              } catch {
                 RNAlert.alert('Error', 'Failed to delete alert');
               }
             }
@@ -101,11 +97,11 @@ export default function AlertsScreen() {
 
   const handleCreateAlert = async (alertData: AlertFormData) => {
     try {
-      await createAlert(() => {
-        closeCreateAlertModal();
+      await createAlert(alertData, () => {
+        setShowCreateModal(false);
         loadAlerts();
       });
-    } catch (error) {
+    } catch {
       RNAlert.alert('Error', 'Failed to create alert');
     }
   };
@@ -119,12 +115,11 @@ export default function AlertsScreen() {
     if (!selectedAlert) return;
 
     try {
-      await updateAlert(selectedAlert.id, alertData, () => {
-        setShowEditModal(false);
-        setSelectedAlert(null);
-        loadAlerts();
-      });
-    } catch (error) {
+      await updateAlert(selectedAlert.id, alertData);
+      setShowEditModal(false);
+      setSelectedAlert(null);
+      loadAlerts();
+    } catch {
       RNAlert.alert('Error', 'Failed to update alert');
     }
   };
@@ -328,14 +323,14 @@ export default function AlertsScreen() {
             Loading alerts...
           </ThemedText>
         </View>
-      ) : error ? (
+      ) : alertsError ? (
         <View style={styles.emptyState}>
           <IconSymbol name="exclamationmark.triangle" size={64} color={colors.error} />
           <ThemedText type="subtitle" style={[styles.emptyTitle, { color: colors.text }]}>
             Error Loading Alerts
           </ThemedText>
           <ThemedText style={[styles.emptyDescription, { color: colors.textSecondary }]}>
-            {error}
+            {alertsError}
           </ThemedText>
           <TouchableOpacity
             style={[styles.emptyButton, { backgroundColor: colors.primary }]}
@@ -362,7 +357,7 @@ export default function AlertsScreen() {
             No Results Found
           </ThemedText>
           <ThemedText style={[styles.emptyDescription, { color: colors.textSecondary }]}>
-            No alerts found for "{searchQuery}". Try a different search term.
+            No alerts found for &quot;{searchQuery}&quot;. Try a different search term.
           </ThemedText>
         </View>
       ) : (

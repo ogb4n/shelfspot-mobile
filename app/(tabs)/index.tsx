@@ -3,8 +3,8 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
-import { useFavorites, useInventoryAlerts, useInventoryData, useInventoryItems } from '@/hooks/inventory';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { useInventoryAlerts, useInventoryData, useInventoryFavorites, useInventoryItems } from '@/stores/inventory';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Dimensions, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -22,9 +22,9 @@ export default function DashboardScreen() {
   const colors = Colors[colorScheme];
 
   const { items, loading: itemsLoading, addItem } = useInventoryItems();
-  const { favoriteItems, loading: favoritesLoading } = useFavorites();
-  const { rooms, places, loading: dataLoading } = useInventoryData();
-  const { triggeredAlerts, loading: alertsLoading, loadAlerts } = useInventoryAlerts(items);
+  const { favoriteItems, favoritesLoading } = useInventoryFavorites();
+  const { rooms, places, dataLoading } = useInventoryData();
+  const { triggeredAlerts, alertsLoading, loadAlerts } = useInventoryAlerts();
 
   const loading = itemsLoading || favoritesLoading || dataLoading || alertsLoading;
 

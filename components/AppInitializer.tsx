@@ -1,10 +1,12 @@
-import React, { useEffect } from 'react';
-import { ActivityIndicator } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { useAppStore } from '@/stores/app';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { useAppStore } from '@/stores/app';
+import { useInventoryStore } from '@/stores/inventory';
+import { cleanupThemeListener, initializeThemeListener } from '@/stores/theme';
+import React, { useEffect } from 'react';
+import { ActivityIndicator } from 'react-native';
 
 interface AppInitializerProps {
   children: React.ReactNode;
@@ -15,10 +17,24 @@ export function AppInitializer({ children }: AppInitializerProps) {
   const colors = Colors[colorScheme];
   
   const { isInitialized, initialize } = useAppStore();
+  const { initialize: initializeInventory } = useInventoryStore();
 
   useEffect(() => {
-    initialize();
-  }, [initialize]);
+    const initializeApp = async () => {
+      // Initialize theme listener
+      initializeThemeListener();
+      
+      await initialize();
+      await initializeInventory();
+    };
+    
+    initializeApp();
+    
+    // Cleanup on unmount
+    return () => {
+      cleanupThemeListener();
+    };
+  }, [initialize, initializeInventory]);
 
   if (!isInitialized) {
     return (

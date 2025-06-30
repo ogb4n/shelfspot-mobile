@@ -5,7 +5,6 @@ import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
 import { AppInitializer } from '@/components/AppInitializer';
-import { ThemeProvider } from '@/contexts/ThemeContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 export default function RootLayout() {
@@ -20,26 +19,21 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider>
-      <AppInitializer>
-        <NavigationThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-          <Stack>
-            <Stack.Screen name="server-config" options={{ headerShown: false }} />
-            <Stack.Screen name="login" options={{ headerShown: false }} />
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="item/[id]" options={{
-              headerShown: false,
-              presentation: 'card',
-            }} />
-            <Stack.Screen name="project/[id]" options={{
-              headerShown: false,
-              presentation: 'card',
-            }} />
-            <Stack.Screen name="+not-found" />
-          </Stack>
-          <StatusBar style="auto" />
-        </NavigationThemeProvider>
-      </AppInitializer>
-    </ThemeProvider>
+    <AppInitializer>
+      <NavigationThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <Stack>
+          <Stack.Screen name="server-config" options={{ headerShown: false }} />
+          <Stack.Screen name="login" options={{ headerShown: false }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="item/[id]" options={{
+            presentation: 'card',
+            headerBackTitle: '',
+            headerTitle: 'Item Details',
+          }} />
+          <Stack.Screen name="+not-found" />
+        </Stack>
+        <StatusBar style="auto" />
+      </NavigationThemeProvider>
+    </AppInitializer>
   );
 }
