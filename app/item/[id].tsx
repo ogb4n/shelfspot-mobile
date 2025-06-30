@@ -13,14 +13,16 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AddToProjectModal } from '../../components/inventory/AddToProjectModal';
+import { AlertContextMenu } from '../../components/inventory/AlertContextMenu';
 import { CreateAlertModal } from '../../components/inventory/CreateAlertModal';
+import { EditAlertModal } from '../../components/inventory/EditAlertModal';
 import { EditItemModal } from '../../components/inventory/EditItemModal';
 import { ThemedText } from '../../components/ThemedText';
 import { ThemedView } from '../../components/ThemedView';
 import { IconSymbol } from '../../components/ui/IconSymbol';
 import { Colors } from '../../constants/Colors';
 import { useColorScheme } from '../../hooks/useColorScheme';
-import { ItemWithLocation } from '../../types/inventory';
+import { AlertFormData, ItemWithLocation } from '../../types/inventory';
 import { hasActiveAlerts } from '../../utils/inventory/alerts';
 import { getStatusColor, getStatusText } from '../../utils/inventory/filters';
 
@@ -37,10 +39,18 @@ export default function ItemDetailScreen() {
     const [showEditModal, setShowEditModal] = useState(false);
     const [showCreateAlertModal, setShowCreateAlertModal] = useState(false);
     const [showAddToProjectModal, setShowAddToProjectModal] = useState(false);
+    const [showEditAlertModal, setShowEditAlertModal] = useState(false);
+    const [selectedAlert, setSelectedAlert] = useState<any>(null);
+    const [showAlertContextMenu, setShowAlertContextMenu] = useState(false);
+    const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 });
 
     const { items, toggleFavorite, updateItem, deleteItem } = useInventoryItems();
     const {
-        loadAlerts
+        allAlerts,
+        loadAlerts,
+        createAlert,
+        updateAlert,
+        deleteAlert
     } = useInventoryAlerts();
 
     // Find the item by ID
@@ -93,7 +103,7 @@ export default function ItemDetailScreen() {
         );
     }
 
-    const itemAlerts = item.activeAlerts || [];
+    const itemAlerts = allAlerts.filter(alert => alert.itemId === item.id);
     const hasAlerts = hasActiveAlerts(item);
 
     const handleToggleFavorite = async () => {
@@ -167,10 +177,73 @@ export default function ItemDetailScreen() {
         }
     };
 
-    const handleAlertCreated = () => {
-        setShowCreateAlertModal(false);
-        loadAlerts(); // Refresh alerts
-        Alert.alert('Success', 'Alert has been created!');
+    const handleAlertCreated = async (alertData: AlertFormData) => {
+        try {
+            await createAlert(alertData, () => {
+                setShowCreateAlertModal(false);
+                Alert.alert('Success', 'Alert has been created!');
+            });
+        } catch {
+            Alert.alert('Error', 'Failed to create alert');
+        }
+    };
+
+    const handleAlertContextMenu = (alert: any, event: any) => {
+        setSelectedAlert(alert);
+        setContextMenuPosition({ x: event.nativeEvent.pageX, y: event.nativeEvent.pageY });
+        setShowAlertContextMenu(true);
+    };
+
+    const handleEditAlert = (alert: any) => {
+        setSelectedAlert(alert);
+        setShowEditAlertModal(true);
+        setShowAlertContextMenu(false);
+    };
+
+    const handleDeleteAlert = (alertId: number) => {
+        Alert.alert(
+            'Delete Alert',
+            'Are you sure you want to delete this alert?',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await deleteAlert(alertId);
+                            Alert.alert('Success', 'Alert has been deleted!');
+                        } catch {
+                            Alert.alert('Error', 'Failed to delete alert');
+                        }
+                    }
+                }
+            ]
+        );
+        setShowAlertContextMenu(false);
+    };
+
+    const handleToggleAlertStatus = async (alertId: number, currentStatus: boolean) => {
+        try {
+            await updateAlert(alertId, { isActive: !currentStatus });
+            Alert.alert('Success', `Alert has been ${!currentStatus ? 'enabled' : 'disabled'}!`);
+        } catch {
+            Alert.alert('Error', 'Failed to update alert status');
+        }
+        setShowAlertContextMenu(false);
+    };
+
+    const handleUpdateAlert = async (alertData: Omit<AlertFormData, 'itemId'>) => {
+        if (!selectedAlert) return;
+        
+        try {
+            await updateAlert(selectedAlert.id, alertData);
+            setShowEditAlertModal(false);
+            setSelectedAlert(null);
+            Alert.alert('Success', 'Alert has been updated!');
+        } catch {
+            Alert.alert('Error', 'Failed to update alert');
+        }
     };
 
     return (
@@ -652,38 +725,65 @@ export default function ItemDetailScreen() {
 
                 {/* Alerts Section */}
                 <View style={[styles.alertsCard, { backgroundColor: colors.card }]}>
-                    <ThemedText type="defaultSemiBold" style={[styles.sectionTitle, { color: colors.text }]}>
-                        Alerts ({itemAlerts.length})
-                    </ThemedText>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                        <ThemedText type="defaultSemiBold" style={[styles.sectionTitle, { color: colors.text, marginBottom: 0 }]}>
+                            Alerts ({itemAlerts.length})
+                        </ThemedText>
+                        <TouchableOpacity
+                            style={[styles.emptyButton, { backgroundColor: colors.primary }]}
+                            onPress={handleCreateAlert}
+                        >
+                            <ThemedText style={[styles.emptyButtonText, { color: '#FFFFFF' }]}>
+                                Add Alert
+                            </ThemedText>
+                        </TouchableOpacity>
+                    </View>
 
                     {itemAlerts.length > 0 ? (
                         <View style={styles.alertsList}>
                             {itemAlerts.map((alert, index) => (
-                                <View
-                                    key={index}
+                                <TouchableOpacity
+                                    key={alert.id || index}
                                     style={[
                                         styles.alertItem,
                                         { backgroundColor: colors.backgroundSecondary },
                                         index < itemAlerts.length - 1 && { marginBottom: 12 }
                                     ]}
+                                    onLongPress={(event) => handleAlertContextMenu(alert, event)}
                                 >
                                     <View style={styles.alertContent}>
-                                        <View style={[styles.alertTypeIndicator, { backgroundColor: colors.warning }]}>
-                                            <IconSymbol name="bell" size={16} color="#FFFFFF" />
+                                        <View style={[
+                                            styles.alertTypeIndicator, 
+                                            { backgroundColor: alert.isActive ? colors.warning : colors.textSecondary }
+                                        ]}>
+                                            <IconSymbol name={alert.isActive ? "bell" : "bell.slash"} size={16} color="#FFFFFF" />
                                         </View>
                                         <View style={styles.alertInfo}>
                                             <ThemedText style={[styles.alertTitle, { color: colors.text }]}>
-                                                Low Stock Alert
+                                                {alert.name || 'Low Stock Alert'}
                                             </ThemedText>
                                             <ThemedText style={[styles.alertDescription, { color: colors.textSecondary }]}>
                                                 Alert when quantity is below {alert.threshold}
                                             </ThemedText>
-                                            <ThemedText style={[styles.alertMeta, { color: colors.textSecondary }]}>
-                                                Created {alert.createdAt ? new Date(alert.createdAt).toLocaleDateString() : 'Unknown'}
-                                            </ThemedText>
+                                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <ThemedText style={[styles.alertMeta, { color: colors.textSecondary }]}>
+                                                    Created {alert.createdAt ? new Date(alert.createdAt).toLocaleDateString() : 'Unknown'}
+                                                </ThemedText>
+                                                <View style={[
+                                                    styles.emptyButton, 
+                                                    { backgroundColor: alert.isActive ? colors.success + '20' : colors.error + '20' }
+                                                ]}>
+                                                    <ThemedText style={[
+                                                        styles.emptyButtonText, 
+                                                        { color: alert.isActive ? colors.success : colors.error }
+                                                    ]}>
+                                                        {alert.isActive ? 'Active' : 'Inactive'}
+                                                    </ThemedText>
+                                                </View>
+                                            </View>
                                         </View>
                                     </View>
-                                </View>
+                                </TouchableOpacity>
                             ))}
                         </View>
                     ) : (
@@ -719,6 +819,30 @@ export default function ItemDetailScreen() {
                 onCreateAlert={handleAlertCreated}
                 itemId={item.id}
                 itemName={item.name}
+            />
+
+            <EditAlertModal
+                visible={showEditAlertModal}
+                onClose={() => {
+                    setShowEditAlertModal(false);
+                    setSelectedAlert(null);
+                }}
+                onUpdateAlert={handleUpdateAlert}
+                alert={selectedAlert}
+            />
+
+            <AlertContextMenu
+                visible={showAlertContextMenu}
+                onClose={() => setShowAlertContextMenu(false)}
+                alert={selectedAlert}
+                position={contextMenuPosition}
+                onEdit={handleEditAlert}
+                onToggleActive={handleToggleAlertStatus}
+                onViewItem={(itemId) => {
+                    // Already on the item page
+                    setShowAlertContextMenu(false);
+                }}
+                onDelete={handleDeleteAlert}
             />
 
             <AddToProjectModal

@@ -497,7 +497,9 @@ export const useInventoryStore = create<InventoryState>()(
         createAlert: async (alertData: AlertFormData, onSuccess?: () => void) => {
           try {
             set({ alertsLoading: true, alertsError: null });
-            await backendApi.createAlert(alertData);
+            // Filter out isActive for creation as the API doesn't expect it
+            const { isActive, ...createData } = alertData;
+            await backendApi.createAlert(createData);
             await get().loadAlerts();
             onSuccess?.();
           } catch (err: any) {

@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import {
-    Alert,
     Modal,
     ScrollView,
     StyleSheet,
@@ -18,7 +17,7 @@ import { IconSymbol } from '../ui/IconSymbol';
 interface EditAlertModalProps {
     visible: boolean;
     onClose: () => void;
-    onUpdateAlert: (alertData: AlertFormData) => void;
+    onUpdateAlert: (alertData: Omit<AlertFormData, 'itemId'>) => void;
     alert: AlertType | null;
 }
 
@@ -70,9 +69,10 @@ export function EditAlertModal({
     const handleSubmit = () => {
         if (!canUpdateAlert()) return;
 
-        onUpdateAlert(formData);
+        // Remove itemId from the update data as the API doesn't expect it
+        const { itemId, ...updateData } = formData;
+        onUpdateAlert(updateData);
         handleClose();
-        Alert.alert('Success', 'The alert has been updated!');
     };
 
     const handleClose = () => {

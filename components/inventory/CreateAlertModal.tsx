@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  Alert,
   Modal,
   ScrollView,
   StyleSheet,
@@ -47,25 +46,28 @@ export function CreateAlertModal({
     error: useThemeColor({}, 'error'),
   };
 
-  // Update form data when itemId changes
+  // Update form data when itemId changes or modal becomes visible
   React.useEffect(() => {
-    if (itemId) {
-      setFormData(prev => ({
-        ...prev,
+    if (visible && itemId) {
+      setFormData({
         itemId,
-        name: '', // User must provide their own name
-      }));
+        threshold: DEFAULT_ALERT_THRESHOLD,
+        name: '',
+        isActive: true,
+      });
     }
-  }, [itemId, itemName]);
+  }, [itemId, visible]);
 
   const updateFormData = (field: keyof AlertFormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const canCreateAlert = () => {
-    return formData.itemId > 0 &&
-      formData.threshold > 0 &&
-      (formData.name?.trim() || '') !== '';
+    const hasValidItemId = formData.itemId > 0;
+    const hasValidThreshold = formData.threshold > 0;
+    const hasValidName = (formData.name?.trim() || '') !== '';
+    
+    return hasValidItemId && hasValidThreshold && hasValidName;
   };
 
   const handleSubmit = () => {
@@ -73,16 +75,10 @@ export function CreateAlertModal({
 
     onCreateAlert(formData);
     handleClose();
-    Alert.alert('Success', 'The alert has been created!');
   };
 
   const handleClose = () => {
-    setFormData({
-      itemId: 0,
-      threshold: DEFAULT_ALERT_THRESHOLD,
-      name: '',
-      isActive: true,
-    });
+    // Don't reset formData here - let the useEffect handle it when modal reopens
     onClose();
   };
 
