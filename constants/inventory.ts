@@ -18,7 +18,6 @@ export const FILTER_CHIPS: FilterChip[] = [
 
 export const ADD_ITEM_STEPS = [
   { title: 'Basic Information', description: 'Name, quantity, status and type' },
-  { title: 'Image and Barcode', description: 'Optional photo and scan' },
   { title: 'Location', description: 'Room, place and container' },
   { title: 'Additional Details', description: 'Tags, links and price' },
   { title: 'Confirmation', description: 'Review the information' },

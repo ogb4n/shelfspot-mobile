@@ -91,10 +91,9 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
   const canProceedToNextStep = () => {
     switch (currentStep) {
       case 0: return formData.name.trim() !== '';
-      case 1: return true; // Optional images
-      case 2: return formData.roomId !== undefined && formData.placeId !== undefined; // Location required
-      case 3: return true; // Optional tags
-      case 4: return true; // Confirmation
+      case 1: return formData.roomId !== undefined && formData.placeId !== undefined; // Location required
+      case 2: return true; // Optional tags
+      case 3: return true; // Confirmation
       default: return false;
     }
   };
@@ -290,17 +289,8 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
               </View>
             )}
 
-            {/* Step 1: Image (placeholder) */}
+            {/* Step 1: Location */}
             {currentStep === 1 && (
-              <View style={styles.stepContent}>
-                <ThemedText style={[styles.placeholderText, { color: colors.textSecondary }]}>
-                  Image upload feature coming soon...
-                </ThemedText>
-              </View>
-            )}
-
-            {/* Step 2: Location */}
-            {currentStep === 2 && (
               <View style={styles.stepContent}>
                 {dataLoading ? (
                   <View style={styles.loadingContainer}>
@@ -464,8 +454,8 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
               </View>
             )}
 
-            {/* Step 3: Tags */}
-            {currentStep === 3 && (
+            {/* Step 2: Additional Details */}
+            {currentStep === 2 && (
               <View style={styles.stepContent}>
                 <View style={styles.inputGroup}>
                   <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
@@ -535,8 +525,8 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
               </View>
             )}
 
-            {/* Step 4: Confirmation */}
-            {currentStep === 4 && (
+            {/* Step 3: Confirmation */}
+            {currentStep === 3 && (
               <View style={styles.stepContent}>
                 <View style={[styles.confirmationCard, { backgroundColor: colors.card }]}>
                   <ThemedText type="defaultSemiBold" style={[styles.confirmationTitle, { color: colors.text }]}>
