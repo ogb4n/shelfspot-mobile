@@ -22,6 +22,7 @@ export const useInventoryItems = () => {
     tagIds: [],
     statuses: [],
     favoritesOnly: false,
+    consumablesOnly: false,
   });
 
   // Load items from API
@@ -61,10 +62,11 @@ export const useInventoryItems = () => {
     setAdvancedFilters(prev => ({
       ...prev,
       search: debouncedSearchQuery,
-      status: selectedFilter === 'all' || selectedFilter === 'favorites' 
+      status: selectedFilter === 'all' || selectedFilter === 'favorites' || selectedFilter === 'consumables'
         ? undefined 
         : selectedFilter,
       favoritesOnly: selectedFilter === 'favorites',
+      consumablesOnly: selectedFilter === 'consumables',
     }));
   }, [debouncedSearchQuery, selectedFilter]);
 

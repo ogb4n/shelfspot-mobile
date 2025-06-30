@@ -1,4 +1,4 @@
-import { EditProjectModal } from '@/components/projects';
+import { AddItemToProjectModal, EditProjectModal, ProjectItemCard } from '@/components/projects';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Button } from '@/components/ui/Button';
@@ -7,10 +7,10 @@ import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { backendApi } from '@/services/backend-api';
-import { Project } from '@/types';
+import { Project, ProjectItem } from '@/types';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function ProjectDetailsScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
@@ -19,13 +19,17 @@ export default function ProjectDetailsScreen() {
     const colors = Colors[colorScheme ?? 'light'];
 
     const [project, setProject] = useState<Project | null>(null);
+    const [projectItems, setProjectItems] = useState<ProjectItem[]>([]);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [showEditModal, setShowEditModal] = useState(false);
+    const [showAddItemModal, setShowAddItemModal] = useState(false);
 
     useEffect(() => {
         if (id) {
             loadProject();
+            loadProjectItems();
         }
     }, [id]);
 
@@ -48,11 +52,28 @@ export default function ProjectDetailsScreen() {
                 startDate: new Date().toISOString(),
                 endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
                 createdAt: new Date().toISOString(),
-                itemCount: 25
+                itemCount: 0
             });
         } finally {
             setLoading(false);
+            setRefreshing(false);
         }
+    };
+
+    const loadProjectItems = async () => {
+        try {
+            const items = await backendApi.getProjectItems(Number(id));
+            setProjectItems(items);
+        } catch (err: any) {
+            console.error('Error loading project items:', err);
+            // Mock empty array for development
+            setProjectItems([]);
+        }
+    };
+
+    const onRefresh = async () => {
+        setRefreshing(true);
+        await Promise.all([loadProject(), loadProjectItems()]);
     };
 
     const handleEditProject = () => {
@@ -61,6 +82,23 @@ export default function ProjectDetailsScreen() {
 
     const handleProjectUpdated = (updatedProject: Project) => {
         setProject(updatedProject);
+    };
+
+    const handleAddItem = () => {
+        setShowAddItemModal(true);
+    };
+
+    const handleItemAdded = () => {
+        loadProjectItems();
+        setShowAddItemModal(false);
+    };
+
+    const handleItemUpdated = () => {
+        loadProjectItems();
+    };
+
+    const handleItemRemoved = () => {
+        loadProjectItems();
     };
 
     const handleDeleteProject = () => {
@@ -156,7 +194,15 @@ export default function ProjectDetailsScreen() {
                 </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.scrollView}>
+            <ScrollView
+                style={styles.scrollView}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                    />
+                }
+            >
                 {/* Project Info Card */}
                 <Card style={[styles.card, { borderColor: colors.border }] as any}>
                     <View style={styles.cardHeader}>
@@ -253,6 +299,47 @@ export default function ProjectDetailsScreen() {
                     </View>
                 </Card>
 
+                {/* Project Items Card */}
+                <Card style={[styles.card, { borderColor: colors.border }] as any}>
+                    <View style={styles.itemsHeader}>
+                        <ThemedText type="subtitle" style={styles.sectionTitle}>
+                            Project Items ({projectItems.length})
+                        </ThemedText>
+                        <TouchableOpacity
+                            style={styles.addItemButton}
+                            onPress={handleAddItem}
+                        >
+                            <IconSymbol size={20} name="plus" color={colors.tint} />
+                            <Text style={[styles.addItemText, { color: colors.tint }]}>
+                                Add Item
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    {projectItems.length === 0 ? (
+                        <View style={styles.emptyItemsContainer}>
+                            <IconSymbol size={48} name="cube.box" color={colors.tabIconDefault} />
+                            <ThemedText style={[styles.emptyItemsText, { color: colors.tabIconDefault }]}>
+                                No items in this project yet
+                            </ThemedText>
+                            <ThemedText style={[styles.emptyItemsSubtext, { color: colors.tabIconDefault }]}>
+                                Add items to track their importance in this project
+                            </ThemedText>
+                        </View>
+                    ) : (
+                        <View style={styles.itemsContainer}>
+                            {projectItems.map((projectItem) => (
+                                <ProjectItemCard
+                                    key={projectItem.id}
+                                    projectItem={projectItem}
+                                    onUpdate={handleItemUpdated}
+                                    onRemove={handleItemRemoved}
+                                />
+                            ))}
+                        </View>
+                    )}
+                </Card>
+
                 {/* Actions */}
                 <View style={styles.actionsContainer}>
                     <Button
@@ -273,6 +360,13 @@ export default function ProjectDetailsScreen() {
                 project={project}
                 onClose={() => setShowEditModal(false)}
                 onProjectUpdated={handleProjectUpdated}
+            />
+            <AddItemToProjectModal
+                visible={showAddItemModal}
+                projectId={project.id}
+                projectName={project.name}
+                onClose={() => setShowAddItemModal(false)}
+                onItemAdded={handleItemAdded}
             />
         </ThemedView>
     );
@@ -433,5 +527,41 @@ const styles = StyleSheet.create({
     deleteButton: {
         marginHorizontal: 0,
         backgroundColor: '#ef4444',
+    },
+    itemsHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 16,
+    },
+    addItemButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 8,
+        gap: 4,
+    },
+    addItemText: {
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    emptyItemsContainer: {
+        alignItems: 'center',
+        paddingVertical: 32,
+        gap: 8,
+    },
+    emptyItemsText: {
+        fontSize: 16,
+        fontWeight: '600',
+        textAlign: 'center',
+    },
+    emptyItemsSubtext: {
+        fontSize: 14,
+        textAlign: 'center',
+        lineHeight: 20,
+    },
+    itemsContainer: {
+        gap: 8,
     },
 });
