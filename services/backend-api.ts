@@ -260,6 +260,30 @@ class BackendApiService {
     return this.request<any[]>('/tags');
   }
 
+  // Item-Tag management methods
+  async addTagToItem(itemId: number, tagId: number): Promise<any> {
+    return this.request<any>(`/items/${itemId}/tags/${tagId}`, {
+      method: 'POST',
+    });
+  }
+
+  async removeTagFromItem(itemId: number, tagId: number): Promise<any> {
+    return this.request<any>(`/items/${itemId}/tags/${tagId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getItemTags(itemId: number): Promise<any[]> {
+    return this.request<any[]>(`/items/${itemId}/tags`);
+  }
+
+  async updateItemTags(itemId: number, tagIds: number[]): Promise<any> {
+    return this.request<any>(`/items/${itemId}/tags`, {
+      method: 'PUT',
+      body: JSON.stringify({ tagIds }),
+    });
+  }
+
   // Favorites methods
   async getFavorites(userId?: number): Promise<any[]> {
     const params = userId ? `?userId=${userId}` : '';

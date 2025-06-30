@@ -31,6 +31,8 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
     quantity: 1,
     status: 'available',
     consumable: false,
+    price: undefined,
+    itemLink: '',
     roomId: undefined,
     placeId: undefined,
     containerId: undefined,
@@ -120,6 +122,8 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
       quantity: 1,
       status: 'available',
       consumable: false,
+      price: undefined,
+      itemLink: '',
       roomId: undefined,
       placeId: undefined,
       containerId: undefined,
@@ -522,6 +526,56 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
                     </View>
                   </View>
                 )}
+
+                {/* Price Field */}
+                <View style={styles.inputGroup}>
+                  <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                    Price (Optional)
+                  </ThemedText>
+                  <TextInput
+                    style={[styles.input, {
+                      backgroundColor: colors.backgroundSecondary,
+                      color: colors.text,
+                      borderColor: colors.backgroundSecondary,
+                    }]}
+                    placeholder="Enter price"
+                    placeholderTextColor={colors.textSecondary}
+                    value={formData.price?.toString() || ''}
+                    onChangeText={(text) => {
+                      const numericValue = text.replace(/[^0-9.]/g, '');
+                      if (numericValue === '') {
+                        updateFormData('price', undefined);
+                      } else {
+                        const price = parseFloat(numericValue);
+                        updateFormData('price', isNaN(price) ? undefined : price);
+                      }
+                    }}
+                    keyboardType="decimal-pad"
+                    returnKeyType="next"
+                  />
+                </View>
+
+                {/* Item Link Field */}
+                <View style={styles.inputGroup}>
+                  <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                    Item Link (Optional)
+                  </ThemedText>
+                  <TextInput
+                    style={[styles.input, {
+                      backgroundColor: colors.backgroundSecondary,
+                      color: colors.text,
+                      borderColor: colors.backgroundSecondary,
+                    }]}
+                    placeholder="Enter item link or reference"
+                    placeholderTextColor={colors.textSecondary}
+                    value={formData.itemLink || ''}
+                    onChangeText={(text) => updateFormData('itemLink', text)}
+                    keyboardType="url"
+                    returnKeyType="done"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                </View>
               </View>
             )}
 
@@ -594,6 +648,32 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
                       </ThemedText>
                       <ThemedText style={[styles.confirmationValue, { color: colors.text }]}>
                         {containers.find(c => c.id === formData.containerId)?.name || 'None'}
+                      </ThemedText>
+                    </View>
+                  )}
+
+                  {formData.price && (
+                    <View style={styles.confirmationRow}>
+                      <ThemedText style={[styles.confirmationLabel, { color: colors.textSecondary }]}>
+                        Price:
+                      </ThemedText>
+                      <ThemedText style={[styles.confirmationValue, { color: colors.text }]}>
+                        ${formData.price.toFixed(2)}
+                      </ThemedText>
+                    </View>
+                  )}
+
+                  {formData.itemLink && (
+                    <View style={styles.confirmationRow}>
+                      <ThemedText style={[styles.confirmationLabel, { color: colors.textSecondary }]}>
+                        Link:
+                      </ThemedText>
+                      <ThemedText 
+                        style={[styles.confirmationValue, { color: colors.primary }]}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                      >
+                        {formData.itemLink}
                       </ThemedText>
                     </View>
                   )}

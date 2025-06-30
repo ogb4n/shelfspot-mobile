@@ -7,11 +7,11 @@ export interface CreateItemDto {
   roomId: number;
   placeId: number;
   containerId?: number;
-  // Note: consumable, price, sellprice, itemLink, image are not supported by the backend CreateItemDto schema
-  // consumable?: boolean;
-  // price?: number;
+  consumable?: boolean;
+  price?: number;
+  itemLink?: string;
+  // Note: sellprice and image are not supported by the backend CreateItemDto schema
   // sellprice?: number;
-  // itemLink?: string;
   // image?: string;
 }
 
