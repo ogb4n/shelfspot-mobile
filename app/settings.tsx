@@ -10,13 +10,16 @@ import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useAuthStore } from '@/stores/auth';
 import { useThemeMode } from '@/stores/theme';
-import { router } from 'expo-router';
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function SettingsScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   // Use Zustand stores
   const { user, logout, updateProfile, loading } = useAuthStore();
@@ -212,17 +215,26 @@ export default function SettingsScreen() {
 
   return (
     <ThemedView style={styles.container}>
+      {/* Custom Header */}
+      <View style={[styles.customHeader, { 
+        backgroundColor: colors.background, 
+        borderBottomColor: colors.border,
+        paddingTop: insets.top + 8
+      }]}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <IconSymbol size={24} name="chevron.left" color={colors.text} />
+        </TouchableOpacity>
+        <ThemedText style={[styles.headerTitle, { color: colors.text }]}>
+          Settings
+        </ThemedText>
+        <View style={styles.placeholder} />
+      </View>
+
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <ThemedText type="title" style={[styles.title, { color: colors.text }]}>
-            Settings
-          </ThemedText>
-        </View>
 
         {/* Profile Section */}
         <View style={[styles.profileSection, { backgroundColor: colors.card }]}>
@@ -420,26 +432,39 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  customHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  headerTitle: {
+    flex: 1,
+    textAlign: 'center',
+    marginHorizontal: 8,
+    fontSize: 18,
+    fontWeight: '500',
+  },
+  backButton: {
+    padding: 8,
+  },
+  placeholder: {
+    width: 32,
+  },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
     paddingBottom: 100,
   },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-  },
   profileSection: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginHorizontal: 20,
+    marginTop: 20,
     marginBottom: 32,
     padding: 20,
     borderRadius: 16,
