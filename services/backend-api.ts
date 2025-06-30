@@ -88,7 +88,19 @@ class BackendApiService {
       throw new BackendApiError(response.status, errorMessage);
     }
 
-    return response.json();
+    // Handle empty responses (like DELETE operations)
+    const contentLength = response.headers.get('content-length');
+    if (contentLength === '0' || response.status === 204) {
+      return {} as T;
+    }
+
+    try {
+      return response.json();
+    } catch {
+      // If JSON parsing fails, return empty object for successful responses
+      console.log('BackendAPI: Empty or invalid JSON response, returning empty object');
+      return {} as T;
+    }
   }
 
   // Auth methods
@@ -186,8 +198,8 @@ class BackendApiService {
     });
   }
 
-  async deleteAlert(id: number): Promise<{ message: string }> {
-    return this.request<{ message: string }>(`/alerts/${id}`, {
+  async deleteAlert(id: number): Promise<{ message?: string }> {
+    return this.request<{ message?: string }>(`/alerts/${id}`, {
       method: 'DELETE',
     });
   }

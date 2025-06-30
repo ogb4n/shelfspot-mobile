@@ -111,7 +111,7 @@ export default function AlertsScreen() {
     setShowEditModal(true);
   };
 
-  const handleUpdateAlert = async (alertData: AlertFormData) => {
+  const handleUpdateAlert = async (alertData: Omit<AlertFormData, 'itemId'>) => {
     if (!selectedAlert) return;
 
     try {
