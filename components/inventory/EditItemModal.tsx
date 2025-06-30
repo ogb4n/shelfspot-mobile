@@ -30,6 +30,8 @@ export function EditItemModal({ visible, onClose, onUpdateItem, item }: EditItem
         quantity: 1,
         status: 'available',
         consumable: false,
+        price: undefined,
+        itemLink: '',
         roomId: undefined,
         placeId: undefined,
         containerId: undefined,
@@ -56,6 +58,8 @@ export function EditItemModal({ visible, onClose, onUpdateItem, item }: EditItem
                 quantity: item.quantity,
                 status: item.status,
                 consumable: item.consumable,
+                price: item.price,
+                itemLink: item.itemLink,
                 roomId: item.room?.id,
                 placeId: item.place?.id,
                 containerId: item.container?.id,
@@ -107,8 +111,10 @@ export function EditItemModal({ visible, onClose, onUpdateItem, item }: EditItem
             ...(formData.roomId !== undefined && { roomId: formData.roomId }),
             ...(formData.placeId !== undefined && { placeId: formData.placeId }),
             ...(formData.containerId !== undefined && { containerId: formData.containerId }),
-            // Note: tags are not yet supported by the API, so we exclude them for now
-            // ...(formData.tagIds !== undefined && { tagIds: formData.tagIds }),
+            ...(formData.price !== undefined && { price: formData.price }),
+            ...(formData.itemLink !== undefined && { itemLink: formData.itemLink }),
+            ...(typeof formData.consumable === 'boolean' && { consumable: formData.consumable }),
+            ...(formData.tagIds !== undefined && { tagIds: formData.tagIds }),
         };
 
         onUpdateItem(item.id, updateData);
@@ -485,6 +491,119 @@ export function EditItemModal({ visible, onClose, onUpdateItem, item }: EditItem
                             )}
                         </View>
 
+                        {/* Additional Details */}
+                        <View style={styles.section}>
+                            <ThemedText type="defaultSemiBold" style={[styles.sectionTitle, { color: colors.text }]}>
+                                Additional Details
+                            </ThemedText>
+
+                            {/* Price Field */}
+                            <View style={styles.inputGroup}>
+                                <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                                    Price (Optional)
+                                </ThemedText>
+                                <TextInput
+                                    style={[styles.input, {
+                                        backgroundColor: colors.backgroundSecondary,
+                                        color: colors.text,
+                                        borderColor: colors.backgroundSecondary,
+                                    }]}
+                                    placeholder="Enter price"
+                                    placeholderTextColor={colors.textSecondary}
+                                    value={formData.price?.toString() || ''}
+                                    onChangeText={(text) => {
+                                        const numericValue = text.replace(/[^0-9.]/g, '');
+                                        if (numericValue === '') {
+                                            updateFormData('price', undefined);
+                                        } else {
+                                            const price = parseFloat(numericValue);
+                                            updateFormData('price', isNaN(price) ? undefined : price);
+                                        }
+                                    }}
+                                    keyboardType="decimal-pad"
+                                    returnKeyType="next"
+                                />
+                            </View>
+
+                            {/* Item Link Field */}
+                            <View style={styles.inputGroup}>
+                                <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                                    Item Link (Optional)
+                                </ThemedText>
+                                <TextInput
+                                    style={[styles.input, {
+                                        backgroundColor: colors.backgroundSecondary,
+                                        color: colors.text,
+                                        borderColor: colors.backgroundSecondary,
+                                    }]}
+                                    placeholder="Enter item link or reference"
+                                    placeholderTextColor={colors.textSecondary}
+                                    value={formData.itemLink || ''}
+                                    onChangeText={(text) => updateFormData('itemLink', text)}
+                                    keyboardType="url"
+                                    returnKeyType="done"
+                                    autoCapitalize="none"
+                                    autoCorrect={false}
+                                />
+                            </View>
+
+                            {/* Consumable Toggle - Temporarily disabled until backend supports it */}
+                            {/* 
+                            <View style={styles.inputGroup}>
+                                <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                                    Item Type
+                                </ThemedText>
+                                <View style={styles.statusButtons}>
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.statusButton,
+                                            {
+                                                backgroundColor: !formData.consumable
+                                                    ? colors.primary
+                                                    : colors.backgroundSecondary,
+                                            }
+                                        ]}
+                                        onPress={() => updateFormData('consumable', false)}
+                                    >
+                                        <ThemedText style={[
+                                            styles.statusButtonText,
+                                            {
+                                                color: !formData.consumable
+                                                    ? '#FFFFFF'
+                                                    : colors.textSecondary
+                                            }
+                                        ]}>
+                                            Non-consumable
+                                        </ThemedText>
+                                    </TouchableOpacity>
+                                    
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.statusButton,
+                                            {
+                                                backgroundColor: formData.consumable
+                                                    ? colors.primary
+                                                    : colors.backgroundSecondary,
+                                            }
+                                        ]}
+                                        onPress={() => updateFormData('consumable', true)}
+                                    >
+                                        <ThemedText style={[
+                                            styles.statusButtonText,
+                                            {
+                                                color: formData.consumable
+                                                    ? '#FFFFFF'
+                                                    : colors.textSecondary
+                                            }
+                                        ]}>
+                                            Consumable
+                                        </ThemedText>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                            */}
+                        </View>
+
                         {/* Current Item Info */}
                         <View style={styles.section}>
                             <ThemedText type="defaultSemiBold" style={[styles.sectionTitle, { color: colors.text }]}>
@@ -521,6 +640,8 @@ export function EditItemModal({ visible, onClose, onUpdateItem, item }: EditItem
                                     </View>
                                 )}
 
+                                {/* Temporarily disabled until backend supports consumable field */}
+                                {/* 
                                 <View style={styles.infoRow}>
                                     <ThemedText style={[styles.infoLabel, { color: colors.textSecondary }]}>
                                         Type:
@@ -529,6 +650,7 @@ export function EditItemModal({ visible, onClose, onUpdateItem, item }: EditItem
                                         {item.consumable ? 'Consumable' : 'Non-consumable'}
                                     </ThemedText>
                                 </View>
+                                */}
 
                                 <View style={styles.infoRow}>
                                     <ThemedText style={[styles.infoLabel, { color: colors.textSecondary }]}>
@@ -558,6 +680,41 @@ export function EditItemModal({ visible, onClose, onUpdateItem, item }: EditItem
                                         </View>
                                     </View>
                                 )}
+
+                                {item.price && (
+                                    <View style={styles.infoRow}>
+                                        <ThemedText style={[styles.infoLabel, { color: colors.textSecondary }]}>
+                                            Current Price:
+                                        </ThemedText>
+                                        <ThemedText style={[styles.infoValue, { color: colors.text }]}>
+                                            ${item.price.toFixed(2)}
+                                        </ThemedText>
+                                    </View>
+                                )}
+
+                                {item.itemLink && (
+                                    <View style={styles.infoRow}>
+                                        <ThemedText style={[styles.infoLabel, { color: colors.textSecondary }]}>
+                                            Current Link:
+                                        </ThemedText>
+                                        <ThemedText 
+                                            style={[styles.infoValue, { color: colors.primary }]}
+                                            numberOfLines={1}
+                                            ellipsizeMode="tail"
+                                        >
+                                            {item.itemLink}
+                                        </ThemedText>
+                                    </View>
+                                )}
+
+                                <View style={styles.infoRow}>
+                                    <ThemedText style={[styles.infoLabel, { color: colors.textSecondary }]}>
+                                        Editable Fields:
+                                    </ThemedText>
+                                    <ThemedText style={[styles.infoValue, { color: colors.text }]}>
+                                        Name, Quantity, Status, Location, Tags, Price, Link
+                                    </ThemedText>
+                                </View>
                             </View>
                         </View>
                     </View>
