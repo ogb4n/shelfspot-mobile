@@ -3,7 +3,6 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
     Alert,
-    Dimensions,
     Linking,
     ScrollView,
     Share,
@@ -25,8 +24,6 @@ import { useColorScheme } from '../../hooks/useColorScheme';
 import { AlertFormData, ItemWithLocation } from '../../types/inventory';
 import { hasActiveAlerts } from '../../utils/inventory/alerts';
 import { getStatusColor, getStatusText } from '../../utils/inventory/filters';
-
-const { width: screenWidth } = Dimensions.get('window');
 
 export default function ItemDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
@@ -239,32 +236,51 @@ export default function ItemDetailScreen() {
 
     return (
         <ThemedView style={styles.container}>
-            {/* Custom Header */}
+            {/* Modern Header */}
             <View style={[styles.header, { 
                 backgroundColor: colors.background, 
                 borderBottomColor: colors.border,
-                paddingTop: insets.top + 16
+                paddingTop: insets.top + 12
             }]}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <IconSymbol size={24} name="chevron.left" color={colors.text} />
-                </TouchableOpacity>
-                <ThemedText type="title" style={[styles.headerTitle, { color: colors.text }]}>
-                    {item?.name || 'Item Details'}
-                </ThemedText>
-                <View style={styles.headerActions}>
-                    <TouchableOpacity
-                        style={styles.headerButton}
-                        onPress={handleShare}
+                <View style={styles.headerLeft}>
+                    <TouchableOpacity 
+                        onPress={() => router.back()} 
+                        style={[styles.headerBackButton, { backgroundColor: colors.backgroundSecondary }]}
+                        activeOpacity={0.7}
                     >
-                        <IconSymbol name="square.and.arrow.up" size={20} color={colors.primary} />
+                        <IconSymbol size={20} name="chevron.left" color={colors.text} />
+                    </TouchableOpacity>
+                </View>
+                
+                <View style={styles.headerCenter}>
+                    <ThemedText type="defaultSemiBold" style={[styles.headerTitle, { color: colors.text }]}>
+                        Item Details
+                    </ThemedText>
+                    {item && (
+                        <ThemedText style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
+                            {item.name}
+                        </ThemedText>
+                    )}
+                </View>
+                
+                <View style={styles.headerRight}>
+                    <TouchableOpacity
+                        style={[styles.headerActionButton, { backgroundColor: colors.backgroundSecondary }]}
+                        onPress={handleShare}
+                        activeOpacity={0.7}
+                    >
+                        <IconSymbol name="square.and.arrow.up" size={18} color={colors.primary} />
                     </TouchableOpacity>
                     <TouchableOpacity
-                        style={styles.headerButton}
+                        style={[styles.headerActionButton, { 
+                            backgroundColor: item?.isFavorite ? colors.error + '20' : colors.backgroundSecondary 
+                        }]}
                         onPress={handleToggleFavorite}
+                        activeOpacity={0.7}
                     >
                         <IconSymbol
                             name={item?.isFavorite ? "heart.fill" : "heart"}
-                            size={20}
+                            size={18}
                             color={item?.isFavorite ? colors.error : colors.textSecondary}
                         />
                     </TouchableOpacity>
@@ -272,7 +288,7 @@ export default function ItemDetailScreen() {
             </View>
 
             <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-                {/* Item Header */}
+                {/* Modern Item Header */}
                 <View style={[styles.headerCard, { backgroundColor: colors.card }]}>
                     <View style={styles.itemHeader}>
                         <View style={styles.itemTitleSection}>
@@ -286,39 +302,57 @@ export default function ItemDetailScreen() {
                                     </View>
                                 )}
                             </View>
-                            <ThemedText style={[styles.itemLocation, { color: colors.textSecondary }]}>
-                                📍 {item?.location || 'Unknown Location'}
-                            </ThemedText>
+                            <View style={styles.locationRow}>
+                                <View style={[styles.locationPin, { backgroundColor: colors.primary + '20' }]}>
+                                    <IconSymbol name="location" size={14} color={colors.primary} />
+                                </View>
+                                <ThemedText style={[styles.itemLocation, { color: colors.textSecondary }]}>
+                                    {item?.location || 'Unknown Location'}
+                                </ThemedText>
+                            </View>
                         </View>
                     </View>
 
-                    <View style={styles.itemStats}>
-                        <View style={styles.statItem}>
-                            <ThemedText style={[styles.statLabel, { color: colors.textSecondary }]}>
-                                Quantity
-                            </ThemedText>
-                            <ThemedText type="defaultSemiBold" style={[styles.statValue, { color: colors.text }]}>
-                                {item?.quantity || 0}
-                            </ThemedText>
-                        </View>
-
-                        {(item?.importanceScore !== undefined && item?.importanceScore !== null) && (
-                            <View style={styles.statItem}>
-                                <ThemedText style={[styles.statLabel, { color: colors.textSecondary }]}>
-                                    Importance
-                                </ThemedText>
-                                <View style={styles.importanceContainer}>
-                                    <ThemedText type="defaultSemiBold" style={[styles.statValue, { color: colors.primary }]}>
-                                        {item?.importanceScore}
+                    <View style={styles.itemStatsContainer}>
+                        <View style={styles.statsRow}>
+                            <View style={[styles.statCard, { backgroundColor: colors.backgroundSecondary }]}>
+                                <View style={[styles.statIcon, { backgroundColor: colors.info + '20' }]}>
+                                    <IconSymbol name="cube" size={16} color={colors.info} />
+                                </View>
+                                <View style={styles.statContent}>
+                                    <ThemedText style={[styles.statLabel, { color: colors.textSecondary }]}>
+                                        Quantity
                                     </ThemedText>
-                                    <ThemedText style={[styles.importanceMax, { color: colors.textSecondary }]}>
-                                        /10
+                                    <ThemedText type="defaultSemiBold" style={[styles.statValue, { color: colors.text }]}>
+                                        {item?.quantity || 0}
                                     </ThemedText>
                                 </View>
                             </View>
-                        )}
 
-                        <View style={[styles.statusBadge, { backgroundColor: `${getStatusColor(item?.status || 'available')}20` }]}>
+                            {(item?.importanceScore !== undefined && item?.importanceScore !== null) && (
+                                <View style={[styles.statCard, { backgroundColor: colors.backgroundSecondary }]}>
+                                    <View style={[styles.statIcon, { backgroundColor: colors.warning + '20' }]}>
+                                        <IconSymbol name="star" size={16} color={colors.warning} />
+                                    </View>
+                                    <View style={styles.statContent}>
+                                        <ThemedText style={[styles.statLabel, { color: colors.textSecondary }]}>
+                                            Importance
+                                        </ThemedText>
+                                        <View style={styles.importanceContainer}>
+                                            <ThemedText type="defaultSemiBold" style={[styles.statValue, { color: colors.warning }]}>
+                                                {item?.importanceScore}
+                                            </ThemedText>
+                                            <ThemedText style={[styles.importanceMax, { color: colors.textSecondary }]}>
+                                                /10
+                                            </ThemedText>
+                                        </View>
+                                    </View>
+                                </View>
+                            )}
+                        </View>
+
+                        <View style={[styles.statusBadgeContainer, { backgroundColor: `${getStatusColor(item?.status || 'available')}15` }]}>
+                            <View style={[styles.statusDot, { backgroundColor: getStatusColor(item?.status || 'available') }]} />
                             <ThemedText style={[styles.statusText, { color: getStatusColor(item?.status || 'available') }]}>
                                 {getStatusText(item?.status || 'available')}
                             </ThemedText>
@@ -327,14 +361,22 @@ export default function ItemDetailScreen() {
 
                     {item.tags && item.tags.length > 0 && (
                         <View style={styles.tagsContainer}>
-                            <ThemedText style={[styles.tagsTitle, { color: colors.textSecondary }]}>
-                                🏷️ Tags
-                            </ThemedText>
+                            <View style={styles.tagsHeader}>
+                                <View style={[styles.tagsIcon, { backgroundColor: colors.primary + '20' }]}>
+                                    <IconSymbol name="tag" size={14} color={colors.primary} />
+                                </View>
+                                <ThemedText style={[styles.tagsTitle, { color: colors.textSecondary }]}>
+                                    Tags
+                                </ThemedText>
+                            </View>
                             <View style={styles.tagsWrapper}>
                                 {item.tags.map((tag) => (
                                     <View
                                         key={tag.id}
-                                        style={[styles.tag, { backgroundColor: colors.primary + '20' }]}
+                                        style={[styles.modernTag, { 
+                                            backgroundColor: colors.primary + '15',
+                                            borderColor: colors.primary + '30'
+                                        }]}
                                     >
                                         <ThemedText style={[styles.tagText, { color: colors.primary }]}>
                                             {tag.name}
@@ -349,48 +391,70 @@ export default function ItemDetailScreen() {
                 {/* Quick Actions */}
                 <View style={[styles.actionsCard, { backgroundColor: colors.card }]}>
                     <ThemedText type="defaultSemiBold" style={[styles.sectionTitle, { color: colors.text }]}>
-                        Quick Actions
+                        ⚡ Quick Actions
                     </ThemedText>
-                    <View style={styles.actionsGrid}>
-                        <TouchableOpacity
-                            style={[styles.actionButton, { backgroundColor: colors.primary }]}
-                            onPress={handleEdit}
-                        >
-                            <IconSymbol name="pencil" size={20} color="#FFFFFF" />
-                            <ThemedText style={[styles.actionButtonText, { color: '#FFFFFF' }]}>
-                                Edit Item
-                            </ThemedText>
-                        </TouchableOpacity>
+                    <View style={styles.actionsContainer}>
+                        {/* First Row */}
+                        <View style={styles.actionsRow}>
+                            <TouchableOpacity
+                                style={[styles.actionButton, styles.primaryAction, { backgroundColor: colors.primary }]}
+                                onPress={handleEdit}
+                                activeOpacity={0.8}
+                            >
+                                <View style={styles.actionIconContainer}>
+                                    <IconSymbol name="pencil" size={22} color="#FFFFFF" />
+                                </View>
+                                <View style={styles.actionTextContainer}>
+                                    <ThemedText style={styles.actionButtonTitle}>Edit Item</ThemedText>
+                                    <ThemedText style={styles.actionButtonSubtitle}>Modify details</ThemedText>
+                                </View>
+                            </TouchableOpacity>
 
-                        <TouchableOpacity
-                            style={[styles.actionButton, { backgroundColor: colors.warning }]}
-                            onPress={handleCreateAlert}
-                        >
-                            <IconSymbol name="bell.badge" size={20} color="#FFFFFF" />
-                            <ThemedText style={[styles.actionButtonText, { color: '#FFFFFF' }]}>
-                                Create Alert
-                            </ThemedText>
-                        </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.actionButton, styles.secondaryAction, { backgroundColor: colors.warning }]}
+                                onPress={handleCreateAlert}
+                                activeOpacity={0.8}
+                            >
+                                <View style={styles.actionIconContainer}>
+                                    <IconSymbol name="bell.badge" size={22} color="#FFFFFF" />
+                                </View>
+                                <View style={styles.actionTextContainer}>
+                                    <ThemedText style={styles.actionButtonTitle}>Alert</ThemedText>
+                                    <ThemedText style={styles.actionButtonSubtitle}>Set threshold</ThemedText>
+                                </View>
+                            </TouchableOpacity>
+                        </View>
 
-                        <TouchableOpacity
-                            style={[styles.actionButton, { backgroundColor: colors.info }]}
-                            onPress={handleAddToProject}
-                        >
-                            <IconSymbol name="folder.badge.plus" size={20} color="#FFFFFF" />
-                            <ThemedText style={[styles.actionButtonText, { color: '#FFFFFF' }]}>
-                                Add to Project
-                            </ThemedText>
-                        </TouchableOpacity>
+                        {/* Second Row */}
+                        <View style={styles.actionsRow}>
+                            <TouchableOpacity
+                                style={[styles.actionButton, styles.secondaryAction, { backgroundColor: colors.info }]}
+                                onPress={handleAddToProject}
+                                activeOpacity={0.8}
+                            >
+                                <View style={styles.actionIconContainer}>
+                                    <IconSymbol name="folder.badge.plus" size={22} color="#FFFFFF" />
+                                </View>
+                                <View style={styles.actionTextContainer}>
+                                    <ThemedText style={styles.actionButtonTitle}>Project</ThemedText>
+                                    <ThemedText style={styles.actionButtonSubtitle}>Add to project</ThemedText>
+                                </View>
+                            </TouchableOpacity>
 
-                        <TouchableOpacity
-                            style={[styles.actionButton, { backgroundColor: colors.error }]}
-                            onPress={handleDelete}
-                        >
-                            <IconSymbol name="trash" size={20} color="#FFFFFF" />
-                            <ThemedText style={[styles.actionButtonText, { color: '#FFFFFF' }]}>
-                                Delete Item
-                            </ThemedText>
-                        </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.actionButton, styles.dangerAction, { backgroundColor: colors.error }]}
+                                onPress={handleDelete}
+                                activeOpacity={0.8}
+                            >
+                                <View style={styles.actionIconContainer}>
+                                    <IconSymbol name="trash" size={22} color="#FFFFFF" />
+                                </View>
+                                <View style={styles.actionTextContainer}>
+                                    <ThemedText style={styles.actionButtonTitle}>Delete</ThemedText>
+                                    <ThemedText style={styles.actionButtonSubtitle}>Remove item</ThemedText>
+                                </View>
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </View>
 
@@ -858,10 +922,46 @@ const styles = StyleSheet.create({
         paddingVertical: 16,
         borderBottomWidth: 1,
     },
-    headerTitle: {
+    headerLeft: {
+        minWidth: 80,
+        alignItems: 'flex-start',
+    },
+    headerCenter: {
         flex: 1,
+        alignItems: 'center',
+        paddingHorizontal: 16,
+    },
+    headerRight: {
+        minWidth: 80,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'flex-end',
+        gap: 8,
+    },
+    headerBackButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    headerActionButton: {
+        width: 36,
+        height: 36,
+        borderRadius: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    headerTitle: {
+        fontSize: 17,
+        fontWeight: '600',
         textAlign: 'center',
-        marginHorizontal: 8,
+    },
+    headerSubtitle: {
+        fontSize: 13,
+        marginTop: 2,
+        textAlign: 'center',
+        opacity: 0.8,
     },
     loadingContainer: {
         flex: 1,
@@ -891,8 +991,9 @@ const styles = StyleSheet.create({
         marginBottom: 24,
     },
     backButton: {
-        padding: 8,
-        marginLeft: 8,
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 8,
     },
     backButtonText: {
         color: '#FFFFFF',
@@ -902,25 +1003,18 @@ const styles = StyleSheet.create({
     scrollView: {
         flex: 1,
     },
-    headerActions: {
-        flexDirection: 'row',
-        gap: 8,
-    },
-    headerButton: {
-        padding: 8,
-    },
     headerCard: {
         margin: 16,
-        padding: 20,
-        borderRadius: 16,
+        padding: 24,
+        borderRadius: 20,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 3,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+        elevation: 5,
     },
     itemHeader: {
-        marginBottom: 16,
+        marginBottom: 20,
     },
     itemTitleSection: {
         flex: 1,
@@ -929,36 +1023,79 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 12,
-        marginBottom: 8,
+        marginBottom: 12,
     },
     itemName: {
-        fontSize: 24,
+        fontSize: 26,
+        fontWeight: '700',
     },
     alertIndicator: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    locationRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    locationPin: {
         width: 24,
         height: 24,
-        borderRadius: 12,
+        borderRadius: 6,
         alignItems: 'center',
         justifyContent: 'center',
     },
     itemLocation: {
         fontSize: 16,
+        fontWeight: '500',
+        paddingRight: 8,
     },
-    itemStats: {
+    itemStatsContainer: {
+        gap: 16,
+    },
+    statsRow: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
+        gap: 12,
+    },
+    statCard: {
+        flex: 1,
+        flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 16,
+        padding: 16,
+        borderRadius: 14,
+        gap: 12,
+    },
+    statIcon: {
+        width: 32,
+        height: 32,
+        borderRadius: 8,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    statContent: {
+        flex: 1,
     },
     statItem: {
         alignItems: 'flex-start',
     },
     statLabel: {
-        fontSize: 14,
+        fontSize: 12,
+        fontWeight: '600',
         marginBottom: 4,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
     },
     statValue: {
-        fontSize: 20,
+        fontSize: 18,
+        fontWeight: '700',
     },
     importanceContainer: {
         flexDirection: 'row',
@@ -967,7 +1104,22 @@ const styles = StyleSheet.create({
     },
     importanceMax: {
         fontSize: 14,
-        fontWeight: '400',
+        fontWeight: '500',
+        opacity: 0.7,
+    },
+    statusBadgeContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 12,
+        gap: 8,
+        alignSelf: 'flex-start',
+    },
+    statusDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
     },
     statusBadge: {
         paddingHorizontal: 16,
@@ -979,18 +1131,37 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     tagsContainer: {
-        marginTop: 16,
+        marginTop: 20,
+        gap: 12,
+    },
+    tagsHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
         gap: 8,
+    },
+    tagsIcon: {
+        width: 20,
+        height: 20,
+        borderRadius: 6,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     tagsTitle: {
         fontSize: 14,
         fontWeight: '600',
-        marginBottom: 4,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
     },
     tagsWrapper: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         gap: 8,
+    },
+    modernTag: {
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 8,
+        borderWidth: 1,
     },
     tag: {
         paddingHorizontal: 12,
@@ -999,18 +1170,18 @@ const styles = StyleSheet.create({
     },
     tagText: {
         fontSize: 12,
-        fontWeight: '500',
+        fontWeight: '600',
     },
     locationCard: {
         marginHorizontal: 16,
         marginBottom: 16,
-        padding: 20,
-        borderRadius: 16,
+        padding: 24,
+        borderRadius: 20,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 3,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+        elevation: 5,
     },
     locationHierarchy: {
         gap: 12,
@@ -1078,60 +1249,107 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     timelineContainer: {
-        gap: 16,
+        gap: 20,
     },
     timelineItem: {
         flexDirection: 'row',
         alignItems: 'flex-start',
-        gap: 12,
+        gap: 16,
     },
     timelineIcon: {
-        width: 24,
-        height: 24,
-        borderRadius: 12,
+        width: 28,
+        height: 28,
+        borderRadius: 14,
         alignItems: 'center',
         justifyContent: 'center',
         marginTop: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
     },
     timelineContent: {
         flex: 1,
+        paddingTop: 2,
     },
     timelineTitle: {
-        fontSize: 14,
+        fontSize: 15,
         fontWeight: '600',
-        marginBottom: 2,
+        marginBottom: 4,
     },
     timelineDate: {
-        fontSize: 12,
+        fontSize: 13,
+        opacity: 0.7,
     },
     actionsCard: {
         marginHorizontal: 16,
         marginBottom: 16,
-        padding: 20,
-        borderRadius: 16,
+        padding: 24,
+        borderRadius: 20,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 3,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+        elevation: 5,
     },
     sectionTitle: {
         fontSize: 18,
-        marginBottom: 16,
+        fontWeight: '700',
+        marginBottom: 20,
     },
-    actionsGrid: {
+    actionsContainer: {
+        gap: 12,
+    },
+    actionsRow: {
         flexDirection: 'row',
-        flexWrap: 'wrap',
         gap: 12,
     },
     actionButton: {
         flex: 1,
-        minWidth: (screenWidth - 64) / 2 - 6,
-        paddingVertical: 16,
-        paddingHorizontal: 12,
-        borderRadius: 12,
+        flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
+        paddingVertical: 16,
+        paddingHorizontal: 16,
+        borderRadius: 12,
+        gap: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    primaryAction: {
+        // Additional styling for primary actions
+    },
+    secondaryAction: {
+        // Additional styling for secondary actions
+    },
+    dangerAction: {
+        // Additional styling for danger actions
+    },
+    actionIconContainer: {
+        width: 32,
+        height: 32,
+        borderRadius: 8,
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    actionTextContainer: {
+        flex: 1,
+    },
+    actionButtonTitle: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#FFFFFF',
+        marginBottom: 2,
+    },
+    actionButtonSubtitle: {
+        fontSize: 12,
+        color: 'rgba(255,255,255,0.8)',
+        fontWeight: '500',
+        lineHeight: 16,
     },
     actionButtonText: {
         fontSize: 14,
@@ -1140,13 +1358,13 @@ const styles = StyleSheet.create({
     detailsCard: {
         marginHorizontal: 16,
         marginBottom: 16,
-        padding: 20,
-        borderRadius: 16,
+        padding: 24,
+        borderRadius: 20,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 3,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+        elevation: 5,
     },
     detailsList: {
         gap: 12,
@@ -1171,24 +1389,24 @@ const styles = StyleSheet.create({
     projectsCard: {
         marginHorizontal: 16,
         marginBottom: 16,
-        padding: 20,
-        borderRadius: 16,
+        padding: 24,
+        borderRadius: 20,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 3,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+        elevation: 5,
     },
     alertsCard: {
         marginHorizontal: 16,
         marginBottom: 32,
-        padding: 20,
-        borderRadius: 16,
+        padding: 24,
+        borderRadius: 20,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 3,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+        elevation: 5,
     },
     alertsList: {
         gap: 12,
@@ -1235,12 +1453,17 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
     emptyButton: {
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 8,
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+        borderRadius: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
     },
     emptyButtonText: {
-        fontSize: 12,
+        fontSize: 14,
         fontWeight: '600',
     },
 });
