@@ -1,5 +1,5 @@
 import { useInventoryAlerts, useInventoryItems } from '@/stores/inventory';
-import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
     Alert,
@@ -11,6 +11,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AddToProjectModal } from '../../components/inventory/AddToProjectModal';
 import { CreateAlertModal } from '../../components/inventory/CreateAlertModal';
 import { EditItemModal } from '../../components/inventory/EditItemModal';
@@ -29,6 +30,7 @@ export default function ItemDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const colorScheme = useColorScheme() ?? 'light';
     const colors = Colors[colorScheme];
+    const insets = useSafeAreaInsets();
 
     const [item, setItem] = useState<ItemWithLocation | null>(null);
     const [loading, setLoading] = useState(true);
@@ -173,33 +175,37 @@ export default function ItemDetailScreen() {
 
     return (
         <ThemedView style={styles.container}>
-            <Stack.Screen
-                options={{
-                    title: item.name,
-                    headerShown: true,
-                    headerBackTitle: '',
-                    headerRight: () => (
-                        <View style={styles.headerActions}>
-                            <TouchableOpacity
-                                style={styles.headerButton}
-                                onPress={handleShare}
-                            >
-                                <IconSymbol name="square.and.arrow.up" size={20} color={colors.primary} />
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={styles.headerButton}
-                                onPress={handleToggleFavorite}
-                            >
-                                <IconSymbol
-                                    name={item.isFavorite ? "heart.fill" : "heart"}
-                                    size={20}
-                                    color={item.isFavorite ? colors.error : colors.textSecondary}
-                                />
-                            </TouchableOpacity>
-                        </View>
-                    ),
-                }}
-            />
+            {/* Custom Header */}
+            <View style={[styles.header, { 
+                backgroundColor: colors.background, 
+                borderBottomColor: colors.border,
+                paddingTop: insets.top + 16
+            }]}>
+                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                    <IconSymbol size={24} name="chevron.left" color={colors.text} />
+                </TouchableOpacity>
+                <ThemedText type="title" style={[styles.headerTitle, { color: colors.text }]}>
+                    {item?.name || 'Item Details'}
+                </ThemedText>
+                <View style={styles.headerActions}>
+                    <TouchableOpacity
+                        style={styles.headerButton}
+                        onPress={handleShare}
+                    >
+                        <IconSymbol name="square.and.arrow.up" size={20} color={colors.primary} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.headerButton}
+                        onPress={handleToggleFavorite}
+                    >
+                        <IconSymbol
+                            name={item?.isFavorite ? "heart.fill" : "heart"}
+                            size={20}
+                            color={item?.isFavorite ? colors.error : colors.textSecondary}
+                        />
+                    </TouchableOpacity>
+                </View>
+            </View>
 
             <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
                 {/* Item Header */}
@@ -208,7 +214,7 @@ export default function ItemDetailScreen() {
                         <View style={styles.itemTitleSection}>
                             <View style={styles.nameAndAlerts}>
                                 <ThemedText type="title" style={[styles.itemName, { color: colors.text }]}>
-                                    {item.name}
+                                    {item?.name || 'Unknown Item'}
                                 </ThemedText>
                                 {hasAlerts && (
                                     <View style={[styles.alertIndicator, { backgroundColor: colors.warning }]}>
@@ -217,7 +223,7 @@ export default function ItemDetailScreen() {
                                 )}
                             </View>
                             <ThemedText style={[styles.itemLocation, { color: colors.textSecondary }]}>
-                                📍 {item.location}
+                                📍 {item?.location || 'Unknown Location'}
                             </ThemedText>
                         </View>
                     </View>
@@ -228,18 +234,18 @@ export default function ItemDetailScreen() {
                                 Quantity
                             </ThemedText>
                             <ThemedText type="defaultSemiBold" style={[styles.statValue, { color: colors.text }]}>
-                                {item.quantity}
+                                {item?.quantity || 0}
                             </ThemedText>
                         </View>
 
-                        {(item.importanceScore !== undefined && item.importanceScore !== null) && (
+                        {(item?.importanceScore !== undefined && item?.importanceScore !== null) && (
                             <View style={styles.statItem}>
                                 <ThemedText style={[styles.statLabel, { color: colors.textSecondary }]}>
                                     Importance
                                 </ThemedText>
                                 <View style={styles.importanceContainer}>
                                     <ThemedText type="defaultSemiBold" style={[styles.statValue, { color: colors.primary }]}>
-                                        {item.importanceScore}
+                                        {item?.importanceScore}
                                     </ThemedText>
                                     <ThemedText style={[styles.importanceMax, { color: colors.textSecondary }]}>
                                         /10
@@ -248,9 +254,9 @@ export default function ItemDetailScreen() {
                             </View>
                         )}
 
-                        <View style={[styles.statusBadge, { backgroundColor: `${getStatusColor(item.status)}20` }]}>
-                            <ThemedText style={[styles.statusText, { color: getStatusColor(item.status) }]}>
-                                {getStatusText(item.status)}
+                        <View style={[styles.statusBadge, { backgroundColor: `${getStatusColor(item?.status || 'available')}20` }]}>
+                            <ThemedText style={[styles.statusText, { color: getStatusColor(item?.status || 'available') }]}>
+                                {getStatusText(item?.status || 'available')}
                             </ThemedText>
                         </View>
                     </View>
@@ -729,6 +735,19 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 16,
+        paddingVertical: 16,
+        borderBottomWidth: 1,
+    },
+    headerTitle: {
+        flex: 1,
+        textAlign: 'center',
+        marginHorizontal: 8,
+    },
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
@@ -757,9 +776,8 @@ const styles = StyleSheet.create({
         marginBottom: 24,
     },
     backButton: {
-        paddingHorizontal: 24,
-        paddingVertical: 12,
-        borderRadius: 12,
+        padding: 8,
+        marginLeft: 8,
     },
     backButtonText: {
         color: '#FFFFFF',
