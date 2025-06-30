@@ -23,6 +23,7 @@ export interface Item {
   roomId?: number;
   containerId?: number;
   itemLink?: string;
+  importanceScore?: number;
   createdAt?: Date;
   updatedAt?: Date;
   alerts?: Alert[];
@@ -104,6 +105,7 @@ export interface ItemWithLocation extends Item {
   tags: Tag[]; // Extracted from itemTags
   isFavorite: boolean; // Computed from favourites
   activeAlerts: Alert[]; // Filtered active alerts
+  importanceScore?: number; // Optional importance score
 }
 
 export interface ItemFormData {

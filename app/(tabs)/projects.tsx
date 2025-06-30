@@ -1,4 +1,4 @@
-import { CreateProjectModal } from '@/components/projects';
+import { CreateProjectModal, EditProjectModal } from '@/components/projects';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Button } from '@/components/ui/Button';
@@ -194,6 +194,13 @@ export default function ProjectsScreen() {
                 visible={showCreateModal}
                 onClose={() => setShowCreateModal(false)}
                 onProjectCreated={handleProjectCreated}
+            />
+
+            <EditProjectModal
+                visible={showEditModal}
+                project={selectedProject}
+                onClose={() => setShowEditModal(false)}
+                onProjectUpdated={handleProjectUpdated}
             />
         </ThemedView>
     );
