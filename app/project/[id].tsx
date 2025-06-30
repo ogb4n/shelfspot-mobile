@@ -147,11 +147,11 @@ export default function ProjectDetailsScreen() {
     if (loading) {
         return (
             <ThemedView style={styles.container}>
-                <View style={styles.header}>
+                <View style={[styles.header, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
                     <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                         <IconSymbol size={24} name="chevron.left" color={colors.text} />
                     </TouchableOpacity>
-                    <ThemedText type="title">Project Details</ThemedText>
+                    <ThemedText type="title">Loading...</ThemedText>
                     <View style={styles.placeholder} />
                 </View>
                 <View style={styles.loadingContainer}>
@@ -165,11 +165,11 @@ export default function ProjectDetailsScreen() {
     if (error || !project) {
         return (
             <ThemedView style={styles.container}>
-                <View style={styles.header}>
+                <View style={[styles.header, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
                     <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                         <IconSymbol size={24} name="chevron.left" color={colors.text} />
                     </TouchableOpacity>
-                    <ThemedText type="title">Project Details</ThemedText>
+                    <ThemedText type="title">Project Not Found</ThemedText>
                     <View style={styles.placeholder} />
                 </View>
                 <View style={styles.errorContainer}>
@@ -184,11 +184,14 @@ export default function ProjectDetailsScreen() {
 
     return (
         <ThemedView style={styles.container}>
-            <View style={styles.header}>
+            {/* Custom Header */}
+            <View style={[styles.header, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                     <IconSymbol size={24} name="chevron.left" color={colors.text} />
                 </TouchableOpacity>
-                <ThemedText type="title">Project Details</ThemedText>
+                <ThemedText type="title" style={[styles.headerTitle, { color: colors.text }]}>
+                    {project?.name || 'Project Details'}
+                </ThemedText>
                 <TouchableOpacity onPress={handleEditProject} style={styles.editButton}>
                     <IconSymbol size={20} name="pencil" color={colors.tint} />
                 </TouchableOpacity>
@@ -382,12 +385,19 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         paddingHorizontal: 16,
         paddingVertical: 16,
+        paddingTop: 60,
+        borderBottomWidth: 1,
+    },
+    headerTitle: {
+        flex: 1,
+        textAlign: 'center',
+        marginHorizontal: 8,
     },
     backButton: {
-        padding: 4,
+        padding: 8,
     },
     editButton: {
-        padding: 4,
+        padding: 8,
     },
     placeholder: {
         width: 32,

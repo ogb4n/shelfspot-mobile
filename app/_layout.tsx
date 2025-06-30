@@ -28,9 +28,12 @@ export default function RootLayout() {
             <Stack.Screen name="login" options={{ headerShown: false }} />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="item/[id]" options={{
+              headerShown: false,
               presentation: 'card',
-              headerBackTitle: '',
-              headerTitle: 'Item Details',
+            }} />
+            <Stack.Screen name="project/[id]" options={{
+              headerShown: false,
+              presentation: 'card',
             }} />
             <Stack.Screen name="+not-found" />
           </Stack>
