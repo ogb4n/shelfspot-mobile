@@ -2,6 +2,7 @@ import EditNameModal from '@/components/modals/EditNameModal';
 import NotificationsModal from '@/components/modals/NotificationsModal';
 import PersonalInfoModal from '@/components/modals/PersonalInfoModal';
 import SecurityModal from '@/components/modals/SecurityModal';
+import StatisticsModal from '@/components/modals/StatisticsModal';
 import { ThemeModal } from '@/components/modals/ThemeModal';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -31,6 +32,7 @@ export default function SettingsScreen() {
   const [showSecurityModal, setShowSecurityModal] = useState(false);
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
   const [showThemeModal, setShowThemeModal] = useState(false);
+  const [showStatisticsModal, setShowStatisticsModal] = useState(false);
 
   // États pour les paramètres de notification
   const [notificationSettings, setNotificationSettings] = useState({
@@ -305,7 +307,7 @@ export default function SettingsScreen() {
                 icon="chart.bar"
                 title="Statistics"
                 subtitle="Advanced dashboard"
-                onPress={() => { }}
+                onPress={() => setShowStatisticsModal(true)}
               />
               <SettingItem
                 icon="gear"
@@ -400,6 +402,12 @@ export default function SettingsScreen() {
         onThemeChange={(theme) => {
           console.log('Theme changed to:', theme);
         }}
+      />
+
+      {/* Statistics Modal */}
+      <StatisticsModal
+        visible={showStatisticsModal}
+        onClose={() => setShowStatisticsModal(false)}
       />
     </ThemedView>
   );
