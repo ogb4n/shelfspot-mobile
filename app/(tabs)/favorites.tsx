@@ -128,24 +128,33 @@ export default function FavoritesScreen() {
         style={styles.quickActions}
         contentContainerStyle={styles.quickActionsContent}
       >
-        <TouchableOpacity style={[styles.quickActionCard, { backgroundColor: colors.primary }]}>
-          <IconSymbol name="square.grid.2x2" size={20} color="#FFFFFF" />
+        <TouchableOpacity 
+          style={[styles.quickActionCard, { backgroundColor: colors.primary }]}
+          onPress={() => router.push('/(tabs)/inventory')}
+        >
+          <IconSymbol name="square.grid.2x2" size={16} color="#FFFFFF" />
           <ThemedText style={[styles.quickActionText, { color: '#FFFFFF' }]}>
-            View All Inventory
+            All
           </ThemedText>
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.quickActionCard, { backgroundColor: colors.warning }]}>
-          <IconSymbol name="exclamationmark.triangle" size={20} color="#FFFFFF" />
+        <TouchableOpacity 
+          style={[styles.quickActionCard, { backgroundColor: colors.warning }]}
+          onPress={() => router.push('/(tabs)/inventory')}
+        >
+          <IconSymbol name="exclamationmark.triangle" size={16} color="#FFFFFF" />
           <ThemedText style={[styles.quickActionText, { color: '#FFFFFF' }]}>
-            Low Stock Only
+            Low Stock
           </ThemedText>
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.quickActionCard, { backgroundColor: colors.info }]}>
-          <IconSymbol name="clock" size={20} color="#FFFFFF" />
+        <TouchableOpacity 
+          style={[styles.quickActionCard, { backgroundColor: colors.info }]}
+          onPress={() => router.push('/(tabs)/inventory')}
+        >
+          <IconSymbol name="clock" size={16} color="#FFFFFF" />
           <ThemedText style={[styles.quickActionText, { color: '#FFFFFF' }]}>
-            Recently Added
+            Recent
           </ThemedText>
         </TouchableOpacity>
       </ScrollView>
@@ -207,19 +216,21 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   quickActions: {
-    marginBottom: 20,
+    marginBottom: 16,
+    flexGrow: 0,
   },
   quickActionsContent: {
     paddingHorizontal: 20,
-    gap: 12,
+    gap: 8,
   },
   quickActionCard: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    gap: 8,
+    paddingVertical: 10,
+    borderRadius: 20,
+    gap: 6,
+    minHeight: 40,
   },
   quickActionText: {
     fontSize: 14,
