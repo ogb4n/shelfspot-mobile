@@ -1,22 +1,22 @@
 import { DEBOUNCE_DELAY, DEFAULT_ALERT_THRESHOLD } from '@/constants/inventory';
 import { backendApi } from '@/services/backend-api';
 import {
-    AlertFormData,
-    FilterKey,
-    FilterOptions,
-    ItemFormData,
-    ItemWithLocation
+  AlertFormData,
+  FilterKey,
+  FilterOptions,
+  ItemFormData,
+  ItemWithLocation
 } from '@/types/inventory';
 import {
-    getTriggeredAlerts,
-    sortAlertsByPriority,
-    transformItemsToItemsWithLocation,
-    transformItemToItemWithLocation,
-    TriggeredAlert
+  getTriggeredAlerts,
+  sortAlertsByPriority,
+  transformItemsToItemsWithLocation,
+  transformItemToItemWithLocation,
+  TriggeredAlert
 } from '@/utils/inventory';
 import {
-    clearAdvancedFilters,
-    filterItems
+  clearAdvancedFilters,
+  filterItems
 } from '@/utils/inventory/filters';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
@@ -99,6 +99,7 @@ export interface InventoryState {
   toggleFavorite: (itemId: number) => Promise<void>;
   addToFavorites: (itemId: number) => Promise<void>;
   removeFromFavorites: (itemId: number) => Promise<void>;
+  syncFavoritesWithItems: () => void;
   
   // Actions - Inventory data
   loadInventoryData: () => Promise<void>;
@@ -212,6 +213,12 @@ export const useInventoryStore = create<InventoryState>()(
             
             // Apply current filters
             get().applyFilters();
+            
+            // Force sync favorites if they are already loaded
+            const { favoriteItems } = get();
+            if (favoriteItems.length > 0) {
+              get().syncFavoritesWithItems();
+            }
           } catch (err: any) {
             console.error('Error loading items:', err);
             set({ error: err.message || 'Failed to load items' });
@@ -531,6 +538,12 @@ export const useInventoryStore = create<InventoryState>()(
             }));
             
             set({ favoriteItems: favoriteItemsWithFlag });
+            
+            // Sync favorites with main items list if items are already loaded
+            const { items: mainItems } = get();
+            if (mainItems.length > 0) {
+              get().syncFavoritesWithItems();
+            }
           } catch (err: any) {
             console.error('Error loading favorites:', err);
             set({ favoritesError: err.message || 'Failed to load favorites' });
@@ -547,6 +560,8 @@ export const useInventoryStore = create<InventoryState>()(
             const item = items.find(item => item.id === itemId);
             if (!item) return;
 
+            console.log('Toggling favorite for item:', itemId, 'Current state:', item.isFavorite);
+
             if (item.isFavorite) {
               await backendApi.removeFromFavorites(itemId);
             } else {
@@ -559,10 +574,16 @@ export const useInventoryStore = create<InventoryState>()(
             );
             set({ items: updatedItems });
             get().applyFilters();
+            
+            // Refresh favorites list to keep it in sync
+            await get().loadFavorites();
+            
+            console.log('Favorite toggled successfully for item:', itemId, 'New state:', !item.isFavorite);
           } catch (err: any) {
             console.error('Error toggling favorite:', err);
             set({ error: err.message || 'Failed to toggle favorite' });
-            await get().loadItems(); // Restore correct state
+            // Reload items to get the correct state from backend
+            await get().loadItems();
           } finally {
             set({ loading: false });
           }
@@ -590,6 +611,27 @@ export const useInventoryStore = create<InventoryState>()(
             set({ favoritesError: err.message || 'Failed to remove from favorites' });
             await get().loadFavorites(); // Restore state if removal failed
           }
+        },
+
+        syncFavoritesWithItems: () => {
+          const { items, favoriteItems } = get();
+          const favoriteItemIds = favoriteItems.map(fav => fav.id);
+          
+          console.log('Syncing favorites with items...', { 
+            totalItems: items.length, 
+            favoriteItemIds: favoriteItemIds 
+          });
+          
+          // Update items with correct favorite status based on loaded favorites
+          const syncedItems = items.map(item => ({
+            ...item,
+            isFavorite: favoriteItemIds.includes(item.id)
+          }));
+          
+          set({ items: syncedItems });
+          get().applyFilters();
+          
+          console.log('Favorites synced with items successfully');
         },
 
         // Inventory data actions
@@ -729,16 +771,36 @@ export const useInventoryStore = create<InventoryState>()(
         initialize: async () => {
           try {
             console.log('InventoryStore: Initializing inventory');
-            // Load items first
+            
+            // Load items first to get the base data
             await get().loadItems();
             
-            // Then load related data including alerts
+            // Then load related data including favorites and alerts
             await Promise.all([
               get().loadFavorites(),
               get().loadInventoryData(),
               get().loadAlerts(),
             ]);
-            console.log('InventoryStore: Inventory initialized successfully');
+            
+            // After loading favorites, sync the favorite status with items
+            const { items, favoriteItems } = get();
+            const favoriteItemIds = favoriteItems.map(fav => fav.id);
+            
+            console.log('InventoryStore: Syncing favorites...', { 
+              totalItems: items.length, 
+              favoriteItemIds: favoriteItemIds 
+            });
+            
+            // Update items with correct favorite status based on loaded favorites
+            const syncedItems = items.map(item => ({
+              ...item,
+              isFavorite: favoriteItemIds.includes(item.id)
+            }));
+            
+            set({ items: syncedItems });
+            get().applyFilters();
+            
+            console.log('InventoryStore: Inventory initialized successfully with synced favorites');
           } catch (error) {
             console.error('InventoryStore: Error initializing inventory:', error);
           }
@@ -835,6 +897,7 @@ export const useInventoryFavorites = () => {
   const loadFavorites = useInventoryStore((state) => state.loadFavorites);
   const addToFavorites = useInventoryStore((state) => state.addToFavorites);
   const removeFromFavorites = useInventoryStore((state) => state.removeFromFavorites);
+  const syncFavoritesWithItems = useInventoryStore((state) => state.syncFavoritesWithItems);
   const clearFavoritesError = useInventoryStore((state) => state.clearFavoritesError);
   
   return {
@@ -844,6 +907,7 @@ export const useInventoryFavorites = () => {
     loadFavorites,
     addToFavorites,
     removeFromFavorites,
+    syncFavoritesWithItems,
     clearFavoritesError,
   };
 };

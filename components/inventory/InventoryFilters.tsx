@@ -3,12 +3,12 @@ import { FILTER_CHIPS } from '../../constants/inventory';
 import { useThemeColor } from '../../hooks/useThemeColor';
 import { FilterKey, FilterOptions, ItemWithLocation } from '../../types/inventory';
 import {
-  getUniqueContainers,
-  getUniquePlaces,
-  getUniqueRooms,
-  getUniqueStatuses,
-  getUniqueTags,
-  hasActiveAdvancedFilters
+    getUniqueContainerObjects,
+    getUniquePlaceObjects,
+    getUniqueRoomObjects,
+    getUniqueStatuses,
+    getUniqueTagObjects,
+    hasActiveAdvancedFilters
 } from '../../utils/inventory/filters';
 import { ThemedText } from '../ThemedText';
 import { IconSymbol } from '../ui/IconSymbol';
@@ -24,6 +24,26 @@ interface InventoryFiltersProps {
     value: number | string
   ) => void;
   onClearAdvancedFilters: () => void;
+}
+
+interface FilterSectionProps {
+  title: string;
+  options: string[];
+  selectedValues: string[];
+  onToggle: (value: string) => void;
+  primaryColor: string;
+  backgroundSecondaryColor: string;
+  textSecondaryColor: string;
+}
+
+interface ObjectFilterSectionProps {
+  title: string;
+  options: { id: number; name: string }[];
+  selectedValues: number[];
+  onToggle: (value: number) => void;
+  primaryColor: string;
+  backgroundSecondaryColor: string;
+  textSecondaryColor: string;
 }
 
 export function InventoryFilters({
@@ -101,44 +121,44 @@ export function InventoryFilters({
           </View>
 
           {/* Room Filter */}
-          <FilterSection
+          <ObjectFilterSection
             title="Pièces"
-            options={getUniqueRooms(items)}
-            selectedValues={advancedFilters.roomIds.map(String)}
-            onToggle={(value) => onToggleAdvancedFilter('roomIds', parseInt(value))}
+            options={getUniqueRoomObjects(items).map(room => ({ id: room.id, name: room.name }))}
+            selectedValues={advancedFilters.roomIds}
+            onToggle={(value: number) => onToggleAdvancedFilter('roomIds', value)}
             primaryColor={primaryColor}
             backgroundSecondaryColor={backgroundSecondaryColor}
             textSecondaryColor={textSecondaryColor}
           />
 
           {/* Place Filter */}
-          <FilterSection
+          <ObjectFilterSection
             title="Endroits"
-            options={getUniquePlaces(items)}
-            selectedValues={advancedFilters.placeIds.map(String)}
-            onToggle={(value) => onToggleAdvancedFilter('placeIds', parseInt(value))}
+            options={getUniquePlaceObjects(items).map(place => ({ id: place.id, name: place.name }))}
+            selectedValues={advancedFilters.placeIds}
+            onToggle={(value: number) => onToggleAdvancedFilter('placeIds', value)}
             primaryColor={primaryColor}
             backgroundSecondaryColor={backgroundSecondaryColor}
             textSecondaryColor={textSecondaryColor}
           />
 
           {/* Container Filter */}
-          <FilterSection
+          <ObjectFilterSection
             title="Contenants"
-            options={getUniqueContainers(items)}
-            selectedValues={advancedFilters.containerIds.map(String)}
-            onToggle={(value) => onToggleAdvancedFilter('containerIds', parseInt(value))}
+            options={getUniqueContainerObjects(items).map(container => ({ id: container.id, name: container.name }))}
+            selectedValues={advancedFilters.containerIds}
+            onToggle={(value: number) => onToggleAdvancedFilter('containerIds', value)}
             primaryColor={primaryColor}
             backgroundSecondaryColor={backgroundSecondaryColor}
             textSecondaryColor={textSecondaryColor}
           />
 
           {/* Tags Filter */}
-          <FilterSection
+          <ObjectFilterSection
             title="Tags"
-            options={getUniqueTags(items)}
-            selectedValues={advancedFilters.tagIds.map(String)}
-            onToggle={(value) => onToggleAdvancedFilter('tagIds', parseInt(value))}
+            options={getUniqueTagObjects(items).map(tag => ({ id: tag.id, name: tag.name }))}
+            selectedValues={advancedFilters.tagIds}
+            onToggle={(value: number) => onToggleAdvancedFilter('tagIds', value)}
             primaryColor={primaryColor}
             backgroundSecondaryColor={backgroundSecondaryColor}
             textSecondaryColor={textSecondaryColor}
@@ -210,6 +230,55 @@ function FilterSection({
                 }
               ]}>
                 {option}
+              </ThemedText>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
+
+function ObjectFilterSection({
+  title,
+  options,
+  selectedValues,
+  onToggle,
+  primaryColor,
+  backgroundSecondaryColor,
+  textSecondaryColor,
+}: ObjectFilterSectionProps) {
+  if (options.length === 0) return null;
+
+  return (
+    <View style={styles.filterSection}>
+      <ThemedText style={[styles.filterSectionTitle, { color: textSecondaryColor }]}>
+        {title}
+      </ThemedText>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <View style={styles.filterOptions}>
+          {options.map((option) => (
+            <TouchableOpacity
+              key={option.id}
+              style={[
+                styles.filterOption,
+                {
+                  backgroundColor: selectedValues.includes(option.id)
+                    ? primaryColor
+                    : backgroundSecondaryColor,
+                }
+              ]}
+              onPress={() => onToggle(option.id)}
+            >
+              <ThemedText style={[
+                styles.filterOptionText,
+                {
+                  color: selectedValues.includes(option.id)
+                    ? '#FFFFFF'
+                    : textSecondaryColor
+                }
+              ]}>
+                {option.name}
               </ThemedText>
             </TouchableOpacity>
           ))}

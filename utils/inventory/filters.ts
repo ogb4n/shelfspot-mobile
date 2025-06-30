@@ -88,6 +88,45 @@ export const getUniqueTags = (items: ItemWithLocation[]) => {
   return uniqueTagNames;
 };
 
+// Helper functions to get unique objects with IDs for advanced filters
+export const getUniqueRoomObjects = (items: ItemWithLocation[]) => {
+  const rooms = items
+    .map(item => item.room)
+    .filter((room): room is NonNullable<typeof room> => room !== null && room !== undefined);
+  const uniqueRooms = rooms.filter((room, index, self) => 
+    self.findIndex(r => r.id === room.id) === index
+  );
+  return uniqueRooms;
+};
+
+export const getUniquePlaceObjects = (items: ItemWithLocation[]) => {
+  const places = items
+    .map(item => item.place)
+    .filter((place): place is NonNullable<typeof place> => place !== null && place !== undefined);
+  const uniquePlaces = places.filter((place, index, self) => 
+    self.findIndex(p => p.id === place.id) === index
+  );
+  return uniquePlaces;
+};
+
+export const getUniqueContainerObjects = (items: ItemWithLocation[]) => {
+  const containers = items
+    .map(item => item.container)
+    .filter((container): container is NonNullable<typeof container> => container !== null && container !== undefined);
+  const uniqueContainers = containers.filter((container, index, self) => 
+    self.findIndex(c => c.id === container.id) === index
+  );
+  return uniqueContainers;
+};
+
+export const getUniqueTagObjects = (items: ItemWithLocation[]) => {
+  const allTags = items.flatMap(item => item.tags);
+  const uniqueTags = allTags.filter((tag, index, self) => 
+    self.findIndex(t => t.id === tag.id) === index
+  );
+  return uniqueTags;
+};
+
 export const getUniqueStatuses = (items: ItemWithLocation[]) => 
   getUniqueValues(items, item => item.status);
 

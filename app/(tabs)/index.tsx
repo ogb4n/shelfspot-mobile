@@ -5,6 +5,7 @@ import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useInventoryAlerts, useInventoryData, useInventoryFavorites, useInventoryItems } from '@/stores/inventory';
+import { useShowCharts } from '@/stores/ui-settings';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Dimensions, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -25,6 +26,7 @@ export default function DashboardScreen() {
   const { favoriteItems, favoritesLoading } = useInventoryFavorites();
   const { rooms, places, dataLoading } = useInventoryData();
   const { triggeredAlerts, alertsLoading, loadAlerts } = useInventoryAlerts();
+  const showCharts = useShowCharts();
 
   const loading = itemsLoading || favoritesLoading || dataLoading || alertsLoading;
 
@@ -282,7 +284,7 @@ export default function DashboardScreen() {
             </View>
 
             {/* Charts Section */}
-            {items.length > 0 && (
+            {showCharts && items.length > 0 && (
               <>
                 {/* Status Distribution Chart */}
                 <View style={styles.section}>
