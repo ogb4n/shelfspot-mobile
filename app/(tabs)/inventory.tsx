@@ -1,10 +1,12 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { ThemedText } from '../../components/ThemedText';
 import { ThemedView } from '../../components/ThemedView';
 import { IconSymbol } from '../../components/ui/IconSymbol';
+import { SkeletonList } from '../../components/ui/Skeleton';
 import { Colors } from '../../constants/Colors';
+import { useToast } from '../../contexts/ToastContext';
 import { useColorScheme } from '../../hooks/useColorScheme';
 
 // Import refactored components and hooks
@@ -17,10 +19,10 @@ import { EditAlertModal } from '../../components/inventory/EditAlertModal';
 import { EditItemModal } from '../../components/inventory/EditItemModal';
 import { InventoryFilters } from '../../components/inventory/InventoryFilters';
 import { InventoryHeader } from '../../components/inventory/InventoryHeader';
-import { InventoryItem } from '../../components/inventory/InventoryItem';
 import { InventorySearch } from '../../components/inventory/InventorySearch';
 import { ItemAlertsModal } from '../../components/inventory/ItemAlertsModal';
 import { ItemContextMenu } from '../../components/inventory/ItemContextMenu';
+import { RefreshableInventoryList } from '../../components/inventory/RefreshableInventoryList';
 import { ItemWithLocation } from '../../types/inventory';
 import { hasActiveAdvancedFilters } from '../../utils/inventory/filters';
 
@@ -69,6 +71,7 @@ export default function InventoryScreen() {
     addItem,
     updateItem,
     deleteItem,
+    loadItems, // Add loadItems for refresh functionality
   } = useInventoryItems();
 
   const {
@@ -147,6 +150,19 @@ export default function InventoryScreen() {
     setShowAddModal(false);
   };
 
+  const { showSuccess, showError } = useToast();
+
+  // Refresh function for pull-to-refresh
+  const handleRefresh = async () => {
+    try {
+      await loadItems();
+      await loadAlerts(); // Also refresh alerts
+    } catch (error) {
+      console.error('Error refreshing inventory:', error);
+      showError('Failed to refresh inventory');
+    }
+  };
+
   const handleDeleteSelected = () => {
     Alert.alert(
       'Confirm Deletion',
@@ -159,6 +175,7 @@ export default function InventoryScreen() {
           onPress: () => {
             deleteItems(selectedItems);
             exitSelectionMode();
+            showSuccess(`${selectedItemsCount} item${selectedItemsCount > 1 ? 's' : ''} deleted successfully`);
           },
         },
       ]
@@ -172,10 +189,10 @@ export default function InventoryScreen() {
   const handleCreateAlert = async (alertData: any) => {
     try {
       await createAlert(alertData, () => {
-        Alert.alert('Success', 'Alert has been created!');
+        showSuccess('Alert has been created!');
       });
     } catch {
-      Alert.alert('Error', 'Failed to create alert');
+      showError('Failed to create alert');
     }
   };
 
@@ -204,8 +221,9 @@ export default function InventoryScreen() {
   const handleUpdateItem = async (itemId: number, updatedData: any) => {
     try {
       await updateItem(itemId, updatedData);
+      showSuccess('Item updated successfully');
     } catch {
-      Alert.alert('Error', 'Failed to update item. Please try again.');
+      showError('Failed to update item. Please try again.');
     }
   };
 
@@ -221,9 +239,9 @@ export default function InventoryScreen() {
           onPress: async () => {
             try {
               await deleteItem(itemId);
-              Alert.alert('Success', 'Item has been deleted!');
+              showSuccess('Item has been deleted!');
             } catch {
-              Alert.alert('Error', 'Failed to delete item. Please try again.');
+              showError('Failed to delete item. Please try again.');
             }
           },
         },
@@ -244,7 +262,7 @@ export default function InventoryScreen() {
   const handleItemAddedToProject = () => {
     setShowAddToProjectModal(false);
     setSelectedItemForProject(null);
-    Alert.alert('Success', 'Item has been added to the project!');
+    showSuccess('Item has been added to the project!');
   };
 
   const handleViewItemAlerts = (itemId: number) => {
@@ -292,9 +310,9 @@ export default function InventoryScreen() {
           onPress: async () => {
             try {
               await deleteAlert(alertId);
-              Alert.alert('Success', 'Alert has been deleted!');
+              showSuccess('Alert has been deleted!');
             } catch {
-              Alert.alert('Error', 'Failed to delete alert. Please try again.');
+              showError('Failed to delete alert. Please try again.');
             }
           },
         },
@@ -309,9 +327,9 @@ export default function InventoryScreen() {
       await updateAlert(selectedAlertForEdit.id, alertData);
       setShowEditAlertModal(false);
       setSelectedAlertForEdit(null);
-      Alert.alert('Success', 'Alert has been updated!');
+      showSuccess('Alert has been updated!');
     } catch {
-      Alert.alert('Error', 'Failed to update alert. Please try again.');
+      showError('Failed to update alert. Please try again.');
     }
   };
 
@@ -328,19 +346,6 @@ export default function InventoryScreen() {
       router.push(`/item/${item.id}`);
     }
   };
-
-  const renderInventoryItem = ({ item }: { item: any }) => (
-    <InventoryItem
-      item={item}
-      isSelected={isItemSelected(item.id)}
-      isSelectionMode={isSelectionMode}
-      onPress={() => handleItemPress(item)}
-      onLongPress={handleItemLongPress}
-      onToggleFavorite={toggleFavorite}
-      onCreateAlert={openCreateAlertModal}
-      onViewAlerts={handleViewItemAlerts}
-    />
-  );
 
   return (
     <ThemedView style={styles.container}>
@@ -378,8 +383,8 @@ export default function InventoryScreen() {
 
       {/* Inventory List */}
       {loading ? (
-        <View style={[styles.list, { justifyContent: 'center', alignItems: 'center' }]}>
-          <ThemedText style={{ color: colors.textSecondary }}>Loading inventory...</ThemedText>
+        <View style={styles.list}>
+          <SkeletonList itemCount={6} showTags={true} />
         </View>
       ) : error ? (
         <View style={[styles.list, { justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20 }]}>
@@ -392,12 +397,18 @@ export default function InventoryScreen() {
           </ThemedText>
         </View>
       ) : (
-        <FlatList
+        <RefreshableInventoryList
           data={filteredItems}
-          renderItem={renderInventoryItem}
-          keyExtractor={(item) => item.id.toString()}
-          style={styles.list}
-          contentContainerStyle={styles.listContent}
+          onRefresh={handleRefresh}
+          isSelected={isItemSelected}
+          isSelectionMode={isSelectionMode}
+          onItemPress={handleItemPress}
+          onItemLongPress={handleItemLongPress}
+          onToggleFavorite={toggleFavorite}
+          onCreateAlert={openCreateAlertModal}
+          onViewAlerts={handleViewItemAlerts}
+          onEditItem={handleEditItem}
+          onDeleteItem={handleDeleteItem}
           showsVerticalScrollIndicator={false}
         />
       )}

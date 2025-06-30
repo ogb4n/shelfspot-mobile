@@ -4,13 +4,14 @@ import { ThemedView } from '@/components/ThemedView';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import { SkeletonList } from '@/components/ui/Skeleton';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { backendApi } from '@/services/backend-api';
 import { Project, ProjectItem } from '@/types';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function ProjectDetailsScreen() {
@@ -33,6 +34,7 @@ export default function ProjectDetailsScreen() {
             loadProject();
             loadProjectItems();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id]);
 
     const loadProject = async () => {
@@ -116,7 +118,7 @@ export default function ProjectDetailsScreen() {
                         try {
                             await backendApi.deleteProject(Number(id));
                             router.back();
-                        } catch (err) {
+                        } catch {
                             Alert.alert('Error', 'Failed to delete project');
                         }
                     }
@@ -161,8 +163,7 @@ export default function ProjectDetailsScreen() {
                     <View style={styles.placeholder} />
                 </View>
                 <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color={colors.tint} />
-                    <ThemedText style={styles.loadingText}>Loading project...</ThemedText>
+                    <SkeletonList itemCount={3} showTags={false} />
                 </View>
             </ThemedView>
         );

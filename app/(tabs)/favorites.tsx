@@ -1,18 +1,21 @@
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import { SkeletonList } from '@/components/ui/Skeleton';
 import { Colors } from '@/constants/Colors';
+import { useToast } from '@/contexts/ToastContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useInventoryFavorites } from '@/stores/inventory';
 import { ItemWithLocation } from '@/types/inventory';
 import { getStatusColor, getStatusText } from '@/utils/inventory/filters';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, FlatList, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { FlatList, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function FavoritesScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
+  const { showSuccess, showError } = useToast();
 
   // Use favorites hook instead of mock data
   const { favoriteItems, favoritesLoading, favoritesError, removeFromFavorites } = useInventoryFavorites();
@@ -26,19 +29,13 @@ export default function FavoritesScreen() {
     item.location.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleRemoveFromFavorites = (itemId: number, itemName: string) => {
-    Alert.alert(
-      'Remove from Favorites',
-      `Are you sure you want to remove "${itemName}" from your favorites?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Remove',
-          style: 'destructive',
-          onPress: () => removeFromFavorites(itemId),
-        },
-      ]
-    );
+  const handleRemoveFromFavorites = async (itemId: number, itemName: string) => {
+    try {
+      await removeFromFavorites(itemId);
+      showSuccess(`"${itemName}" removed from favorites`);
+    } catch {
+      showError(`Failed to remove "${itemName}" from favorites`);
+    }
   };
 
   const renderFavoriteItem = ({ item }: { item: ItemWithLocation }) => (
@@ -164,10 +161,8 @@ export default function FavoritesScreen() {
 
       {/* Favorites List */}
       {favoritesLoading ? (
-        <View style={styles.emptyState}>
-          <ThemedText style={[styles.emptyDescription, { color: colors.textSecondary }]}>
-            Loading favorites...
-          </ThemedText>
+        <View style={styles.list}>
+          <SkeletonList itemCount={4} showTags={false} />
         </View>
       ) : favoritesError ? (
         <View style={styles.emptyState}>

@@ -2,7 +2,6 @@ import { useInventoryAlerts, useInventoryItems } from '@/stores/inventory';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-    Alert,
     Linking,
     ScrollView,
     Share,
@@ -20,6 +19,7 @@ import { ThemedText } from '../../components/ThemedText';
 import { ThemedView } from '../../components/ThemedView';
 import { IconSymbol } from '../../components/ui/IconSymbol';
 import { Colors } from '../../constants/Colors';
+import { useToast } from '../../contexts/ToastContext';
 import { useColorScheme } from '../../hooks/useColorScheme';
 import { AlertFormData, ItemWithLocation } from '../../types/inventory';
 import { hasActiveAlerts } from '../../utils/inventory/alerts';
@@ -30,6 +30,7 @@ export default function ItemDetailScreen() {
     const colorScheme = useColorScheme() ?? 'light';
     const colors = Colors[colorScheme];
     const insets = useSafeAreaInsets();
+    const { showSuccess, showError } = useToast();
 
     const [item, setItem] = useState<ItemWithLocation | null>(null);
     const [loading, setLoading] = useState(true);
@@ -102,7 +103,7 @@ export default function ItemDetailScreen() {
             await toggleFavorite(item.id);
             // No need to manually update local state - the store will update and trigger a re-render
         } catch {
-            Alert.alert('Error', 'Failed to update favorite status');
+            showError('Failed to update favorite status');
         }
     };
 
@@ -110,28 +111,14 @@ export default function ItemDetailScreen() {
         setShowEditModal(true);
     };
 
-    const handleDelete = () => {
-        Alert.alert(
-            'Delete Item',
-            `Are you sure you want to delete "${item.name}"?`,
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Delete',
-                    style: 'destructive',
-                    onPress: async () => {
-                        try {
-                            await deleteItem(item.id);
-                            Alert.alert('Success', 'Item has been deleted!', [
-                                { text: 'OK', onPress: () => router.back() }
-                            ]);
-                        } catch {
-                            Alert.alert('Error', 'Failed to delete item');
-                        }
-                    },
-                },
-            ]
-        );
+    const handleDelete = async () => {
+        try {
+            await deleteItem(item.id);
+            showSuccess('Item has been deleted!');
+            router.back();
+        } catch {
+            showError('Failed to delete item');
+        }
     };
 
     const handleShare = async () => {
@@ -161,7 +148,7 @@ export default function ItemDetailScreen() {
             
             // The useEffect will automatically update the local item state when the store updates
         } catch {
-            Alert.alert('Error', 'Failed to update item');
+            showError('Failed to update item');
         }
     };
 
@@ -169,10 +156,10 @@ export default function ItemDetailScreen() {
         try {
             await createAlert(alertData, () => {
                 setShowCreateAlertModal(false);
-                Alert.alert('Success', 'Alert has been created!');
+                showSuccess('Alert has been created!');
             });
         } catch {
-            Alert.alert('Error', 'Failed to create alert');
+            showError('Failed to create alert');
         }
     };
 
@@ -188,35 +175,22 @@ export default function ItemDetailScreen() {
         setShowAlertContextMenu(false);
     };
 
-    const handleDeleteAlert = (alertId: number) => {
-        Alert.alert(
-            'Delete Alert',
-            'Are you sure you want to delete this alert?',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Delete',
-                    style: 'destructive',
-                    onPress: async () => {
-                        try {
-                            await deleteAlert(alertId);
-                            Alert.alert('Success', 'Alert has been deleted!');
-                        } catch {
-                            Alert.alert('Error', 'Failed to delete alert');
-                        }
-                    }
-                }
-            ]
-        );
+    const handleDeleteAlert = async (alertId: number) => {
+        try {
+            await deleteAlert(alertId);
+            showSuccess('Alert has been deleted!');
+        } catch {
+            showError('Failed to delete alert');
+        }
         setShowAlertContextMenu(false);
     };
 
     const handleToggleAlertStatus = async (alertId: number, currentStatus: boolean) => {
         try {
             await updateAlert(alertId, { isActive: !currentStatus });
-            Alert.alert('Success', `Alert has been ${!currentStatus ? 'enabled' : 'disabled'}!`);
+            showSuccess(`Alert has been ${!currentStatus ? 'enabled' : 'disabled'}!`);
         } catch {
-            Alert.alert('Error', 'Failed to update alert status');
+            showError('Failed to update alert status');
         }
         setShowAlertContextMenu(false);
     };
@@ -228,9 +202,9 @@ export default function ItemDetailScreen() {
             await updateAlert(selectedAlert.id, alertData);
             setShowEditAlertModal(false);
             setSelectedAlert(null);
-            Alert.alert('Success', 'Alert has been updated!');
+            showSuccess('Alert has been updated!');
         } catch {
-            Alert.alert('Error', 'Failed to update alert');
+            showError('Failed to update alert');
         }
     };
 
@@ -669,11 +643,11 @@ export default function ItemDetailScreen() {
                                                 if (supported) {
                                                     await Linking.openURL(item.itemLink);
                                                 } else {
-                                                    Alert.alert('Error', 'Cannot open this link');
+                                                    showError('Cannot open this link');
                                                 }
                                             }
                                         } catch {
-                                            Alert.alert('Error', 'Failed to open link');
+                                            showError('Failed to open link');
                                         }
                                     }}
                                 >

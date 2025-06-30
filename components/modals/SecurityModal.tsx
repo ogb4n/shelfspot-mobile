@@ -2,20 +2,20 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
+import { useToast } from '@/contexts/ToastContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useAuthStore } from '@/stores/auth';
 import { useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 
 interface SecurityModalProps {
@@ -29,6 +29,7 @@ export default function SecurityModal({
 }: SecurityModalProps) {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
+  const { showSuccess, showError } = useToast();
   
   const { user, resetPassword, loading } = useAuthStore();
   
@@ -46,26 +47,25 @@ export default function SecurityModal({
 
   const handleSubmit = async () => {
     if (!isFormValid()) {
-      Alert.alert('Erreur', 'Veuillez vérifier que les mots de passe sont identiques et contiennent au moins 8 caractères.');
+      showError('Veuillez vérifier que les mots de passe sont identiques et contiennent au moins 8 caractères.');
       return;
     }
 
     if (!user?.email) {
-      Alert.alert('Erreur', 'Email utilisateur non trouvé');
+      showError('Email utilisateur non trouvé');
       return;
     }
 
     try {
       await resetPassword(user.email, newPassword);
       
-      Alert.alert(
-        'Succès',
-        'Votre mot de passe a été réinitialisé avec succès',
-        [{ text: 'OK', onPress: handleClose }]
-      );
+      showSuccess('Votre mot de passe a été réinitialisé avec succès');
+      setTimeout(() => {
+        handleClose();
+      }, 1500);
     } catch (error) {
       console.error('Erreur lors de la réinitialisation du mot de passe:', error);
-      Alert.alert('Erreur', 'Impossible de réinitialiser le mot de passe');
+      showError('Impossible de réinitialiser le mot de passe');
     }
   };
 

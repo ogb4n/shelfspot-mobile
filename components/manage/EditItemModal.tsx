@@ -1,12 +1,12 @@
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
+import { useToast } from '@/contexts/ToastContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { backendApi } from '@/services/backend-api';
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import {
-    Alert,
     Modal,
     ScrollView,
     StyleSheet,
@@ -49,6 +49,7 @@ export function EditItemModal({
 }: EditItemModalProps) {
     const colorScheme = useColorScheme() ?? 'light';
     const colors = Colors[colorScheme];
+    const { showSuccess, showError } = useToast();
 
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
@@ -165,13 +166,13 @@ export function EditItemModal({
                     break;
             }
 
-            Alert.alert('Success', `${name.trim()} has been updated successfully!`);
+            showSuccess(`${name.trim()} has been updated successfully!`);
             onSuccess();
             resetForm();
         } catch (error: any) {
             console.error('Error updating item:', error);
             const errorMessage = error?.response?.data?.message || error?.message || 'Failed to update item';
-            Alert.alert('Error', errorMessage);
+            showError(errorMessage);
         } finally {
             setLoading(false);
         }

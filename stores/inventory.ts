@@ -254,11 +254,11 @@ export const useInventoryStore = create<InventoryState>()(
               status: itemData.status,
               roomId: defaultRoomId,
               placeId: defaultPlaceId,
+              consumable: itemData.consumable || false, // Always include consumable field as boolean
               ...(itemData.containerId && { containerId: itemData.containerId }),
               ...(itemData.price && { price: itemData.price }),
               ...(itemData.itemLink && { itemLink: itemData.itemLink }),
-              // Note: consumable, sellprice and image are not supported by the backend yet
-              // ...(typeof itemData.consumable === 'boolean' && { consumable: itemData.consumable }),
+              // Note: sellprice and image are not supported by the backend yet
               // ...(itemData.sellprice && { sellprice: itemData.sellprice }),
               // ...(itemData.image && { image: itemData.image }),
             };
@@ -554,38 +554,90 @@ export const useInventoryStore = create<InventoryState>()(
 
         toggleFavorite: async (itemId: number) => {
           try {
-            set({ loading: true, error: null });
+            // Don't set loading to true to avoid triggering skeleton loader
+            set({ error: null });
             
-            const { items } = get();
+            const { items, favoriteItems, filteredItems } = get();
             const item = items.find(item => item.id === itemId);
             if (!item) return;
 
             console.log('Toggling favorite for item:', itemId, 'Current state:', item.isFavorite);
 
+            // Update local state immediately for instant UI feedback
+            const newFavoriteState = !item.isFavorite;
+            const updatedItems = items.map(i => 
+              i.id === itemId ? { ...i, isFavorite: newFavoriteState } : i
+            );
+            
+            // Update favorite items list
+            let updatedFavoriteItems;
+            if (newFavoriteState) {
+              // Add to favorites
+              const updatedItem = updatedItems.find(i => i.id === itemId);
+              if (updatedItem) {
+                updatedFavoriteItems = [...favoriteItems, updatedItem];
+              }
+            } else {
+              // Remove from favorites
+              updatedFavoriteItems = favoriteItems.filter(i => i.id !== itemId);
+            }
+
+            // Update filtered items directly to maintain scroll position
+            const updatedFilteredItems = filteredItems.map(i => 
+              i.id === itemId ? { ...i, isFavorite: newFavoriteState } : i
+            );
+
+            // Update all states in one go
+            set({ 
+              items: updatedItems,
+              favoriteItems: updatedFavoriteItems || favoriteItems,
+              filteredItems: updatedFilteredItems
+            });
+
+            // Make API call in background
             if (item.isFavorite) {
               await backendApi.removeFromFavorites(itemId);
             } else {
               await backendApi.addToFavorites(itemId);
             }
             
-            // Update local state immediately
-            const updatedItems = items.map(i => 
-              i.id === itemId ? { ...i, isFavorite: !i.isFavorite } : i
-            );
-            set({ items: updatedItems });
-            get().applyFilters();
-            
-            // Refresh favorites list to keep it in sync
-            await get().loadFavorites();
-            
-            console.log('Favorite toggled successfully for item:', itemId, 'New state:', !item.isFavorite);
+            console.log('Favorite toggled successfully for item:', itemId, 'New state:', newFavoriteState);
           } catch (err: any) {
             console.error('Error toggling favorite:', err);
             set({ error: err.message || 'Failed to toggle favorite' });
-            // Reload items to get the correct state from backend
-            await get().loadItems();
-          } finally {
-            set({ loading: false });
+            
+            // Revert local state on error
+            const { items, favoriteItems, filteredItems } = get();
+            const item = items.find(item => item.id === itemId);
+            if (item) {
+              const revertedItems = items.map(i => 
+                i.id === itemId ? { ...i, isFavorite: !i.isFavorite } : i
+              );
+              
+              // Revert favorite items list
+              let revertedFavoriteItems;
+              if (item.isFavorite) {
+                // Item was added to favorites but failed, remove it
+                revertedFavoriteItems = favoriteItems.filter(i => i.id !== itemId);
+              } else {
+                // Item was removed from favorites but failed, add it back
+                const originalItem = revertedItems.find(i => i.id === itemId);
+                if (originalItem) {
+                  revertedFavoriteItems = [...favoriteItems, originalItem];
+                }
+              }
+
+              // Revert filtered items as well
+              const revertedFilteredItems = filteredItems.map(i => 
+                i.id === itemId ? { ...i, isFavorite: !i.isFavorite } : i
+              );
+              
+              set({ 
+                items: revertedItems,
+                favoriteItems: revertedFavoriteItems || favoriteItems,
+                filteredItems: revertedFilteredItems
+              });
+            }
           }
         },
 

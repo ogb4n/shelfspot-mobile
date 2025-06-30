@@ -1,7 +1,8 @@
+import { Button } from '@/components/ui/Button';
+import { useToast } from '@/contexts/ToastContext';
 import { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
-    Alert,
     Modal,
     ScrollView,
     StyleSheet,
@@ -25,11 +26,11 @@ interface EditItemModalProps {
 }
 
 export function EditItemModal({ visible, onClose, onUpdateItem, item }: EditItemModalProps) {
+    const { showSuccess } = useToast();
     const [formData, setFormData] = useState<Partial<ItemFormData>>({
         name: '',
         quantity: 1,
         status: 'available',
-        consumable: false,
         price: undefined,
         itemLink: '',
         roomId: undefined,
@@ -57,7 +58,6 @@ export function EditItemModal({ visible, onClose, onUpdateItem, item }: EditItem
                 name: item.name,
                 quantity: item.quantity,
                 status: item.status,
-                consumable: item.consumable,
                 price: item.price,
                 itemLink: item.itemLink,
                 roomId: item.room?.id,
@@ -113,13 +113,12 @@ export function EditItemModal({ visible, onClose, onUpdateItem, item }: EditItem
             ...(formData.containerId !== undefined && { containerId: formData.containerId }),
             ...(formData.price !== undefined && { price: formData.price }),
             ...(formData.itemLink !== undefined && { itemLink: formData.itemLink }),
-            ...(typeof formData.consumable === 'boolean' && { consumable: formData.consumable }),
             ...(formData.tagIds !== undefined && { tagIds: formData.tagIds }),
         };
 
         onUpdateItem(item.id, updateData);
         handleClose();
-        Alert.alert('Success', 'Item has been updated!');
+        showSuccess('Item has been updated!');
     };
 
     const handleClose = () => {
@@ -127,7 +126,6 @@ export function EditItemModal({ visible, onClose, onUpdateItem, item }: EditItem
             name: '',
             quantity: 1,
             status: 'available',
-            consumable: false,
             roomId: undefined,
             placeId: undefined,
             containerId: undefined,
@@ -154,21 +152,13 @@ export function EditItemModal({ visible, onClose, onUpdateItem, item }: EditItem
                     <ThemedText type="defaultSemiBold" style={[styles.title, { color: colors.text }]}>
                         Edit Item
                     </ThemedText>
-                    <TouchableOpacity
-                        style={[
-                            styles.saveButton,
-                            { backgroundColor: canSave() ? colors.primary : colors.backgroundSecondary }
-                        ]}
+                    <Button
+                        title="Save"
                         onPress={handleSubmit}
                         disabled={!canSave()}
-                    >
-                        <ThemedText style={[
-                            styles.saveButtonText,
-                            { color: canSave() ? '#FFFFFF' : colors.textSecondary }
-                        ]}>
-                            Save
-                        </ThemedText>
-                    </TouchableOpacity>
+                        loading={false}
+                        style={styles.saveButton}
+                    />
                 </View>
 
                 {/* Content */}

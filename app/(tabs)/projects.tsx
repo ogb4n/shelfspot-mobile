@@ -4,18 +4,21 @@ import { ThemedView } from '@/components/ThemedView';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import { SkeletonList } from '@/components/ui/Skeleton';
 import { Colors } from '@/constants/Colors';
+import { useToast } from '@/contexts/ToastContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { backendApi } from '@/services/backend-api';
 import { Project } from '@/types';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 export default function ProjectsScreen() {
     const colorScheme = useColorScheme();
     const colors = Colors[colorScheme ?? 'light'];
     const router = useRouter();
+    const { showError } = useToast();
 
     const [projects, setProjects] = useState<Project[]>([]);
     const [loading, setLoading] = useState(true);
@@ -33,6 +36,7 @@ export default function ProjectsScreen() {
         } catch (err: any) {
             console.error('Error loading projects:', err);
             setError(err.message || 'Failed to load projects');
+            showError(err.message || 'Failed to load projects');
             // Mock data for development when backend is not available
             setProjects([
                 {
@@ -81,6 +85,7 @@ export default function ProjectsScreen() {
 
     useEffect(() => {
         loadProjects();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const renderProjectCard = (project: Project) => (
@@ -133,9 +138,16 @@ export default function ProjectsScreen() {
     if (loading && !refreshing) {
         return (
             <ThemedView style={styles.container}>
-                <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color={colors.tint} />
-                    <ThemedText style={styles.loadingText}>Loading projects...</ThemedText>
+                <View style={styles.header}>
+                    <ThemedText type="title">Projects</ThemedText>
+                    <Button
+                        title="New Project"
+                        onPress={() => setShowCreateModal(true)}
+                        style={styles.createButton}
+                    />
+                </View>
+                <View style={styles.scrollView}>
+                    <SkeletonList itemCount={3} showTags={false} />
                 </View>
             </ThemedView>
         );

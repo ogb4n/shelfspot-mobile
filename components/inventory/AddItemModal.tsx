@@ -277,22 +277,24 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
                   </View>
                 </View>
 
-                {/* Temporarily disabled until backend supports consumable field */}
-                {/* 
-                <TouchableOpacity
-                  style={styles.consumableToggle}
-                  onPress={() => updateFormData('consumable', !formData.consumable)}
-                >
-                  <IconSymbol
-                    name={formData.consumable ? "checkmark.square" : "square"}
-                    size={24}
-                    color={formData.consumable ? colors.primary : colors.textSecondary}
-                  />
-                  <ThemedText style={[styles.consumableText, { color: colors.text }]}>
-                    Consumable Item
+                <View style={styles.inputGroup}>
+                  <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                    Item Type
                   </ThemedText>
-                </TouchableOpacity>
-                */}
+                  <TouchableOpacity
+                    style={styles.consumableToggle}
+                    onPress={() => updateFormData('consumable', !formData.consumable)}
+                  >
+                    <IconSymbol
+                      name={formData.consumable ? "checkmark.square" : "square"}
+                      size={24}
+                      color={formData.consumable ? colors.primary : colors.textSecondary}
+                    />
+                    <ThemedText style={[styles.consumableText, { color: colors.text }]}>
+                      Consumable Item
+                    </ThemedText>
+                  </TouchableOpacity>
+                </View>
               </View>
             )}
 
@@ -617,8 +619,6 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
                     </ThemedText>
                   </View>
 
-                  {/* Temporarily disabled until backend supports consumable field */}
-                  {/* 
                   <View style={styles.confirmationRow}>
                     <ThemedText style={[styles.confirmationLabel, { color: colors.textSecondary }]}>
                       Type:
@@ -627,7 +627,6 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
                       {formData.consumable ? 'Consumable' : 'Non-consumable'}
                     </ThemedText>
                   </View>
-                  */}
 
                   <View style={styles.confirmationRow}>
                     <ThemedText style={[styles.confirmationLabel, { color: colors.textSecondary }]}>

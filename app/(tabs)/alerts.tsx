@@ -2,17 +2,20 @@ import { AlertContextMenu, CreateAlertWithItemSelectorModal, EditAlertModal } fr
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import { SkeletonList } from '@/components/ui/Skeleton';
 import { Colors } from '@/constants/Colors';
+import { useToast } from '@/contexts/ToastContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useInventoryAlerts, useInventoryItems } from '@/stores/inventory';
 import { Alert, AlertFormData } from '@/types/inventory';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Alert as RNAlert, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { FlatList, Alert as RNAlert, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function AlertsScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
+  const { showSuccess, showError } = useToast();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
@@ -63,11 +66,11 @@ export default function AlertsScreen() {
         }, 500);
       } catch {
         console.error('Error toggling alert');
-        RNAlert.alert('Error', 'Failed to update alert status');
+        showError('Failed to update alert status');
       }
     } else {
       console.error('Alert not found for toggle:', { alertId, allAlertsCount: allAlerts.length });
-      RNAlert.alert('Error', 'Alert not found');
+      showError('Alert not found');
     }
   };
 
@@ -85,8 +88,9 @@ export default function AlertsScreen() {
             onPress: async () => {
               try {
                 await deleteAlert(alertId);
+                showSuccess('Alert deleted successfully');
               } catch {
-                RNAlert.alert('Error', 'Failed to delete alert');
+                showError('Failed to delete alert');
               }
             }
           }
@@ -100,9 +104,10 @@ export default function AlertsScreen() {
       await createAlert(alertData, () => {
         setShowCreateModal(false);
         loadAlerts();
+        showSuccess('Alert created successfully');
       });
     } catch {
-      RNAlert.alert('Error', 'Failed to create alert');
+      showError('Failed to create alert');
     }
   };
 
@@ -119,8 +124,9 @@ export default function AlertsScreen() {
       setShowEditModal(false);
       setSelectedAlert(null);
       loadAlerts();
+      showSuccess('Alert updated successfully');
     } catch {
-      RNAlert.alert('Error', 'Failed to update alert');
+      showError('Failed to update alert');
     }
   };
 
@@ -317,11 +323,8 @@ export default function AlertsScreen() {
 
       {/* Alerts List */}
       {loading ? (
-        <View style={[styles.emptyState, { justifyContent: 'center' }]}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <ThemedText style={[styles.emptyDescription, { color: colors.textSecondary, marginTop: 16 }]}>
-            Loading alerts...
-          </ThemedText>
+        <View style={styles.list}>
+          <SkeletonList itemCount={4} showTags={false} />
         </View>
       ) : alertsError ? (
         <View style={styles.emptyState}>
