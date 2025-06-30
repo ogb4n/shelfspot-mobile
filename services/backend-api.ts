@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { configService } from './config';
 
+import { CreateItemDto, ItemResponseDto, UpdateItemDto } from '@/types/api';
+
 export class BackendApiError extends Error {
   constructor(public status: number, message: string, public code?: string) {
     super(message);
@@ -153,15 +155,15 @@ class BackendApiService {
     return this.request<any>(`/items/${id}`);
   }
 
-  async createItem(data: any): Promise<any> {
-    return this.request<any>('/items', {
+  async createItem(data: CreateItemDto): Promise<ItemResponseDto> {
+    return this.request<ItemResponseDto>('/items', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
-  async updateItem(id: number, data: any): Promise<any> {
-    return this.request<any>(`/items/${id}`, {
+  async updateItem(id: number, data: UpdateItemDto): Promise<ItemResponseDto> {
+    return this.request<ItemResponseDto>(`/items/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     });

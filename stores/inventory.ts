@@ -191,18 +191,39 @@ export const useInventoryStore = create<InventoryState>()(
           try {
             set({ loading: true, error: null });
             
-            await backendApi.createItem({
+            // Get available rooms and places for defaults
+            const { rooms, places } = get();
+            
+            // Ensure we have data loaded
+            if (rooms.length === 0 || places.length === 0) {
+              await get().loadInventoryData();
+              const { rooms: updatedRooms, places: updatedPlaces } = get();
+              
+              if (updatedRooms.length === 0 || updatedPlaces.length === 0) {
+                throw new Error('No rooms or places available. Please set up your inventory structure first.');
+              }
+            }
+            
+            // Use default room and place if not provided
+            const defaultRoomId = itemData.roomId || rooms[0]?.id || 1;
+            const defaultPlaceId = itemData.placeId || places[0]?.id || 1;
+            
+            const createData = {
               name: itemData.name,
               quantity: itemData.quantity,
               status: itemData.status,
-              consumable: itemData.consumable,
-              price: itemData.price,
-              sellprice: itemData.sellprice,
-              placeId: itemData.placeId,
-              roomId: itemData.roomId,
-              containerId: itemData.containerId,
-              itemLink: itemData.itemLink,
-            });
+              roomId: defaultRoomId,
+              placeId: defaultPlaceId,
+              ...(itemData.containerId && { containerId: itemData.containerId }),
+              // Note: consumable property is not supported by the CreateItemDto schema
+              // ...(itemData.price && { price: itemData.price }),
+              // ...(itemData.sellprice && { sellprice: itemData.sellprice }),
+              // ...(itemData.itemLink && { itemLink: itemData.itemLink }),
+              // ...(itemData.image && { image: itemData.image }),
+            };
+            
+            console.log('Creating item with data:', createData);
+            await backendApi.createItem(createData);
             
             await get().loadItems();
           } catch (err: any) {

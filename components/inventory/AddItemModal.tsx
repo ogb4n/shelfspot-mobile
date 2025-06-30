@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Modal,
   ScrollView,
@@ -10,6 +11,7 @@ import {
 } from 'react-native';
 import { ADD_ITEM_STEPS, ITEM_STATUSES } from '../../constants/inventory';
 import { useThemeColor } from '../../hooks/useThemeColor';
+import { useInventoryData } from '../../stores/inventory';
 import { ItemFormData } from '../../types/inventory';
 import { ThemedText } from '../ThemedText';
 import { ThemedView } from '../ThemedView';
@@ -23,7 +25,7 @@ interface AddItemModalProps {
 
 export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps) {
   const [currentStep, setCurrentStep] = useState(0);
-  const [tempTag, setTempTag] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<ItemFormData>({
     name: '',
     quantity: 1,
@@ -34,6 +36,9 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
     containerId: undefined,
     tagIds: [],
   });
+
+  // Get inventory data
+  const { rooms, places, containers, tags, dataLoading } = useInventoryData();
 
   const colors = {
     card: useThemeColor({}, 'card'),
@@ -49,17 +54,25 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const addTag = () => {
-    if (tempTag.trim()) {
-      // For now, we'll just store tag names as IDs (mock implementation)
-      const newTagId = Date.now();
-      updateFormData('tagIds', [...formData.tagIds, newTagId]);
-      setTempTag('');
+  const toggleTag = (tagId: number) => {
+    const isSelected = formData.tagIds.includes(tagId);
+    if (isSelected) {
+      updateFormData('tagIds', formData.tagIds.filter(id => id !== tagId));
+    } else {
+      updateFormData('tagIds', [...formData.tagIds, tagId]);
     }
   };
 
-  const removeTag = (tagId: number) => {
-    updateFormData('tagIds', formData.tagIds.filter(id => id !== tagId));
+  // Get available places for selected room
+  const getAvailablePlaces = () => {
+    if (!formData.roomId) return [];
+    return places.filter(place => place.roomId === formData.roomId);
+  };
+
+  // Get available containers for selected place
+  const getAvailableContainers = () => {
+    if (!formData.placeId) return [];
+    return containers.filter(container => container.placeId === formData.placeId);
   };
 
   // Step navigation
@@ -79,17 +92,26 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
     switch (currentStep) {
       case 0: return formData.name.trim() !== '';
       case 1: return true; // Optional images
-      case 2: return true; // Optional location for now
+      case 2: return formData.roomId !== undefined && formData.placeId !== undefined; // Location required
       case 3: return true; // Optional tags
       case 4: return true; // Confirmation
       default: return false;
     }
   };
 
-  const handleSubmit = () => {
-    onAddItem(formData);
-    handleClose();
-    Alert.alert('Success', 'The item has been added to your inventory!');
+  const handleSubmit = async () => {
+    try {
+      setIsSubmitting(true);
+      console.log('Submitting item with data:', formData);
+      await onAddItem(formData);
+      handleClose();
+      Alert.alert('Success', 'The item has been added to your inventory!');
+    } catch (error: any) {
+      console.error('Error adding item:', error);
+      Alert.alert('Error', error.message || 'Failed to add item. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleClose = () => {
@@ -104,7 +126,6 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
       containerId: undefined,
       tagIds: [],
     });
-    setTempTag('');
     onClose();
   };
 
@@ -278,12 +299,168 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
               </View>
             )}
 
-            {/* Step 2: Location (placeholder) */}
+            {/* Step 2: Location */}
             {currentStep === 2 && (
               <View style={styles.stepContent}>
-                <ThemedText style={[styles.placeholderText, { color: colors.textSecondary }]}>
-                  Location selection coming soon...
-                </ThemedText>
+                {dataLoading ? (
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="small" color={colors.primary} />
+                    <ThemedText style={[styles.loadingText, { color: colors.textSecondary }]}>
+                      Loading locations...
+                    </ThemedText>
+                  </View>
+                ) : (
+                  <>
+                    {/* Room Selection */}
+                    <View style={styles.inputGroup}>
+                      <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                        Room *
+                      </ThemedText>
+                      {rooms.length === 0 ? (
+                        <ThemedText style={[styles.placeholderText, { color: colors.textSecondary }]}>
+                          No rooms available. Please create a room first.
+                        </ThemedText>
+                      ) : (
+                        <View style={styles.selectionGrid}>
+                          {rooms.map((room) => (
+                            <TouchableOpacity
+                              key={room.id}
+                              style={[
+                                styles.selectionButton,
+                                {
+                                  backgroundColor: formData.roomId === room.id
+                                    ? colors.primary
+                                    : colors.backgroundSecondary,
+                                }
+                              ]}
+                              onPress={() => {
+                                updateFormData('roomId', room.id);
+                                // Reset place and container when room changes
+                                updateFormData('placeId', undefined);
+                                updateFormData('containerId', undefined);
+                              }}
+                            >
+                              <ThemedText style={[
+                                styles.selectionButtonText,
+                                {
+                                  color: formData.roomId === room.id
+                                    ? '#FFFFFF'
+                                    : colors.text
+                                }
+                              ]}>
+                                {room.name}
+                              </ThemedText>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      )}
+                    </View>
+
+                    {/* Place Selection */}
+                    {formData.roomId && (
+                      <View style={styles.inputGroup}>
+                        <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                          Place *
+                        </ThemedText>
+                        {getAvailablePlaces().length === 0 ? (
+                          <ThemedText style={[styles.placeholderText, { color: colors.textSecondary }]}>
+                            No places available for this room. Please create a place first.
+                          </ThemedText>
+                        ) : (
+                          <View style={styles.selectionGrid}>
+                            {getAvailablePlaces().map((place) => (
+                              <TouchableOpacity
+                                key={place.id}
+                                style={[
+                                  styles.selectionButton,
+                                  {
+                                    backgroundColor: formData.placeId === place.id
+                                      ? colors.primary
+                                      : colors.backgroundSecondary,
+                                  }
+                                ]}
+                                onPress={() => {
+                                  updateFormData('placeId', place.id);
+                                  // Reset container when place changes
+                                  updateFormData('containerId', undefined);
+                                }}
+                              >
+                                <ThemedText style={[
+                                  styles.selectionButtonText,
+                                  {
+                                    color: formData.placeId === place.id
+                                      ? '#FFFFFF'
+                                      : colors.text
+                                  }
+                                ]}>
+                                  {place.name}
+                                </ThemedText>
+                              </TouchableOpacity>
+                            ))}
+                          </View>
+                        )}
+                      </View>
+                    )}
+
+                    {/* Container Selection (Optional) */}
+                    {formData.placeId && getAvailableContainers().length > 0 && (
+                      <View style={styles.inputGroup}>
+                        <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                          Container (Optional)
+                        </ThemedText>
+                        <View style={styles.selectionGrid}>
+                          <TouchableOpacity
+                            style={[
+                              styles.selectionButton,
+                              {
+                                backgroundColor: !formData.containerId
+                                  ? colors.primary
+                                  : colors.backgroundSecondary,
+                              }
+                            ]}
+                            onPress={() => updateFormData('containerId', undefined)}
+                          >
+                            <ThemedText style={[
+                              styles.selectionButtonText,
+                              {
+                                color: !formData.containerId
+                                  ? '#FFFFFF'
+                                  : colors.text
+                              }
+                            ]}>
+                              None
+                            </ThemedText>
+                          </TouchableOpacity>
+                          {getAvailableContainers().map((container) => (
+                            <TouchableOpacity
+                              key={container.id}
+                              style={[
+                                styles.selectionButton,
+                                {
+                                  backgroundColor: formData.containerId === container.id
+                                    ? colors.primary
+                                    : colors.backgroundSecondary,
+                                }
+                              ]}
+                              onPress={() => updateFormData('containerId', container.id)}
+                            >
+                              <ThemedText style={[
+                                styles.selectionButtonText,
+                                {
+                                  color: formData.containerId === container.id
+                                    ? '#FFFFFF'
+                                    : colors.text
+                                }
+                              ]}>
+                                {container.name}
+                              </ThemedText>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      </View>
+                    )}
+                  </>
+                )}
               </View>
             )}
 
@@ -292,41 +469,67 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
               <View style={styles.stepContent}>
                 <View style={styles.inputGroup}>
                   <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
-                    Add Tags
+                    Select Tags (Optional)
                   </ThemedText>
-                  <View style={styles.tagInputContainer}>
-                    <TextInput
-                      style={[styles.tagInput, {
-                        backgroundColor: colors.backgroundSecondary,
-                        color: colors.text
-                      }]}
-                      placeholder="E.g.: hygiene"
-                      placeholderTextColor={colors.textSecondary}
-                      value={tempTag}
-                      onChangeText={setTempTag}
-                      onSubmitEditing={addTag}
-                    />
-                    <TouchableOpacity
-                      style={[styles.addTagButton, { backgroundColor: colors.primary }]}
-                      onPress={addTag}
-                    >
-                      <IconSymbol name="plus" size={20} color="#FFFFFF" />
-                    </TouchableOpacity>
-                  </View>
+                  {dataLoading ? (
+                    <View style={styles.loadingContainer}>
+                      <ActivityIndicator size="small" color={colors.primary} />
+                      <ThemedText style={[styles.loadingText, { color: colors.textSecondary }]}>
+                        Loading tags...
+                      </ThemedText>
+                    </View>
+                  ) : tags.length === 0 ? (
+                    <ThemedText style={[styles.placeholderText, { color: colors.textSecondary }]}>
+                      No tags available. You can create tags in the settings.
+                    </ThemedText>
+                  ) : (
+                    <View style={styles.selectionGrid}>
+                      {tags.map((tag) => (
+                        <TouchableOpacity
+                          key={tag.id}
+                          style={[
+                            styles.selectionButton,
+                            {
+                              backgroundColor: formData.tagIds.includes(tag.id)
+                                ? colors.primary
+                                : colors.backgroundSecondary,
+                            }
+                          ]}
+                          onPress={() => toggleTag(tag.id)}
+                        >
+                          <ThemedText style={[
+                            styles.selectionButtonText,
+                            {
+                              color: formData.tagIds.includes(tag.id)
+                                ? '#FFFFFF'
+                                : colors.text
+                            }
+                          ]}>
+                            {tag.name}
+                          </ThemedText>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  )}
                 </View>
 
                 {formData.tagIds.length > 0 && (
-                  <View style={styles.tagsDisplay}>
-                    {formData.tagIds.map((tagId) => (
-                      <View key={tagId} style={[styles.tagChip, { backgroundColor: colors.primary }]}>
-                        <ThemedText style={styles.tagChipText}>
-                          Tag {tagId}
-                        </ThemedText>
-                        <TouchableOpacity onPress={() => removeTag(tagId)}>
-                          <IconSymbol name="xmark" size={12} color="#FFFFFF" />
-                        </TouchableOpacity>
-                      </View>
-                    ))}
+                  <View style={styles.inputGroup}>
+                    <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                      Selected Tags
+                    </ThemedText>
+                    <View style={styles.tagsDisplay}>
+                      {formData.tagIds.map((tagId) => {
+                        const tag = tags.find(t => t.id === tagId);
+                        return tag ? (
+                          <View key={tagId} style={[styles.tagChip, { backgroundColor: colors.primary }]}>
+                            <ThemedText style={styles.tagChipText}>
+                              {tag.name}
+                            </ThemedText>
+                          </View>
+                        ) : null;
+                      })}
+                    </View>
                   </View>
                 )}
               </View>
@@ -375,6 +578,46 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
                       {formData.consumable ? 'Consumable' : 'Non-consumable'}
                     </ThemedText>
                   </View>
+
+                  <View style={styles.confirmationRow}>
+                    <ThemedText style={[styles.confirmationLabel, { color: colors.textSecondary }]}>
+                      Room:
+                    </ThemedText>
+                    <ThemedText style={[styles.confirmationValue, { color: colors.text }]}>
+                      {rooms.find(r => r.id === formData.roomId)?.name || 'Not selected'}
+                    </ThemedText>
+                  </View>
+
+                  <View style={styles.confirmationRow}>
+                    <ThemedText style={[styles.confirmationLabel, { color: colors.textSecondary }]}>
+                      Place:
+                    </ThemedText>
+                    <ThemedText style={[styles.confirmationValue, { color: colors.text }]}>
+                      {places.find(p => p.id === formData.placeId)?.name || 'Not selected'}
+                    </ThemedText>
+                  </View>
+
+                  {formData.containerId && (
+                    <View style={styles.confirmationRow}>
+                      <ThemedText style={[styles.confirmationLabel, { color: colors.textSecondary }]}>
+                        Container:
+                      </ThemedText>
+                      <ThemedText style={[styles.confirmationValue, { color: colors.text }]}>
+                        {containers.find(c => c.id === formData.containerId)?.name || 'None'}
+                      </ThemedText>
+                    </View>
+                  )}
+
+                  {formData.tagIds.length > 0 && (
+                    <View style={styles.confirmationRow}>
+                      <ThemedText style={[styles.confirmationLabel, { color: colors.textSecondary }]}>
+                        Tags:
+                      </ThemedText>
+                      <ThemedText style={[styles.confirmationValue, { color: colors.text }]}>
+                        {formData.tagIds.map(tagId => tags.find(t => t.id === tagId)?.name).filter(Boolean).join(', ') || 'None'}
+                      </ThemedText>
+                    </View>
+                  )}
                 </View>
               </View>
             )}
@@ -400,19 +643,23 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
                 styles.button,
                 styles.primaryButton,
                 {
-                  backgroundColor: canProceedToNextStep() ? colors.primary : colors.backgroundSecondary,
+                  backgroundColor: (canProceedToNextStep() && !isSubmitting) ? colors.primary : colors.backgroundSecondary,
                   flex: currentStep === 0 ? 1 : 0.6
                 }
               ]}
               onPress={currentStep === ADD_ITEM_STEPS.length - 1 ? handleSubmit : nextStep}
-              disabled={!canProceedToNextStep()}
+              disabled={!canProceedToNextStep() || isSubmitting}
             >
-              <ThemedText style={[
-                styles.primaryButtonText,
-                { color: canProceedToNextStep() ? '#FFFFFF' : colors.textSecondary }
-              ]}>
-                {currentStep === ADD_ITEM_STEPS.length - 1 ? 'Add' : 'Next'}
-              </ThemedText>
+              {isSubmitting && currentStep === ADD_ITEM_STEPS.length - 1 ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <ThemedText style={[
+                  styles.primaryButtonText,
+                  { color: (canProceedToNextStep() && !isSubmitting) ? '#FFFFFF' : colors.textSecondary }
+                ]}>
+                  {currentStep === ADD_ITEM_STEPS.length - 1 ? 'Add' : 'Next'}
+                </ThemedText>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -648,6 +895,32 @@ const styles = StyleSheet.create({
   },
   secondaryButtonText: {
     fontSize: 16,
+    fontWeight: '500',
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+    gap: 12,
+  },
+  loadingText: {
+    fontSize: 16,
+  },
+  selectionGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  selectionButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    minWidth: 80,
+  },
+  selectionButtonText: {
+    fontSize: 14,
     fontWeight: '500',
   },
 });

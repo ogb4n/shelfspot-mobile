@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
+    ActivityIndicator,
     Alert,
     Modal,
     ScrollView,
@@ -10,6 +11,7 @@ import {
 } from 'react-native';
 import { ITEM_STATUSES } from '../../constants/inventory';
 import { useThemeColor } from '../../hooks/useThemeColor';
+import { useInventoryData } from '../../stores/inventory';
 import { ItemFormData, ItemWithLocation } from '../../types/inventory';
 import { ThemedText } from '../ThemedText';
 import { ThemedView } from '../ThemedView';
@@ -28,7 +30,14 @@ export function EditItemModal({ visible, onClose, onUpdateItem, item }: EditItem
         quantity: 1,
         status: 'available',
         consumable: false,
+        roomId: undefined,
+        placeId: undefined,
+        containerId: undefined,
+        tagIds: [],
     });
+
+    // Get inventory data
+    const { rooms, places, containers, tags, dataLoading } = useInventoryData();
 
     const colors = {
         card: useThemeColor({}, 'card'),
@@ -47,12 +56,38 @@ export function EditItemModal({ visible, onClose, onUpdateItem, item }: EditItem
                 quantity: item.quantity,
                 status: item.status,
                 consumable: item.consumable,
+                roomId: item.room?.id,
+                placeId: item.place?.id,
+                containerId: item.container?.id,
+                tagIds: item.tags?.map(tag => tag.id) || [],
             });
         }
     }, [item]);
 
     const updateFormData = (field: keyof ItemFormData, value: any) => {
         setFormData(prev => ({ ...prev, [field]: value }));
+    };
+
+    const toggleTag = (tagId: number) => {
+        const currentTagIds = formData.tagIds || [];
+        const isSelected = currentTagIds.includes(tagId);
+        if (isSelected) {
+            updateFormData('tagIds', currentTagIds.filter(id => id !== tagId));
+        } else {
+            updateFormData('tagIds', [...currentTagIds, tagId]);
+        }
+    };
+
+    // Get available places for selected room
+    const getAvailablePlaces = () => {
+        if (!formData.roomId) return [];
+        return places.filter(place => place.roomId === formData.roomId);
+    };
+
+    // Get available containers for selected place
+    const getAvailableContainers = () => {
+        if (!formData.placeId) return [];
+        return containers.filter(container => container.placeId === formData.placeId);
     };
 
     const canSave = () => {
@@ -64,8 +99,17 @@ export function EditItemModal({ visible, onClose, onUpdateItem, item }: EditItem
     const handleSubmit = () => {
         if (!canSave() || !item) return;
 
-        // Remove consumable property from updates - it should only be set during creation
-        const { consumable, ...updateData } = formData;
+        // Include all editable fields for update
+        const updateData = {
+            name: formData.name,
+            quantity: formData.quantity,
+            status: formData.status,
+            ...(formData.roomId !== undefined && { roomId: formData.roomId }),
+            ...(formData.placeId !== undefined && { placeId: formData.placeId }),
+            ...(formData.containerId !== undefined && { containerId: formData.containerId }),
+            // Note: tags are not yet supported by the API, so we exclude them for now
+            // ...(formData.tagIds !== undefined && { tagIds: formData.tagIds }),
+        };
 
         onUpdateItem(item.id, updateData);
         handleClose();
@@ -78,6 +122,10 @@ export function EditItemModal({ visible, onClose, onUpdateItem, item }: EditItem
             quantity: 1,
             status: 'available',
             consumable: false,
+            roomId: undefined,
+            placeId: undefined,
+            containerId: undefined,
+            tagIds: [],
         });
         onClose();
     };
@@ -209,6 +257,234 @@ export function EditItemModal({ visible, onClose, onUpdateItem, item }: EditItem
                             </View>
                         </View>
 
+                        {/* Location */}
+                        <View style={styles.section}>
+                            <ThemedText type="defaultSemiBold" style={[styles.sectionTitle, { color: colors.text }]}>
+                                Location
+                            </ThemedText>
+
+                            {dataLoading ? (
+                                <View style={styles.loadingContainer}>
+                                    <ActivityIndicator size="small" color={colors.primary} />
+                                    <ThemedText style={[styles.loadingText, { color: colors.textSecondary }]}>
+                                        Loading locations...
+                                    </ThemedText>
+                                </View>
+                            ) : (
+                                <>
+                                    {/* Room Selection */}
+                                    <View style={styles.inputGroup}>
+                                        <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                                            Room *
+                                        </ThemedText>
+                                        <View style={styles.selectionGrid}>
+                                            {rooms.map((room) => (
+                                                <TouchableOpacity
+                                                    key={room.id}
+                                                    style={[
+                                                        styles.selectionButton,
+                                                        {
+                                                            backgroundColor: formData.roomId === room.id
+                                                                ? colors.primary
+                                                                : colors.backgroundSecondary,
+                                                        }
+                                                    ]}
+                                                    onPress={() => {
+                                                        updateFormData('roomId', room.id);
+                                                        // Reset place and container when room changes
+                                                        updateFormData('placeId', undefined);
+                                                        updateFormData('containerId', undefined);
+                                                    }}
+                                                >
+                                                    <ThemedText style={[
+                                                        styles.selectionButtonText,
+                                                        {
+                                                            color: formData.roomId === room.id
+                                                                ? '#FFFFFF'
+                                                                : colors.text
+                                                        }
+                                                    ]}>
+                                                        {room.name}
+                                                    </ThemedText>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </View>
+                                    </View>
+
+                                    {/* Place Selection */}
+                                    {formData.roomId && (
+                                        <View style={styles.inputGroup}>
+                                            <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                                                Place *
+                                            </ThemedText>
+                                            <View style={styles.selectionGrid}>
+                                                {getAvailablePlaces().map((place) => (
+                                                    <TouchableOpacity
+                                                        key={place.id}
+                                                        style={[
+                                                            styles.selectionButton,
+                                                            {
+                                                                backgroundColor: formData.placeId === place.id
+                                                                    ? colors.primary
+                                                                    : colors.backgroundSecondary,
+                                                            }
+                                                        ]}
+                                                        onPress={() => {
+                                                            updateFormData('placeId', place.id);
+                                                            // Reset container when place changes
+                                                            updateFormData('containerId', undefined);
+                                                        }}
+                                                    >
+                                                        <ThemedText style={[
+                                                            styles.selectionButtonText,
+                                                            {
+                                                                color: formData.placeId === place.id
+                                                                    ? '#FFFFFF'
+                                                                    : colors.text
+                                                            }
+                                                        ]}>
+                                                            {place.name}
+                                                        </ThemedText>
+                                                    </TouchableOpacity>
+                                                ))}
+                                            </View>
+                                        </View>
+                                    )}
+
+                                    {/* Container Selection (Optional) */}
+                                    {formData.placeId && getAvailableContainers().length > 0 && (
+                                        <View style={styles.inputGroup}>
+                                            <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                                                Container (Optional)
+                                            </ThemedText>
+                                            <View style={styles.selectionGrid}>
+                                                <TouchableOpacity
+                                                    style={[
+                                                        styles.selectionButton,
+                                                        {
+                                                            backgroundColor: !formData.containerId
+                                                                ? colors.primary
+                                                                : colors.backgroundSecondary,
+                                                        }
+                                                    ]}
+                                                    onPress={() => updateFormData('containerId', undefined)}
+                                                >
+                                                    <ThemedText style={[
+                                                        styles.selectionButtonText,
+                                                        {
+                                                            color: !formData.containerId
+                                                                ? '#FFFFFF'
+                                                                : colors.text
+                                                        }
+                                                    ]}>
+                                                        None
+                                                    </ThemedText>
+                                                </TouchableOpacity>
+                                                {getAvailableContainers().map((container) => (
+                                                    <TouchableOpacity
+                                                        key={container.id}
+                                                        style={[
+                                                            styles.selectionButton,
+                                                            {
+                                                                backgroundColor: formData.containerId === container.id
+                                                                    ? colors.primary
+                                                                    : colors.backgroundSecondary,
+                                                            }
+                                                        ]}
+                                                        onPress={() => updateFormData('containerId', container.id)}
+                                                    >
+                                                        <ThemedText style={[
+                                                            styles.selectionButtonText,
+                                                            {
+                                                                color: formData.containerId === container.id
+                                                                    ? '#FFFFFF'
+                                                                    : colors.text
+                                                            }
+                                                        ]}>
+                                                            {container.name}
+                                                        </ThemedText>
+                                                    </TouchableOpacity>
+                                                ))}
+                                            </View>
+                                        </View>
+                                    )}
+                                </>
+                            )}
+                        </View>
+
+                        {/* Tags */}
+                        <View style={styles.section}>
+                            <ThemedText type="defaultSemiBold" style={[styles.sectionTitle, { color: colors.text }]}>
+                                Tags
+                            </ThemedText>
+
+                            {dataLoading ? (
+                                <View style={styles.loadingContainer}>
+                                    <ActivityIndicator size="small" color={colors.primary} />
+                                    <ThemedText style={[styles.loadingText, { color: colors.textSecondary }]}>
+                                        Loading tags...
+                                    </ThemedText>
+                                </View>
+                            ) : tags.length === 0 ? (
+                                <ThemedText style={[styles.placeholderText, { color: colors.textSecondary }]}>
+                                    No tags available. You can create tags in the settings.
+                                </ThemedText>
+                            ) : (
+                                <View style={styles.inputGroup}>
+                                    <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                                        Select Tags (Optional)
+                                    </ThemedText>
+                                    <View style={styles.selectionGrid}>
+                                        {tags.map((tag) => (
+                                            <TouchableOpacity
+                                                key={tag.id}
+                                                style={[
+                                                    styles.selectionButton,
+                                                    {
+                                                        backgroundColor: (formData.tagIds || []).includes(tag.id)
+                                                            ? colors.primary
+                                                            : colors.backgroundSecondary,
+                                                    }
+                                                ]}
+                                                onPress={() => toggleTag(tag.id)}
+                                            >
+                                                <ThemedText style={[
+                                                    styles.selectionButtonText,
+                                                    {
+                                                        color: (formData.tagIds || []).includes(tag.id)
+                                                            ? '#FFFFFF'
+                                                            : colors.text
+                                                    }
+                                                ]}>
+                                                    {tag.name}
+                                                </ThemedText>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+
+                                    {(formData.tagIds || []).length > 0 && (
+                                        <View style={styles.selectedTagsContainer}>
+                                            <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                                                Selected Tags
+                                            </ThemedText>
+                                            <View style={styles.tagsDisplay}>
+                                                {(formData.tagIds || []).map((tagId) => {
+                                                    const tag = tags.find(t => t.id === tagId);
+                                                    return tag ? (
+                                                        <View key={tagId} style={[styles.tagChip, { backgroundColor: colors.primary }]}>
+                                                            <ThemedText style={styles.tagChipText}>
+                                                                {tag.name}
+                                                            </ThemedText>
+                                                        </View>
+                                                    ) : null;
+                                                })}
+                                            </View>
+                                        </View>
+                                    )}
+                                </View>
+                            )}
+                        </View>
+
                         {/* Current Item Info */}
                         <View style={styles.section}>
                             <ThemedText type="defaultSemiBold" style={[styles.sectionTitle, { color: colors.text }]}>
@@ -218,12 +494,32 @@ export function EditItemModal({ visible, onClose, onUpdateItem, item }: EditItem
                             <View style={[styles.infoCard, { backgroundColor: colors.backgroundSecondary }]}>
                                 <View style={styles.infoRow}>
                                     <ThemedText style={[styles.infoLabel, { color: colors.textSecondary }]}>
-                                        Location:
+                                        Current Room:
                                     </ThemedText>
                                     <ThemedText style={[styles.infoValue, { color: colors.text }]}>
-                                        {item.location}
+                                        {item.room?.name || 'Not set'}
                                     </ThemedText>
                                 </View>
+
+                                <View style={styles.infoRow}>
+                                    <ThemedText style={[styles.infoLabel, { color: colors.textSecondary }]}>
+                                        Current Place:
+                                    </ThemedText>
+                                    <ThemedText style={[styles.infoValue, { color: colors.text }]}>
+                                        {item.place?.name || 'Not set'}
+                                    </ThemedText>
+                                </View>
+
+                                {item.container && (
+                                    <View style={styles.infoRow}>
+                                        <ThemedText style={[styles.infoLabel, { color: colors.textSecondary }]}>
+                                            Current Container:
+                                        </ThemedText>
+                                        <ThemedText style={[styles.infoValue, { color: colors.text }]}>
+                                            {item.container.name}
+                                        </ThemedText>
+                                    </View>
+                                )}
 
                                 <View style={styles.infoRow}>
                                     <ThemedText style={[styles.infoLabel, { color: colors.textSecondary }]}>
@@ -406,6 +702,60 @@ const styles = StyleSheet.create({
     tagText: {
         color: '#FFFFFF',
         fontSize: 10,
+        fontWeight: '500',
+    },
+    loadingContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 40,
+        gap: 12,
+    },
+    loadingText: {
+        fontSize: 16,
+    },
+    placeholderText: {
+        fontSize: 16,
+        textAlign: 'center',
+        fontStyle: 'italic',
+        paddingVertical: 40,
+    },
+    selectionGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+    },
+    selectionButton: {
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderRadius: 12,
+        alignItems: 'center',
+        minWidth: 80,
+    },
+    selectionButtonText: {
+        fontSize: 14,
+        fontWeight: '500',
+    },
+    selectedTagsContainer: {
+        marginTop: 16,
+    },
+    tagsDisplay: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+        marginTop: 8,
+    },
+    tagChip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 16,
+        gap: 6,
+    },
+    tagChipText: {
+        color: '#FFFFFF',
+        fontSize: 12,
         fontWeight: '500',
     },
 });
