@@ -3,12 +3,14 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
+  SafeAreaView,
   ScrollView,
   StyleSheet,
   TextInput,
   TouchableOpacity,
   View
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ADD_ITEM_STEPS, ITEM_STATUSES } from '../../constants/inventory';
 import { useThemeColor } from '../../hooks/useThemeColor';
 import { useInventoryData } from '../../stores/inventory';
@@ -24,6 +26,7 @@ interface AddItemModalProps {
 }
 
 export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps) {
+  const insets = useSafeAreaInsets();
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<ItemFormData>({
@@ -139,143 +142,149 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
       presentationStyle="pageSheet"
       onRequestClose={handleClose}
     >
-      <ThemedView style={styles.container}>
-        {/* Header */}
-        <View style={[styles.header, { borderBottomColor: colors.backgroundSecondary }]}>
-          <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-            <IconSymbol name="xmark" size={24} color={colors.textSecondary} />
-          </TouchableOpacity>
-          <ThemedText type="defaultSemiBold" style={[styles.title, { color: colors.text }]}>
-            Add Item
-          </ThemedText>
-          <View style={styles.headerSpace} />
-        </View>
+      <SafeAreaView style={styles.container}>
+        <ThemedView style={styles.modalContent}>
+          {/* Header */}
+          <View style={[styles.header, { borderBottomColor: colors.backgroundSecondary }]}>
+            <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+              <IconSymbol name="xmark" size={24} color={colors.textSecondary} />
+            </TouchableOpacity>
+            <ThemedText type="defaultSemiBold" style={[styles.title, { color: colors.text }]}>
+              Add Item
+            </ThemedText>
+            <View style={styles.headerSpace} />
+          </View>
 
-        {/* Progress Indicator */}
-        <View style={styles.progressContainer}>
-          {ADD_ITEM_STEPS.map((step, index) => (
-            <View key={index} style={styles.progressStep}>
-              <View style={[
-                styles.progressCircle,
-                {
-                  backgroundColor: index <= currentStep ? colors.primary : colors.backgroundSecondary,
-                  borderColor: index <= currentStep ? colors.primary : colors.textSecondary,
-                }
-              ]}>
-                {index < currentStep ? (
-                  <IconSymbol name="checkmark" size={12} color="#FFFFFF" />
-                ) : (
-                  <ThemedText style={[
-                    styles.progressNumber,
-                    { color: index <= currentStep ? '#FFFFFF' : colors.textSecondary }
-                  ]}>
-                    {index + 1}
-                  </ThemedText>
+          {/* Progress Indicator */}
+          <View style={styles.progressContainer}>
+            {ADD_ITEM_STEPS.map((step, index) => (
+              <View key={index} style={styles.progressStep}>
+                <View style={[
+                  styles.progressCircle,
+                  {
+                    backgroundColor: index <= currentStep ? colors.primary : colors.backgroundSecondary,
+                    borderColor: index <= currentStep ? colors.primary : colors.textSecondary,
+                  }
+                ]}>
+                  {index < currentStep ? (
+                    <IconSymbol name="checkmark" size={12} color="#FFFFFF" />
+                  ) : (
+                    <ThemedText style={[
+                      styles.progressNumber,
+                      { color: index <= currentStep ? '#FFFFFF' : colors.textSecondary }
+                    ]}>
+                      {index + 1}
+                    </ThemedText>
+                  )}
+                </View>
+                {index < ADD_ITEM_STEPS.length - 1 && (
+                  <View style={[
+                    styles.progressLine,
+                    { backgroundColor: index < currentStep ? colors.primary : colors.backgroundSecondary }
+                  ]} />
                 )}
               </View>
-              {index < ADD_ITEM_STEPS.length - 1 && (
-                <View style={[
-                  styles.progressLine,
-                  { backgroundColor: index < currentStep ? colors.primary : colors.backgroundSecondary }
-                ]} />
-              )}
-            </View>
-          ))}
-        </View>
+            ))}
+          </View>
 
-        {/* Step Content */}
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          <View style={styles.stepContainer}>
-            <ThemedText type="title" style={[styles.stepTitle, { color: colors.text }]}>
-              {ADD_ITEM_STEPS[currentStep].title}
-            </ThemedText>
-            <ThemedText style={[styles.stepDescription, { color: colors.textSecondary }]}>
-              {ADD_ITEM_STEPS[currentStep].description}
-            </ThemedText>
+          {/* Step Content */}
+          <ScrollView
+            style={styles.content}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View style={styles.stepContainer}>
+              <ThemedText type="title" style={[styles.stepTitle, { color: colors.text }]}>
+                {ADD_ITEM_STEPS[currentStep].title}
+              </ThemedText>
+              <ThemedText style={[styles.stepDescription, { color: colors.textSecondary }]}>
+                {ADD_ITEM_STEPS[currentStep].description}
+              </ThemedText>
 
-            {/* Step 0: Basic Information */}
-            {currentStep === 0 && (
-              <View style={styles.stepContent}>
-                <View style={styles.inputGroup}>
-                  <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
-                    Item Name *
-                  </ThemedText>
-                  <TextInput
-                    style={[styles.input, {
-                      backgroundColor: colors.backgroundSecondary,
-                      color: colors.text
-                    }]}
-                    placeholder="E.g.: Colgate Toothpaste"
-                    placeholderTextColor={colors.textSecondary}
-                    value={formData.name}
-                    onChangeText={(text) => updateFormData('name', text)}
-                  />
-                </View>
-
-                <View style={styles.inputGroup}>
-                  <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
-                    Quantity
-                  </ThemedText>
-                  <View style={styles.quantityContainer}>
-                    <TouchableOpacity
-                      style={[styles.quantityButton, { backgroundColor: colors.backgroundSecondary }]}
-                      onPress={() => updateFormData('quantity', Math.max(1, formData.quantity - 1))}
-                    >
-                      <IconSymbol name="minus" size={20} color={colors.textSecondary} />
-                    </TouchableOpacity>
+              {/* Step 0: Basic Information */}
+              {currentStep === 0 && (
+                <View style={styles.stepContent}>
+                  <View style={styles.inputGroup}>
+                    <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                      Item Name *
+                    </ThemedText>
                     <TextInput
-                      style={[styles.quantityInput, {
+                      style={[styles.input, {
                         backgroundColor: colors.backgroundSecondary,
                         color: colors.text
                       }]}
-                      value={formData.quantity.toString()}
-                      onChangeText={(text) => {
-                        const num = parseInt(text) || 1;
-                        updateFormData('quantity', Math.max(1, num));
-                      }}
-                      keyboardType="numeric"
+                      placeholder="E.g.: Colgate Toothpaste"
+                      placeholderTextColor={colors.textSecondary}
+                      value={formData.name}
+                      onChangeText={(text) => updateFormData('name', text)}
                     />
-                    <TouchableOpacity
-                      style={[styles.quantityButton, { backgroundColor: colors.backgroundSecondary }]}
-                      onPress={() => updateFormData('quantity', formData.quantity + 1)}
-                    >
-                      <IconSymbol name="plus" size={20} color={colors.textSecondary} />
-                    </TouchableOpacity>
                   </View>
-                </View>
 
-                <View style={styles.inputGroup}>
-                  <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
-                    Status
-                  </ThemedText>
-                  <View style={styles.statusButtons}>
-                    {ITEM_STATUSES.map((status) => (
+                  <View style={styles.inputGroup}>
+                    <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                      Quantity
+                    </ThemedText>
+                    <View style={styles.quantityContainer}>
                       <TouchableOpacity
-                        key={status.value}
-                        style={[
-                          styles.statusButton,
-                          {
-                            backgroundColor: formData.status === status.value
-                              ? colors.primary
-                              : colors.backgroundSecondary,
-                          }
-                        ]}
-                        onPress={() => updateFormData('status', status.value)}
+                        style={[styles.quantityButton, { backgroundColor: colors.backgroundSecondary }]}
+                        onPress={() => updateFormData('quantity', Math.max(1, formData.quantity - 1))}
                       >
-                        <ThemedText style={[
-                          styles.statusButtonText,
-                          {
-                            color: formData.status === status.value
-                              ? '#FFFFFF'
-                              : colors.textSecondary
-                          }
-                        ]}>
-                          {status.label}
-                        </ThemedText>
+                        <IconSymbol name="minus" size={20} color={colors.textSecondary} />
                       </TouchableOpacity>
-                    ))}
+                      <TextInput
+                        style={[styles.quantityInput, {
+                          backgroundColor: colors.backgroundSecondary,
+                          color: colors.text
+                        }]}
+                        value={formData.quantity.toString()}
+                        onChangeText={(text) => {
+                          const num = parseInt(text) || 1;
+                          updateFormData('quantity', Math.max(1, num));
+                        }}
+                        keyboardType="numeric"
+                      />
+                      <TouchableOpacity
+                        style={[styles.quantityButton, { backgroundColor: colors.backgroundSecondary }]}
+                        onPress={() => updateFormData('quantity', formData.quantity + 1)}
+                      >
+                        <IconSymbol name="plus" size={20} color={colors.textSecondary} />
+                      </TouchableOpacity>
+                    </View>
                   </View>
-                </View>
+
+                  <View style={styles.inputGroup}>
+                    <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                      Status
+                    </ThemedText>
+                    <View style={styles.statusButtons}>
+                      {ITEM_STATUSES.map((status) => (
+                        <TouchableOpacity
+                          key={status.value}
+                          style={[
+                            styles.statusButton,
+                            {
+                              backgroundColor: formData.status === status.value
+                                ? colors.primary
+                                : colors.backgroundSecondary,
+                            }
+                          ]}
+                          onPress={() => updateFormData('status', status.value)}
+                        >
+                          <ThemedText style={[
+                            styles.statusButtonText,
+                            {
+                              color: formData.status === status.value
+                                ? '#FFFFFF'
+                                : colors.textSecondary
+                            }
+                          ]}>
+                            {status.label}
+                          </ThemedText>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
 
                 <View style={styles.inputGroup}>
                   <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
@@ -315,308 +324,257 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
                       <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
                         Room *
                       </ThemedText>
-                      {rooms.length === 0 ? (
-                        <ThemedText style={[styles.placeholderText, { color: colors.textSecondary }]}>
-                          No rooms available. Please create a room first.
-                        </ThemedText>
-                      ) : (
-                        <View style={styles.selectionGrid}>
-                          {rooms.map((room) => (
-                            <TouchableOpacity
-                              key={room.id}
-                              style={[
-                                styles.selectionButton,
-                                {
-                                  backgroundColor: formData.roomId === room.id
-                                    ? colors.primary
-                                    : colors.backgroundSecondary,
-                                }
-                              ]}
-                              onPress={() => {
-                                updateFormData('roomId', room.id);
-                                // Reset place and container when room changes
-                                updateFormData('placeId', undefined);
-                                updateFormData('containerId', undefined);
-                              }}
-                            >
-                              <ThemedText style={[
-                                styles.selectionButtonText,
-                                {
-                                  color: formData.roomId === room.id
-                                    ? '#FFFFFF'
-                                    : colors.text
-                                }
-                              ]}>
-                                {room.name}
-                              </ThemedText>
-                            </TouchableOpacity>
-                          ))}
-                        </View>
-                      )}
                     </View>
-
-                    {/* Place Selection */}
-                    {formData.roomId && (
+                  ) : (
+                    <>
+                      {/* Room Selection */}
                       <View style={styles.inputGroup}>
                         <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
-                          Place *
+                          Room *
                         </ThemedText>
-                        {getAvailablePlaces().length === 0 ? (
+                        {rooms.length === 0 ? (
                           <ThemedText style={[styles.placeholderText, { color: colors.textSecondary }]}>
-                            No places available for this room. Please create a place first.
+                            No rooms available. Please create a room first.
                           </ThemedText>
                         ) : (
                           <View style={styles.selectionGrid}>
-                            {getAvailablePlaces().map((place) => (
+                            {rooms.map((room) => (
                               <TouchableOpacity
-                                key={place.id}
+                                key={room.id}
                                 style={[
                                   styles.selectionButton,
                                   {
-                                    backgroundColor: formData.placeId === place.id
+                                    backgroundColor: formData.roomId === room.id
                                       ? colors.primary
                                       : colors.backgroundSecondary,
                                   }
                                 ]}
                                 onPress={() => {
-                                  updateFormData('placeId', place.id);
-                                  // Reset container when place changes
+                                  updateFormData('roomId', room.id);
+                                  // Reset place and container when room changes
+                                  updateFormData('placeId', undefined);
                                   updateFormData('containerId', undefined);
                                 }}
                               >
                                 <ThemedText style={[
                                   styles.selectionButtonText,
                                   {
-                                    color: formData.placeId === place.id
+                                    color: formData.roomId === room.id
                                       ? '#FFFFFF'
                                       : colors.text
                                   }
                                 ]}>
-                                  {place.name}
+                                  {room.name}
                                 </ThemedText>
                               </TouchableOpacity>
                             ))}
                           </View>
                         )}
                       </View>
-                    )}
 
-                    {/* Container Selection (Optional) */}
-                    {formData.placeId && getAvailableContainers().length > 0 && (
-                      <View style={styles.inputGroup}>
-                        <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
-                          Container (Optional)
-                        </ThemedText>
-                        <View style={styles.selectionGrid}>
-                          <TouchableOpacity
-                            style={[
-                              styles.selectionButton,
-                              {
-                                backgroundColor: !formData.containerId
-                                  ? colors.primary
-                                  : colors.backgroundSecondary,
-                              }
-                            ]}
-                            onPress={() => updateFormData('containerId', undefined)}
-                          >
-                            <ThemedText style={[
-                              styles.selectionButtonText,
-                              {
-                                color: !formData.containerId
-                                  ? '#FFFFFF'
-                                  : colors.text
-                              }
-                            ]}>
-                              None
+                      {/* Place Selection */}
+                      {formData.roomId && (
+                        <View style={styles.inputGroup}>
+                          <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                            Place *
+                          </ThemedText>
+                          {getAvailablePlaces().length === 0 ? (
+                            <ThemedText style={[styles.placeholderText, { color: colors.textSecondary }]}>
+                              No places available for this room. Please create a place first.
                             </ThemedText>
-                          </TouchableOpacity>
-                          {getAvailableContainers().map((container) => (
+                          ) : (
+                            <View style={styles.selectionGrid}>
+                              {getAvailablePlaces().map((place) => (
+                                <TouchableOpacity
+                                  key={place.id}
+                                  style={[
+                                    styles.selectionButton,
+                                    {
+                                      backgroundColor: formData.placeId === place.id
+                                        ? colors.primary
+                                        : colors.backgroundSecondary,
+                                    }
+                                  ]}
+                                  onPress={() => {
+                                    updateFormData('placeId', place.id);
+                                    // Reset container when place changes
+                                    updateFormData('containerId', undefined);
+                                  }}
+                                >
+                                  <ThemedText style={[
+                                    styles.selectionButtonText,
+                                    {
+                                      color: formData.placeId === place.id
+                                        ? '#FFFFFF'
+                                        : colors.text
+                                    }
+                                  ]}>
+                                    {place.name}
+                                  </ThemedText>
+                                </TouchableOpacity>
+                              ))}
+                            </View>
+                          )}
+                        </View>
+                      )}
+
+                      {/* Container Selection (Optional) */}
+                      {formData.placeId && getAvailableContainers().length > 0 && (
+                        <View style={styles.inputGroup}>
+                          <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                            Container (Optional)
+                          </ThemedText>
+                          <View style={styles.selectionGrid}>
                             <TouchableOpacity
-                              key={container.id}
                               style={[
                                 styles.selectionButton,
                                 {
-                                  backgroundColor: formData.containerId === container.id
+                                  backgroundColor: !formData.containerId
                                     ? colors.primary
                                     : colors.backgroundSecondary,
                                 }
                               ]}
-                              onPress={() => updateFormData('containerId', container.id)}
+                              onPress={() => updateFormData('containerId', undefined)}
                             >
                               <ThemedText style={[
                                 styles.selectionButtonText,
                                 {
-                                  color: formData.containerId === container.id
+                                  color: !formData.containerId
                                     ? '#FFFFFF'
                                     : colors.text
                                 }
                               ]}>
-                                {container.name}
+                                None
                               </ThemedText>
                             </TouchableOpacity>
-                          ))}
+                            {getAvailableContainers().map((container) => (
+                              <TouchableOpacity
+                                key={container.id}
+                                style={[
+                                  styles.selectionButton,
+                                  {
+                                    backgroundColor: formData.containerId === container.id
+                                      ? colors.primary
+                                      : colors.backgroundSecondary,
+                                  }
+                                ]}
+                                onPress={() => updateFormData('containerId', container.id)}
+                              >
+                                <ThemedText style={[
+                                  styles.selectionButtonText,
+                                  {
+                                    color: formData.containerId === container.id
+                                      ? '#FFFFFF'
+                                      : colors.text
+                                  }
+                                ]}>
+                                  {container.name}
+                                </ThemedText>
+                              </TouchableOpacity>
+                            ))}
+                          </View>
                         </View>
-                      </View>
-                    )}
-                  </>
-                )}
-              </View>
-            )}
-
-            {/* Step 2: Additional Details */}
-            {currentStep === 2 && (
-              <View style={styles.stepContent}>
-                <View style={styles.inputGroup}>
-                  <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
-                    Select Tags (Optional)
-                  </ThemedText>
-                  {dataLoading ? (
-                    <View style={styles.loadingContainer}>
-                      <ActivityIndicator size="small" color={colors.primary} />
-                      <ThemedText style={[styles.loadingText, { color: colors.textSecondary }]}>
-                        Loading tags...
-                      </ThemedText>
-                    </View>
-                  ) : tags.length === 0 ? (
-                    <ThemedText style={[styles.placeholderText, { color: colors.textSecondary }]}>
-                      No tags available. You can create tags in the settings.
-                    </ThemedText>
-                  ) : (
-                    <View style={styles.selectionGrid}>
-                      {tags.map((tag) => (
-                        <TouchableOpacity
-                          key={tag.id}
-                          style={[
-                            styles.selectionButton,
-                            {
-                              backgroundColor: formData.tagIds.includes(tag.id)
-                                ? colors.primary
-                                : colors.backgroundSecondary,
-                            }
-                          ]}
-                          onPress={() => toggleTag(tag.id)}
-                        >
-                          <ThemedText style={[
-                            styles.selectionButtonText,
-                            {
-                              color: formData.tagIds.includes(tag.id)
-                                ? '#FFFFFF'
-                                : colors.text
-                            }
-                          ]}>
-                            {tag.name}
-                          </ThemedText>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
+                      )}
+                    </>
                   )}
                 </View>
+              )}
 
-                {formData.tagIds.length > 0 && (
+              {/* Step 2: Additional Details */}
+              {currentStep === 2 && (
+                <View style={styles.stepContent}>
                   <View style={styles.inputGroup}>
                     <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
-                      Selected Tags
+                      Select Tags (Optional)
                     </ThemedText>
-                    <View style={styles.tagsDisplay}>
-                      {formData.tagIds.map((tagId) => {
-                        const tag = tags.find(t => t.id === tagId);
-                        return tag ? (
-                          <View key={tagId} style={[styles.tagChip, { backgroundColor: colors.primary }]}>
-                            <ThemedText style={styles.tagChipText}>
+                    {dataLoading ? (
+                      <View style={styles.loadingContainer}>
+                        <ActivityIndicator size="small" color={colors.primary} />
+                        <ThemedText style={[styles.loadingText, { color: colors.textSecondary }]}>
+                          Loading tags...
+                        </ThemedText>
+                      </View>
+                    ) : tags.length === 0 ? (
+                      <ThemedText style={[styles.placeholderText, { color: colors.textSecondary }]}>
+                        No tags available. You can create tags in the settings.
+                      </ThemedText>
+                    ) : (
+                      <View style={styles.selectionGrid}>
+                        {tags.map((tag) => (
+                          <TouchableOpacity
+                            key={tag.id}
+                            style={[
+                              styles.selectionButton,
+                              {
+                                backgroundColor: formData.tagIds.includes(tag.id)
+                                  ? colors.primary
+                                  : colors.backgroundSecondary,
+                              }
+                            ]}
+                            onPress={() => toggleTag(tag.id)}
+                          >
+                            <ThemedText style={[
+                              styles.selectionButtonText,
+                              {
+                                color: formData.tagIds.includes(tag.id)
+                                  ? '#FFFFFF'
+                                  : colors.text
+                              }
+                            ]}>
                               {tag.name}
                             </ThemedText>
-                          </View>
-                        ) : null;
-                      })}
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+
+                  {formData.tagIds.length > 0 && (
+                    <View style={styles.inputGroup}>
+                      <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                        Selected Tags
+                      </ThemedText>
+                      <View style={styles.tagsDisplay}>
+                        {formData.tagIds.map((tagId) => {
+                          const tag = tags.find(t => t.id === tagId);
+                          return tag ? (
+                            <View key={tagId} style={[styles.tagChip, { backgroundColor: colors.primary }]}>
+                              <ThemedText style={styles.tagChipText}>
+                                {tag.name}
+                              </ThemedText>
+                            </View>
+                          ) : null;
+                        })}
+                      </View>
                     </View>
-                  </View>
-                )}
+                  )}
 
-                {/* Price Field */}
-                <View style={styles.inputGroup}>
-                  <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
-                    Price (Optional)
-                  </ThemedText>
-                  <TextInput
-                    style={[styles.input, {
-                      backgroundColor: colors.backgroundSecondary,
-                      color: colors.text,
-                      borderColor: colors.backgroundSecondary,
-                    }]}
-                    placeholder="Enter price"
-                    placeholderTextColor={colors.textSecondary}
-                    value={formData.price?.toString() || ''}
-                    onChangeText={(text) => {
-                      const numericValue = text.replace(/[^0-9.]/g, '');
-                      if (numericValue === '') {
-                        updateFormData('price', undefined);
-                      } else {
-                        const price = parseFloat(numericValue);
-                        updateFormData('price', isNaN(price) ? undefined : price);
-                      }
-                    }}
-                    keyboardType="decimal-pad"
-                    returnKeyType="next"
-                  />
-                </View>
-
-                {/* Item Link Field */}
-                <View style={styles.inputGroup}>
-                  <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
-                    Item Link (Optional)
-                  </ThemedText>
-                  <TextInput
-                    style={[styles.input, {
-                      backgroundColor: colors.backgroundSecondary,
-                      color: colors.text,
-                      borderColor: colors.backgroundSecondary,
-                    }]}
-                    placeholder="Enter item link or reference"
-                    placeholderTextColor={colors.textSecondary}
-                    value={formData.itemLink || ''}
-                    onChangeText={(text) => updateFormData('itemLink', text)}
-                    keyboardType="url"
-                    returnKeyType="done"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                  />
-                </View>
-              </View>
-            )}
-
-            {/* Step 3: Confirmation */}
-            {currentStep === 3 && (
-              <View style={styles.stepContent}>
-                <View style={[styles.confirmationCard, { backgroundColor: colors.card }]}>
-                  <ThemedText type="defaultSemiBold" style={[styles.confirmationTitle, { color: colors.text }]}>
-                    Summary
-                  </ThemedText>
-
-                  <View style={styles.confirmationRow}>
-                    <ThemedText style={[styles.confirmationLabel, { color: colors.textSecondary }]}>
-                      Name:
+                  {/* Price Field */}
+                  <View style={styles.inputGroup}>
+                    <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                      Price (Optional)
                     </ThemedText>
-                    <ThemedText style={[styles.confirmationValue, { color: colors.text }]}>
-                      {formData.name}
-                    </ThemedText>
-                  </View>
-
-                  <View style={styles.confirmationRow}>
-                    <ThemedText style={[styles.confirmationLabel, { color: colors.textSecondary }]}>
-                      Quantity:
-                    </ThemedText>
-                    <ThemedText style={[styles.confirmationValue, { color: colors.text }]}>
-                      {formData.quantity}
-                    </ThemedText>
-                  </View>
-
-                  <View style={styles.confirmationRow}>
-                    <ThemedText style={[styles.confirmationLabel, { color: colors.textSecondary }]}>
-                      Status:
-                    </ThemedText>
-                    <ThemedText style={[styles.confirmationValue, { color: colors.text }]}>
-                      {ITEM_STATUSES.find(s => s.value === formData.status)?.label}
-                    </ThemedText>
+                    <TextInput
+                      style={[styles.input, {
+                        backgroundColor: colors.backgroundSecondary,
+                        color: colors.text,
+                        borderColor: colors.backgroundSecondary,
+                      }]}
+                      placeholder="Enter price"
+                      placeholderTextColor={colors.textSecondary}
+                      value={formData.price?.toString() || ''}
+                      onChangeText={(text) => {
+                        const numericValue = text.replace(/[^0-9.]/g, '');
+                        if (numericValue === '') {
+                          updateFormData('price', undefined);
+                        } else {
+                          const price = parseFloat(numericValue);
+                          updateFormData('price', isNaN(price) ? undefined : price);
+                        }
+                      }}
+                      keyboardType="decimal-pad"
+                      returnKeyType="next"
+                    />
                   </View>
 
                   <View style={styles.confirmationRow}>
@@ -626,125 +584,196 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
                     <ThemedText style={[styles.confirmationValue, { color: colors.text }]}>
                       {formData.consumable ? 'Consumable' : 'Non-consumable'}
                     </ThemedText>
+                    <TextInput
+                      style={[styles.input, {
+                        backgroundColor: colors.backgroundSecondary,
+                        color: colors.text,
+                        borderColor: colors.backgroundSecondary,
+                      }]}
+                      placeholder="Enter item link or reference"
+                      placeholderTextColor={colors.textSecondary}
+                      value={formData.itemLink || ''}
+                      onChangeText={(text) => updateFormData('itemLink', text)}
+                      keyboardType="url"
+                      returnKeyType="done"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
                   </View>
+              {/* Step 3: Confirmation */}
+              {currentStep === 3 && (
+                <View style={styles.stepContent}>
+                  <View style={[styles.confirmationCard, { backgroundColor: colors.card }]}>
+                    <ThemedText type="defaultSemiBold" style={[styles.confirmationTitle, { color: colors.text }]}>
+                      Summary
+                    </ThemedText>
 
+                    <View style={styles.confirmationRow}>
+                      <ThemedText style={[styles.confirmationLabel, { color: colors.textSecondary }]}>
+                        Name:
+                      </ThemedText>
+                      <ThemedText style={[styles.confirmationValue, { color: colors.text }]}>
+                        {formData.name}
+                      </ThemedText>
+                    </View>
+
+                    <View style={styles.confirmationRow}>
+                      <ThemedText style={[styles.confirmationLabel, { color: colors.textSecondary }]}>
+                        Quantity:
+                      </ThemedText>
+                      <ThemedText style={[styles.confirmationValue, { color: colors.text }]}>
+                        {formData.quantity}
+                      </ThemedText>
+                    </View>
+
+                    <View style={styles.confirmationRow}>
+                      <ThemedText style={[styles.confirmationLabel, { color: colors.textSecondary }]}>
+                        Status:
+                      </ThemedText>
+                      <ThemedText style={[styles.confirmationValue, { color: colors.text }]}>
+                        {ITEM_STATUSES.find(s => s.value === formData.status)?.label}
+                      </ThemedText>
+                    </View>
+
+                    {/* Temporarily disabled until backend supports consumable field */}
+                    {/* 
                   <View style={styles.confirmationRow}>
                     <ThemedText style={[styles.confirmationLabel, { color: colors.textSecondary }]}>
-                      Room:
+                      Type:
                     </ThemedText>
                     <ThemedText style={[styles.confirmationValue, { color: colors.text }]}>
-                      {rooms.find(r => r.id === formData.roomId)?.name || 'Not selected'}
+                      {formData.consumable ? 'Consumable' : 'Non-consumable'}
                     </ThemedText>
                   </View>
+                  */}
 
-                  <View style={styles.confirmationRow}>
-                    <ThemedText style={[styles.confirmationLabel, { color: colors.textSecondary }]}>
-                      Place:
-                    </ThemedText>
-                    <ThemedText style={[styles.confirmationValue, { color: colors.text }]}>
-                      {places.find(p => p.id === formData.placeId)?.name || 'Not selected'}
-                    </ThemedText>
+                    <View style={styles.confirmationRow}>
+                      <ThemedText style={[styles.confirmationLabel, { color: colors.textSecondary }]}>
+                        Room:
+                      </ThemedText>
+                      <ThemedText style={[styles.confirmationValue, { color: colors.text }]}>
+                        {rooms.find(r => r.id === formData.roomId)?.name || 'Not selected'}
+                      </ThemedText>
+                    </View>
+
+                    <View style={styles.confirmationRow}>
+                      <ThemedText style={[styles.confirmationLabel, { color: colors.textSecondary }]}>
+                        Place:
+                      </ThemedText>
+                      <ThemedText style={[styles.confirmationValue, { color: colors.text }]}>
+                        {places.find(p => p.id === formData.placeId)?.name || 'Not selected'}
+                      </ThemedText>
+                    </View>
+
+                    {formData.containerId && (
+                      <View style={styles.confirmationRow}>
+                        <ThemedText style={[styles.confirmationLabel, { color: colors.textSecondary }]}>
+                          Container:
+                        </ThemedText>
+                        <ThemedText style={[styles.confirmationValue, { color: colors.text }]}>
+                          {containers.find(c => c.id === formData.containerId)?.name || 'None'}
+                        </ThemedText>
+                      </View>
+                    )}
+
+                    {formData.price && (
+                      <View style={styles.confirmationRow}>
+                        <ThemedText style={[styles.confirmationLabel, { color: colors.textSecondary }]}>
+                          Price:
+                        </ThemedText>
+                        <ThemedText style={[styles.confirmationValue, { color: colors.text }]}>
+                          ${formData.price.toFixed(2)}
+                        </ThemedText>
+                      </View>
+                    )}
+
+                    {formData.itemLink && (
+                      <View style={styles.confirmationRow}>
+                        <ThemedText style={[styles.confirmationLabel, { color: colors.textSecondary }]}>
+                          Link:
+                        </ThemedText>
+                        <ThemedText
+                          style={[styles.confirmationValue, { color: colors.primary }]}
+                          numberOfLines={1}
+                          ellipsizeMode="tail"
+                        >
+                          {formData.itemLink}
+                        </ThemedText>
+                      </View>
+                    )}
+
+                    {formData.tagIds.length > 0 && (
+                      <View style={styles.confirmationRow}>
+                        <ThemedText style={[styles.confirmationLabel, { color: colors.textSecondary }]}>
+                          Tags:
+                        </ThemedText>
+                        <ThemedText style={[styles.confirmationValue, { color: colors.text }]}>
+                          {formData.tagIds.map(tagId => tags.find(t => t.id === tagId)?.name).filter(Boolean).join(', ') || 'None'}
+                        </ThemedText>
+                      </View>
+                    )}
                   </View>
-
-                  {formData.containerId && (
-                    <View style={styles.confirmationRow}>
-                      <ThemedText style={[styles.confirmationLabel, { color: colors.textSecondary }]}>
-                        Container:
-                      </ThemedText>
-                      <ThemedText style={[styles.confirmationValue, { color: colors.text }]}>
-                        {containers.find(c => c.id === formData.containerId)?.name || 'None'}
-                      </ThemedText>
-                    </View>
-                  )}
-
-                  {formData.price && (
-                    <View style={styles.confirmationRow}>
-                      <ThemedText style={[styles.confirmationLabel, { color: colors.textSecondary }]}>
-                        Price:
-                      </ThemedText>
-                      <ThemedText style={[styles.confirmationValue, { color: colors.text }]}>
-                        ${formData.price.toFixed(2)}
-                      </ThemedText>
-                    </View>
-                  )}
-
-                  {formData.itemLink && (
-                    <View style={styles.confirmationRow}>
-                      <ThemedText style={[styles.confirmationLabel, { color: colors.textSecondary }]}>
-                        Link:
-                      </ThemedText>
-                      <ThemedText 
-                        style={[styles.confirmationValue, { color: colors.primary }]}
-                        numberOfLines={1}
-                        ellipsizeMode="tail"
-                      >
-                        {formData.itemLink}
-                      </ThemedText>
-                    </View>
-                  )}
-
-                  {formData.tagIds.length > 0 && (
-                    <View style={styles.confirmationRow}>
-                      <ThemedText style={[styles.confirmationLabel, { color: colors.textSecondary }]}>
-                        Tags:
-                      </ThemedText>
-                      <ThemedText style={[styles.confirmationValue, { color: colors.text }]}>
-                        {formData.tagIds.map(tagId => tags.find(t => t.id === tagId)?.name).filter(Boolean).join(', ') || 'None'}
-                      </ThemedText>
-                    </View>
-                  )}
                 </View>
-              </View>
-            )}
-          </View>
-        </ScrollView>
-
-        {/* Footer */}
-        <View style={[styles.footer, { borderTopColor: colors.backgroundSecondary }]}>
-          <View style={styles.footerButtons}>
-            {currentStep > 0 && (
-              <TouchableOpacity
-                style={[styles.button, styles.secondaryButton, { borderColor: colors.textSecondary }]}
-                onPress={prevStep}
-              >
-                <ThemedText style={[styles.secondaryButtonText, { color: colors.textSecondary }]}>
-                  Previous
-                </ThemedText>
-              </TouchableOpacity>
-            )}
-
-            <TouchableOpacity
-              style={[
-                styles.button,
-                styles.primaryButton,
-                {
-                  backgroundColor: (canProceedToNextStep() && !isSubmitting) ? colors.primary : colors.backgroundSecondary,
-                  flex: currentStep === 0 ? 1 : 0.6
-                }
-              ]}
-              onPress={currentStep === ADD_ITEM_STEPS.length - 1 ? handleSubmit : nextStep}
-              disabled={!canProceedToNextStep() || isSubmitting}
-            >
-              {isSubmitting && currentStep === ADD_ITEM_STEPS.length - 1 ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <ThemedText style={[
-                  styles.primaryButtonText,
-                  { color: (canProceedToNextStep() && !isSubmitting) ? '#FFFFFF' : colors.textSecondary }
-                ]}>
-                  {currentStep === ADD_ITEM_STEPS.length - 1 ? 'Add' : 'Next'}
-                </ThemedText>
               )}
-            </TouchableOpacity>
+            </View>
+          </ScrollView>
+
+          {/* Footer */}
+          <View style={[
+            styles.footer,
+            {
+              borderTopColor: colors.backgroundSecondary,
+              paddingBottom: Math.max(16, insets.bottom + 8)
+            }
+          ]}>
+            <View style={styles.footerButtons}>
+              {currentStep > 0 && (
+                <TouchableOpacity
+                  style={[styles.button, styles.secondaryButton, { borderColor: colors.textSecondary }]}
+                  onPress={prevStep}
+                >
+                  <ThemedText style={[styles.secondaryButtonText, { color: colors.textSecondary }]}>
+                    Previous
+                  </ThemedText>
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity
+                style={[
+                  styles.button,
+                  styles.primaryButton,
+                  {
+                    backgroundColor: (canProceedToNextStep() && !isSubmitting) ? colors.primary : colors.backgroundSecondary,
+                    flex: currentStep === 0 ? 1 : 0.6
+                  }
+                ]}
+                onPress={currentStep === ADD_ITEM_STEPS.length - 1 ? handleSubmit : nextStep}
+                disabled={!canProceedToNextStep() || isSubmitting}
+              >
+                {isSubmitting && currentStep === ADD_ITEM_STEPS.length - 1 ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <ThemedText style={[
+                    styles.primaryButtonText,
+                    { color: (canProceedToNextStep() && !isSubmitting) ? '#FFFFFF' : colors.textSecondary }
+                  ]}>
+                    {currentStep === ADD_ITEM_STEPS.length - 1 ? 'Add' : 'Next'}
+                  </ThemedText>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-      </ThemedView>
+        </ThemedView>
+      </SafeAreaView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  modalContent: {
     flex: 1,
   },
   header: {
@@ -767,13 +796,14 @@ const styles = StyleSheet.create({
   progressContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    justifyContent: 'center',
+    paddingHorizontal: 40, // More padding to center better
     paddingVertical: 16,
   },
   progressStep: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
+    // Remove flex: 1 to prevent stretching
   },
   progressCircle: {
     width: 32,
@@ -788,12 +818,15 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   progressLine: {
-    flex: 1,
+    width: 40, // Fixed width instead of flex: 1
     height: 2,
     marginHorizontal: 8,
   },
   content: {
     flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 20, // Reduced padding
   },
   stepContainer: {
     padding: 20,
@@ -942,8 +975,9 @@ const styles = StyleSheet.create({
   },
   footer: {
     borderTopWidth: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: 24, // Increased from 20 to 24 for more margin
     paddingVertical: 16,
+    // paddingBottom is now dynamic based on safe area
   },
   footerButtons: {
     flexDirection: 'row',
