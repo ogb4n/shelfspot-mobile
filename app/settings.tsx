@@ -23,7 +23,7 @@ export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
 
   // Use Zustand stores
-  const { user, logout, updateProfile, loading } = useAuthStore();
+  const { user, logout, updateProfile, updateEmail, loading } = useAuthStore();
   const { themeMode } = useThemeMode();
 
   // États pour les modales
@@ -66,20 +66,18 @@ export default function SettingsScreen() {
         successMessages.push('Nom mis à jour');
       }
       
-      // Pour l'email, vérifier s'il a changé et informer l'utilisateur
+      // Vérifier et mettre à jour l'email si nécessaire
       if (email.trim() !== user?.email?.trim()) {
-        console.log('📧 Email change requested from', user?.email, 'to', email.trim());
-        Alert.alert(
-          'Information',
-          'La modification de l\'adresse email n\'est pas encore disponible via cette interface. Contactez un administrateur si vous devez changer votre email.',
-          [{ text: 'OK' }]
-        );
+        console.log('📧 Updating email from', user?.email, 'to', email.trim());
+        await updateEmail(email.trim());
+        hasChanges = true;
+        successMessages.push('Email mis à jour');
       }
       
       if (hasChanges) {
         Alert.alert('Succès', successMessages.join(' et ') + ' avec succès');
         console.log('✅ Personal info saved successfully');
-      } else if (email.trim() === user?.email?.trim()) {
+      } else {
         console.log('ℹ️ No changes detected');
       }
       

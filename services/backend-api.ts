@@ -135,6 +135,14 @@ class BackendApiService {
     });
   }
 
+  async updateEmail(email: string): Promise<User> {
+    console.log('BackendAPI: Updating user email');
+    return this.request<User>('/auth/profile/email', {
+      method: 'PUT',
+      body: JSON.stringify({ email }),
+    });
+  }
+
   async resetPassword(email: string, newPassword: string): Promise<{ message: string }> {
     console.log('BackendAPI: Resetting password for email:', email);
     return this.request<{ message: string }>('/auth/password/reset', {
