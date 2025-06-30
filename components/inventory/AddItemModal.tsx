@@ -285,7 +285,6 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
                       ))}
                     </View>
                   </View>
-
                 <View style={styles.inputGroup}>
                   <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
                     Item Type
@@ -324,14 +323,6 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
                       <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
                         Room *
                       </ThemedText>
-                    </View>
-                  ) : (
-                    <>
-                      {/* Room Selection */}
-                      <View style={styles.inputGroup}>
-                        <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
-                          Room *
-                        </ThemedText>
                         {rooms.length === 0 ? (
                           <ThemedText style={[styles.placeholderText, { color: colors.textSecondary }]}>
                             No rooms available. Please create a room first.
@@ -577,12 +568,10 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
                     />
                   </View>
 
-                  <View style={styles.confirmationRow}>
-                    <ThemedText style={[styles.confirmationLabel, { color: colors.textSecondary }]}>
-                      Type:
-                    </ThemedText>
-                    <ThemedText style={[styles.confirmationValue, { color: colors.text }]}>
-                      {formData.consumable ? 'Consumable' : 'Non-consumable'}
+                  {/* Link Field */}
+                  <View style={styles.inputGroup}>
+                    <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                      Link (Optional)
                     </ThemedText>
                     <TextInput
                       style={[styles.input, {
@@ -600,6 +589,9 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
                       autoCorrect={false}
                     />
                   </View>
+                </View>
+              )}
+
               {/* Step 3: Confirmation */}
               {currentStep === 3 && (
                 <View style={styles.stepContent}>
