@@ -7,7 +7,8 @@ import { useFavorites, useInventoryAlerts, useInventoryData, useInventoryItems }
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Dimensions, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Bar, CartesianChart } from 'victory-native';
 
 interface RecentAlert {
   id: string;
@@ -35,7 +36,7 @@ export default function DashboardScreen() {
     if (items.length > 0) {
       loadAlerts();
     }
-  }, [items.length]); // Only trigger when items length changes
+  }, [items.length, loadAlerts]); // Include loadAlerts dependency
 
   // Calculate real stats from data
   const stats = {
@@ -45,6 +46,25 @@ export default function DashboardScreen() {
     lowStockItems: items.filter(item => item.quantity <= 5).length, // Assuming 5 is low stock threshold
     favoriteItems: favoriteItems.length,
   };
+
+  // Prepare chart data
+  const { width: screenWidth } = Dimensions.get('window');
+  const chartWidth = screenWidth - 80; // Account for padding
+
+  // Status distribution data for pie chart
+  const statusDistribution = [
+    { status: 'Available', count: items.filter(item => item.status === 'available').length, color: colors.primary },
+    { status: 'Low Stock', count: items.filter(item => item.status === 'running_low').length, color: colors.warning },
+    { status: 'Out of Stock', count: items.filter(item => item.status === 'out_of_stock').length, color: colors.error },
+    { status: 'Expired', count: items.filter(item => item.status === 'expired').length, color: colors.textSecondary },
+  ].filter(item => item.count > 0);
+
+  // Room distribution data for bar chart
+  const roomDistribution = rooms.map(room => ({
+    room: room.name.length > 8 ? room.name.substring(0, 8) + '...' : room.name,
+    fullName: room.name,
+    count: items.filter(item => item.roomId === room.id).length,
+  })).filter(item => item.count > 0).slice(0, 6); // Limit to 6 rooms
 
   const quickActions = [
     {
@@ -93,10 +113,6 @@ export default function DashboardScreen() {
   }));
 
   // Add item modal handlers
-  const handleOpenAddModal = () => {
-    setShowAddModal(true);
-  };
-
   const handleCloseAddModal = () => {
     setShowAddModal(false);
   };
@@ -206,12 +222,14 @@ export default function DashboardScreen() {
                     <View style={[styles.bentoIconSmall, { backgroundColor: `${colors.secondary}20` }]}>
                       <IconSymbol name="house.fill" size={20} color={colors.secondary} />
                     </View>
-                    <ThemedText type="subtitle" style={[styles.bentoNumberSmall, { color: colors.secondary }]}>
-                      {stats.totalRooms}
-                    </ThemedText>
-                    <ThemedText style={[styles.bentoLabelSmall, { color: colors.textSecondary }]}>
-                      Rooms
-                    </ThemedText>
+                    <View style={styles.bentoTextContainer}>
+                      <ThemedText type="subtitle" style={[styles.bentoNumberSmall, { color: colors.secondary }]}>
+                        {stats.totalRooms}
+                      </ThemedText>
+                      <ThemedText style={[styles.bentoLabelSmall, { color: colors.textSecondary }]}>
+                        Rooms
+                      </ThemedText>
+                    </View>
                   </TouchableOpacity>
 
                   <TouchableOpacity
@@ -222,12 +240,14 @@ export default function DashboardScreen() {
                     <View style={[styles.bentoIconSmall, { backgroundColor: `${colors.warning}20` }]}>
                       <IconSymbol name="cube.box.fill" size={20} color={colors.warning} />
                     </View>
-                    <ThemedText type="subtitle" style={[styles.bentoNumberSmall, { color: colors.warning }]}>
-                      {stats.totalPlaces}
-                    </ThemedText>
-                    <ThemedText style={[styles.bentoLabelSmall, { color: colors.textSecondary }]}>
-                      Places
-                    </ThemedText>
+                    <View style={styles.bentoTextContainer}>
+                      <ThemedText type="subtitle" style={[styles.bentoNumberSmall, { color: colors.warning }]}>
+                        {stats.totalPlaces}
+                      </ThemedText>
+                      <ThemedText style={[styles.bentoLabelSmall, { color: colors.textSecondary }]}>
+                        Places
+                      </ThemedText>
+                    </View>
                   </TouchableOpacity>
 
                   <TouchableOpacity
@@ -238,12 +258,14 @@ export default function DashboardScreen() {
                     <View style={[styles.bentoIconSmall, { backgroundColor: `${colors.error}20` }]}>
                       <IconSymbol name="exclamationmark.triangle.fill" size={20} color={colors.error} />
                     </View>
-                    <ThemedText type="subtitle" style={[styles.bentoNumberSmall, { color: colors.error }]}>
-                      {stats.lowStockItems}
-                    </ThemedText>
-                    <ThemedText style={[styles.bentoLabelSmall, { color: colors.textSecondary }]}>
-                      Low Stock
-                    </ThemedText>
+                    <View style={styles.bentoTextContainer}>
+                      <ThemedText type="subtitle" style={[styles.bentoNumberSmall, { color: colors.error }]}>
+                        {stats.lowStockItems}
+                      </ThemedText>
+                      <ThemedText style={[styles.bentoLabelSmall, { color: colors.textSecondary }]}>
+                        Low Stock
+                      </ThemedText>
+                    </View>
                   </TouchableOpacity>
 
                   <TouchableOpacity
@@ -254,16 +276,115 @@ export default function DashboardScreen() {
                     <View style={[styles.bentoIconSmall, { backgroundColor: `${colors.info}20` }]}>
                       <IconSymbol name="heart.fill" size={20} color={colors.info} />
                     </View>
-                    <ThemedText type="subtitle" style={[styles.bentoNumberSmall, { color: colors.info }]}>
-                      {stats.favoriteItems}
-                    </ThemedText>
-                    <ThemedText style={[styles.bentoLabelSmall, { color: colors.textSecondary }]}>
-                      Favorites
-                    </ThemedText>
+                    <View style={styles.bentoTextContainer}>
+                      <ThemedText type="subtitle" style={[styles.bentoNumberSmall, { color: colors.info }]}>
+                        {stats.favoriteItems}
+                      </ThemedText>
+                      <ThemedText style={[styles.bentoLabelSmall, { color: colors.textSecondary }]}>
+                        Favorites
+                      </ThemedText>
+                    </View>
                   </TouchableOpacity>
                 </View>
               </View>
             </View>
+
+            {/* Charts Section */}
+            {items.length > 0 && (
+              <>
+                {/* Status Distribution Chart */}
+                <View style={styles.section}>
+                  <ThemedText type="subtitle" style={[styles.sectionTitle, { color: colors.text }]}>
+                    Inventory Status Distribution
+                  </ThemedText>
+                  <View style={[styles.chartContainer, { backgroundColor: colors.card }]}>
+                    <View style={styles.statusChart}>
+                      {statusDistribution.map((item, index) => {
+                        const percentage = ((item.count / items.length) * 100).toFixed(1);
+                        const barWidth = (item.count / items.length) * (chartWidth - 100);
+                        
+                        return (
+                          <View key={index} style={styles.statusItem}>
+                            <View style={styles.statusInfo}>
+                              <View style={[styles.statusIndicator, { backgroundColor: item.color }]} />
+                              <ThemedText style={[styles.statusLabel, { color: colors.text }]}>
+                                {item.status}
+                              </ThemedText>
+                              <ThemedText style={[styles.statusCount, { color: colors.textSecondary }]}>
+                                {item.count}
+                              </ThemedText>
+                            </View>
+                            <View style={styles.statusBarContainer}>
+                              <View 
+                                style={[
+                                  styles.statusBar, 
+                                  { 
+                                    backgroundColor: item.color + '30',
+                                    width: Math.max(barWidth, 20) // Minimum width for visibility
+                                  }
+                                ]} 
+                              >
+                                <View 
+                                  style={[
+                                    styles.statusBarFill, 
+                                    { 
+                                      backgroundColor: item.color,
+                                      width: '100%'
+                                    }
+                                  ]} 
+                                />
+                              </View>
+                              <ThemedText style={[styles.statusPercentage, { color: colors.textSecondary }]}>
+                                {percentage}%
+                              </ThemedText>
+                            </View>
+                          </View>
+                        );
+                      })}
+                    </View>
+                  </View>
+                </View>
+
+                {/* Room Distribution Chart */}
+                {roomDistribution.length > 0 && (
+                  <View style={styles.section}>
+                    <ThemedText type="subtitle" style={[styles.sectionTitle, { color: colors.text }]}>
+                      Items by Room
+                    </ThemedText>
+                    <View style={[styles.chartContainer, { backgroundColor: colors.card }]}>
+                      <View style={{ height: 200 }}>
+                        <CartesianChart
+                          data={roomDistribution}
+                          xKey="room"
+                          yKeys={["count"]}
+                          domainPadding={{ left: 20, right: 20, top: 20, bottom: 20 }}
+                        >
+                          {({ points, chartBounds }) => (
+                            <Bar
+                              points={points.count}
+                              chartBounds={chartBounds}
+                              animate={{ type: "spring" }}
+                              color={colors.primary}
+                            />
+                          )}
+                        </CartesianChart>
+                      </View>
+                      <View style={styles.roomLabels}>
+                        {roomDistribution.map((room, index) => (
+                          <ThemedText
+                            key={index}
+                            style={[styles.roomLabel, { color: colors.textSecondary }]}
+                            numberOfLines={1}
+                          >
+                            {room.room} ({room.count})
+                          </ThemedText>
+                        ))}
+                      </View>
+                    </View>
+                  </View>
+                )}
+              </>
+            )}
 
             {/* Recent Alerts */}
             <View style={styles.section}>
@@ -542,11 +663,12 @@ const styles = StyleSheet.create({
     gap: 8, // Reduced gap to fit better
   },
   bentoCardSmall: {
+    flexDirection: 'row',
     flex: 1,
     borderRadius: 12,
-    padding: 12, // Increased padding
+    padding: 12,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-start', // Changed to align content to start
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -554,22 +676,98 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   bentoIconSmall: {
-    width: 28, // Slightly smaller icon
+    width: 28,
     height: 28,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 6, // Reduced margin
+    marginRight: 8, // Changed from marginBottom to marginRight
+  },
+  bentoTextContainer: {
+    flex: 1,
+    justifyContent: 'space-evenly',
+    alignItems: 'center',
   },
   bentoNumberSmall: {
-    fontSize: 20, // Increased font size
+    fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 3,
+    marginBottom: 2, // Reduced margin
   },
   bentoLabelSmall: {
     fontSize: 11, // Increased font size
     fontWeight: '500',
     textAlign: 'center',
     lineHeight: 12,
+  },
+  // Chart Styles
+  chartContainer: {
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+    marginBottom: 8,
+  },
+  statusChart: {
+    gap: 12,
+  },
+  statusItem: {
+    gap: 8,
+  },
+  statusInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  statusIndicator: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  statusLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    flex: 1,
+  },
+  statusCount: {
+    fontSize: 14,
+    fontWeight: '600',
+    minWidth: 30,
+    textAlign: 'right',
+  },
+  statusBarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  statusBar: {
+    flex: 1,
+    height: 8,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  statusBarFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  statusPercentage: {
+    fontSize: 12,
+    fontWeight: '500',
+    minWidth: 40,
+    textAlign: 'right',
+  },
+  roomLabels: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-around',
+    marginTop: 8,
+    gap: 4,
+  },
+  roomLabel: {
+    fontSize: 10,
+    textAlign: 'center',
+    flex: 1,
   },
 });
