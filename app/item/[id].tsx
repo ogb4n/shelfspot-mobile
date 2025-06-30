@@ -36,7 +36,6 @@ export default function ItemDetailScreen() {
 
     const [item, setItem] = useState<ItemWithLocation | null>(null);
     const [loading, setLoading] = useState(true);
-    const [isUpdating, setIsUpdating] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [showCreateAlertModal, setShowCreateAlertModal] = useState(false);
     const [showAddToProjectModal, setShowAddToProjectModal] = useState(false);
@@ -55,12 +54,12 @@ export default function ItemDetailScreen() {
 
     // Find the item by ID
     useEffect(() => {
-        if (id && items.length > 0 && !isUpdating) {
+        if (id && items.length > 0) {
             const foundItem = items.find(item => item.id.toString() === id);
             setItem(foundItem || null);
             setLoading(false);
         }
-    }, [id, items, isUpdating]);
+    }, [id, items]);
 
     // Alerts are loaded globally in the store initialization, no need to reload here
 
@@ -104,8 +103,7 @@ export default function ItemDetailScreen() {
     const handleToggleFavorite = async () => {
         try {
             await toggleFavorite(item.id);
-            // Update local item state
-            setItem(prev => prev ? { ...prev, isFavorite: !prev.isFavorite } : null);
+            // No need to manually update local state - the store will update and trigger a re-render
         } catch {
             Alert.alert('Error', 'Failed to update favorite status');
         }
@@ -160,22 +158,12 @@ export default function ItemDetailScreen() {
 
     const handleUpdateItem = async (itemId: number, updatedData: any) => {
         try {
-            setIsUpdating(true);
-            
             // Update the item in the store
             await updateItem(itemId, updatedData);
             setShowEditModal(false);
             
-            // Wait for the store to be fully updated, then manually refresh
-            setTimeout(() => {
-                const updatedItemFromStore = items.find(i => i.id === itemId);
-                if (updatedItemFromStore) {
-                    setItem(updatedItemFromStore);
-                }
-                setIsUpdating(false);
-            }, 300);
+            // The useEffect will automatically update the local item state when the store updates
         } catch {
-            setIsUpdating(false);
             Alert.alert('Error', 'Failed to update item');
         }
     };
