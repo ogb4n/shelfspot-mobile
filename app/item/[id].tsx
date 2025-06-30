@@ -3,12 +3,14 @@ import { useEffect, useState } from 'react';
 import {
     Alert,
     Dimensions,
+    Linking,
     ScrollView,
     Share,
     StyleSheet,
     TouchableOpacity,
     View,
 } from 'react-native';
+import { AddToProjectModal } from '../../components/inventory/AddToProjectModal';
 import { CreateAlertModal } from '../../components/inventory/CreateAlertModal';
 import { EditItemModal } from '../../components/inventory/EditItemModal';
 import { ThemedText } from '../../components/ThemedText';
@@ -33,6 +35,7 @@ export default function ItemDetailScreen() {
     const [loading, setLoading] = useState(true);
     const [showEditModal, setShowEditModal] = useState(false);
     const [showCreateAlertModal, setShowCreateAlertModal] = useState(false);
+    const [showAddToProjectModal, setShowAddToProjectModal] = useState(false);
 
     const { items, toggleFavorite, updateItem, deleteItem } = useInventoryItems();
     const {
@@ -147,6 +150,10 @@ export default function ItemDetailScreen() {
         setShowCreateAlertModal(true);
     };
 
+    const handleAddToProject = () => {
+        setShowAddToProjectModal(true);
+    };
+
     const handleUpdateItem = async (itemId: number, updatedData: any) => {
         try {
             await updateItem(itemId, updatedData);
@@ -228,6 +235,22 @@ export default function ItemDetailScreen() {
                             </ThemedText>
                         </View>
 
+                        {(item.importanceScore !== undefined && item.importanceScore !== null) && (
+                            <View style={styles.statItem}>
+                                <ThemedText style={[styles.statLabel, { color: colors.textSecondary }]}>
+                                    Importance
+                                </ThemedText>
+                                <View style={styles.importanceContainer}>
+                                    <ThemedText type="defaultSemiBold" style={[styles.statValue, { color: colors.primary }]}>
+                                        {item.importanceScore}
+                                    </ThemedText>
+                                    <ThemedText style={[styles.importanceMax, { color: colors.textSecondary }]}>
+                                        /10
+                                    </ThemedText>
+                                </View>
+                            </View>
+                        )}
+
                         <View style={[styles.statusBadge, { backgroundColor: `${getStatusColor(item.status)}20` }]}>
                             <ThemedText style={[styles.statusText, { color: getStatusColor(item.status) }]}>
                                 {getStatusText(item.status)}
@@ -237,16 +260,21 @@ export default function ItemDetailScreen() {
 
                     {item.tags && item.tags.length > 0 && (
                         <View style={styles.tagsContainer}>
-                            {item.tags.map((tag) => (
-                                <View
-                                    key={tag.id}
-                                    style={[styles.tag, { backgroundColor: colors.backgroundSecondary }]}
-                                >
-                                    <ThemedText style={[styles.tagText, { color: colors.textSecondary }]}>
-                                        {tag.name}
-                                    </ThemedText>
-                                </View>
-                            ))}
+                            <ThemedText style={[styles.tagsTitle, { color: colors.textSecondary }]}>
+                                🏷️ Tags
+                            </ThemedText>
+                            <View style={styles.tagsWrapper}>
+                                {item.tags.map((tag) => (
+                                    <View
+                                        key={tag.id}
+                                        style={[styles.tag, { backgroundColor: colors.primary + '20' }]}
+                                    >
+                                        <ThemedText style={[styles.tagText, { color: colors.primary }]}>
+                                            {tag.name}
+                                        </ThemedText>
+                                    </View>
+                                ))}
+                            </View>
                         </View>
                     )}
                 </View>
@@ -279,7 +307,7 @@ export default function ItemDetailScreen() {
 
                         <TouchableOpacity
                             style={[styles.actionButton, { backgroundColor: colors.info }]}
-                            onPress={() => Alert.alert('Add to Project', 'This feature will be available soon!')}
+                            onPress={handleAddToProject}
                         >
                             <IconSymbol name="folder.badge.plus" size={20} color="#FFFFFF" />
                             <ThemedText style={[styles.actionButtonText, { color: '#FFFFFF' }]}>
@@ -299,76 +327,300 @@ export default function ItemDetailScreen() {
                     </View>
                 </View>
 
-                {/* Item Details */}
+                {/* Location Details */}
+                {(item.room || item.place || item.container) && (
+                    <View style={[styles.locationCard, { backgroundColor: colors.card }]}>
+                        <ThemedText type="defaultSemiBold" style={[styles.sectionTitle, { color: colors.text }]}>
+                            📍 Location Details
+                        </ThemedText>
+
+                        <View style={styles.locationHierarchy}>
+                            {item.room && (
+                                <View style={styles.locationItem}>
+                                    <View style={styles.locationHeader}>
+                                        <View style={[styles.locationIcon, { backgroundColor: colors.primary }]}>
+                                            <IconSymbol name="house" size={16} color="#FFFFFF" />
+                                        </View>
+                                        <View style={styles.locationInfo}>
+                                            <ThemedText style={[styles.locationLabel, { color: colors.textSecondary }]}>
+                                                Room
+                                            </ThemedText>
+                                            <ThemedText style={[styles.locationValue, { color: colors.text }]}>
+                                                {item.room.name}
+                                            </ThemedText>
+                                        </View>
+                                    </View>
+                                </View>
+                            )}
+
+                            {item.place && (
+                                <View style={styles.locationItem}>
+                                    <View style={styles.locationHeader}>
+                                        <View style={[styles.locationIcon, { backgroundColor: colors.info }]}>
+                                            <IconSymbol name="location" size={16} color="#FFFFFF" />
+                                        </View>
+                                        <View style={styles.locationInfo}>
+                                            <ThemedText style={[styles.locationLabel, { color: colors.textSecondary }]}>
+                                                Place
+                                            </ThemedText>
+                                            <ThemedText style={[styles.locationValue, { color: colors.text }]}>
+                                                {item.place.name}
+                                            </ThemedText>
+                                        </View>
+                                    </View>
+                                </View>
+                            )}
+
+                            {item.container && (
+                                <View style={styles.locationItem}>
+                                    <View style={styles.locationHeader}>
+                                        <View style={[styles.locationIcon, { backgroundColor: colors.warning }]}>
+                                            <IconSymbol name="shippingbox" size={16} color="#FFFFFF" />
+                                        </View>
+                                        <View style={styles.locationInfo}>
+                                            <ThemedText style={[styles.locationLabel, { color: colors.textSecondary }]}>
+                                                Container
+                                            </ThemedText>
+                                            <ThemedText style={[styles.locationValue, { color: colors.text }]}>
+                                                {item.container.name}
+                                            </ThemedText>
+                                        </View>
+                                    </View>
+                                </View>
+                            )}
+                        </View>
+                    </View>
+                )}
+
+                {/* Financial Information */}
+                {(item.price || item.sellprice) && (
+                    <View style={[styles.detailsCard, { backgroundColor: colors.card }]}>
+                        <ThemedText type="defaultSemiBold" style={[styles.sectionTitle, { color: colors.text }]}>
+                            💰 Financial Information
+                        </ThemedText>
+
+                        <View style={styles.detailsList}>
+                            {item.price && (
+                                <View style={styles.detailRow}>
+                                    <View style={styles.detailWithIcon}>
+                                        <IconSymbol name="dollarsign.circle" size={16} color={colors.success} />
+                                        <ThemedText style={[styles.detailLabel, { color: colors.textSecondary }]}>
+                                            Purchase Price
+                                        </ThemedText>
+                                    </View>
+                                    <ThemedText style={[styles.detailValue, { color: colors.success }]}>
+                                        €{item.price.toFixed(2)}
+                                    </ThemedText>
+                                </View>
+                            )}
+
+                            {item.sellprice && (
+                                <View style={styles.detailRow}>
+                                    <View style={styles.detailWithIcon}>
+                                        <IconSymbol name="banknote" size={16} color={colors.info} />
+                                        <ThemedText style={[styles.detailLabel, { color: colors.textSecondary }]}>
+                                            Sell Price
+                                        </ThemedText>
+                                    </View>
+                                    <ThemedText style={[styles.detailValue, { color: colors.info }]}>
+                                        €{item.sellprice.toFixed(2)}
+                                    </ThemedText>
+                                </View>
+                            )}
+
+                            {item.price && item.sellprice && (
+                                <View style={styles.detailRow}>
+                                    <View style={styles.detailWithIcon}>
+                                        <IconSymbol name="chart.line.uptrend.xyaxis" size={16} color={colors.primary} />
+                                        <ThemedText style={[styles.detailLabel, { color: colors.textSecondary }]}>
+                                            Potential Profit
+                                        </ThemedText>
+                                    </View>
+                                    <ThemedText style={[styles.detailValue, { color: item.sellprice > item.price ? colors.success : colors.error }]}>
+                                        €{(item.sellprice - item.price).toFixed(2)}
+                                    </ThemedText>
+                                </View>
+                            )}
+
+                            {item.price && (
+                                <View style={styles.detailRow}>
+                                    <View style={styles.detailWithIcon}>
+                                        <IconSymbol name="sum" size={16} color={colors.warning} />
+                                        <ThemedText style={[styles.detailLabel, { color: colors.textSecondary }]}>
+                                            Total Value
+                                        </ThemedText>
+                                    </View>
+                                    <ThemedText style={[styles.detailValue, { color: colors.text }]}>
+                                        €{(item.price * item.quantity).toFixed(2)}
+                                    </ThemedText>
+                                </View>
+                            )}
+                        </View>
+                    </View>
+                )}
+
+                {/* Technical Details */}
                 <View style={[styles.detailsCard, { backgroundColor: colors.card }]}>
                     <ThemedText type="defaultSemiBold" style={[styles.sectionTitle, { color: colors.text }]}>
-                        Item Details
+                        🔧 Technical Details
                     </ThemedText>
 
                     <View style={styles.detailsList}>
-                        {item.price && (
+                        {(item.importanceScore !== undefined && item.importanceScore !== null) && (
                             <View style={styles.detailRow}>
-                                <ThemedText style={[styles.detailLabel, { color: colors.textSecondary }]}>
-                                    Purchase Price
-                                </ThemedText>
-                                <ThemedText style={[styles.detailValue, { color: colors.text }]}>
-                                    €{item.price.toFixed(2)}
-                                </ThemedText>
-                            </View>
-                        )}
-
-                        {item.sellprice && (
-                            <View style={styles.detailRow}>
-                                <ThemedText style={[styles.detailLabel, { color: colors.textSecondary }]}>
-                                    Sell Price
-                                </ThemedText>
-                                <ThemedText style={[styles.detailValue, { color: colors.text }]}>
-                                    €{item.sellprice.toFixed(2)}
-                                </ThemedText>
+                                <View style={styles.detailWithIcon}>
+                                    <IconSymbol name="star" size={16} color={colors.warning} />
+                                    <ThemedText style={[styles.detailLabel, { color: colors.textSecondary }]}>
+                                        Importance Score
+                                    </ThemedText>
+                                </View>
+                                <View style={styles.importanceContainer}>
+                                    <ThemedText style={[styles.detailValue, { color: colors.warning }]}>
+                                        {item.importanceScore}
+                                    </ThemedText>
+                                    <ThemedText style={[styles.importanceMax, { color: colors.textSecondary }]}>
+                                        /10
+                                    </ThemedText>
+                                </View>
                             </View>
                         )}
 
                         <View style={styles.detailRow}>
-                            <ThemedText style={[styles.detailLabel, { color: colors.textSecondary }]}>
-                                Type
-                            </ThemedText>
-                            <ThemedText style={[styles.detailValue, { color: colors.text }]}>
-                                {item.consumable ? 'Consumable' : 'Non-consumable'}
-                            </ThemedText>
+                            <View style={styles.detailWithIcon}>
+                                <IconSymbol
+                                    name={item.consumable ? "leaf" : "cube"}
+                                    size={16}
+                                    color={item.consumable ? colors.success : colors.info}
+                                />
+                                <ThemedText style={[styles.detailLabel, { color: colors.textSecondary }]}>
+                                    Type
+                                </ThemedText>
+                            </View>
+                            <View style={[styles.typeBadge, { backgroundColor: item.consumable ? colors.success + '20' : colors.info + '20' }]}>
+                                <ThemedText style={[styles.typeBadgeText, { color: item.consumable ? colors.success : colors.info }]}>
+                                    {item.consumable ? '🔄 Consumable' : '📦 Durable'}
+                                </ThemedText>
+                            </View>
                         </View>
+
+                        {item.importanceScore !== undefined && (
+                            <View style={styles.detailRow}>
+                                <View style={styles.detailWithIcon}>
+                                    <IconSymbol name="star" size={16} color={colors.warning} />
+                                    <ThemedText style={[styles.detailLabel, { color: colors.textSecondary }]}>
+                                        Importance Score
+                                    </ThemedText>
+                                </View>
+                                <View style={styles.importanceScoreContainer}>
+                                    <View style={[styles.importanceScoreBadge, { backgroundColor: colors.warning + '20' }]}>
+                                        <ThemedText style={[styles.importanceScoreText, { color: colors.warning }]}>
+                                            ⭐ {item.importanceScore}/10
+                                        </ThemedText>
+                                    </View>
+                                </View>
+                            </View>
+                        )}
 
                         {item.itemLink && (
                             <View style={styles.detailRow}>
-                                <ThemedText style={[styles.detailLabel, { color: colors.textSecondary }]}>
-                                    External Link
-                                </ThemedText>
-                                <TouchableOpacity>
+                                <View style={styles.detailWithIcon}>
+                                    <IconSymbol name="link" size={16} color={colors.primary} />
+                                    <ThemedText style={[styles.detailLabel, { color: colors.textSecondary }]}>
+                                        External Link
+                                    </ThemedText>
+                                </View>
+                                <TouchableOpacity
+                                    style={styles.linkButton}
+                                    onPress={async () => {
+                                        try {
+                                            if (item.itemLink) {
+                                                const supported = await Linking.canOpenURL(item.itemLink);
+                                                if (supported) {
+                                                    await Linking.openURL(item.itemLink);
+                                                } else {
+                                                    Alert.alert('Error', 'Cannot open this link');
+                                                }
+                                            }
+                                        } catch (error) {
+                                            Alert.alert('Error', 'Failed to open link');
+                                        }
+                                    }}
+                                >
+                                    <IconSymbol name="arrow.up.right.square" size={16} color={colors.primary} />
                                     <ThemedText style={[styles.linkText, { color: colors.primary }]}>
-                                        View Link
+                                        Open Link
                                     </ThemedText>
                                 </TouchableOpacity>
                             </View>
                         )}
 
-                        {item.createdAt && (
+                        {item.image && (
                             <View style={styles.detailRow}>
-                                <ThemedText style={[styles.detailLabel, { color: colors.textSecondary }]}>
-                                    Added
-                                </ThemedText>
-                                <ThemedText style={[styles.detailValue, { color: colors.text }]}>
-                                    {new Date(item.createdAt).toLocaleDateString()}
-                                </ThemedText>
+                                <View style={styles.detailWithIcon}>
+                                    <IconSymbol name="photo" size={16} color={colors.info} />
+                                    <ThemedText style={[styles.detailLabel, { color: colors.textSecondary }]}>
+                                        Image
+                                    </ThemedText>
+                                </View>
+                                <TouchableOpacity style={styles.linkButton}>
+                                    <IconSymbol name="eye" size={16} color={colors.info} />
+                                    <ThemedText style={[styles.linkText, { color: colors.info }]}>
+                                        View Image
+                                    </ThemedText>
+                                </TouchableOpacity>
+                            </View>
+                        )}
+                    </View>
+                </View>
+
+                {/* Timeline */}
+                <View style={[styles.detailsCard, { backgroundColor: colors.card }]}>
+                    <ThemedText type="defaultSemiBold" style={[styles.sectionTitle, { color: colors.text }]}>
+                        📅 Timeline
+                    </ThemedText>
+
+                    <View style={styles.timelineContainer}>
+                        {item.createdAt && (
+                            <View style={styles.timelineItem}>
+                                <View style={[styles.timelineIcon, { backgroundColor: colors.success }]}>
+                                    <IconSymbol name="plus" size={12} color="#FFFFFF" />
+                                </View>
+                                <View style={styles.timelineContent}>
+                                    <ThemedText style={[styles.timelineTitle, { color: colors.text }]}>
+                                        Item Created
+                                    </ThemedText>
+                                    <ThemedText style={[styles.timelineDate, { color: colors.textSecondary }]}>
+                                        {new Date(item.createdAt).toLocaleDateString('en-US', {
+                                            year: 'numeric',
+                                            month: 'long',
+                                            day: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                        })}
+                                    </ThemedText>
+                                </View>
                             </View>
                         )}
 
-                        {item.updatedAt && (
-                            <View style={styles.detailRow}>
-                                <ThemedText style={[styles.detailLabel, { color: colors.textSecondary }]}>
-                                    Last Updated
-                                </ThemedText>
-                                <ThemedText style={[styles.detailValue, { color: colors.text }]}>
-                                    {new Date(item.updatedAt).toLocaleDateString()}
-                                </ThemedText>
+                        {item.updatedAt && item.updatedAt !== item.createdAt && (
+                            <View style={styles.timelineItem}>
+                                <View style={[styles.timelineIcon, { backgroundColor: colors.info }]}>
+                                    <IconSymbol name="pencil" size={12} color="#FFFFFF" />
+                                </View>
+                                <View style={styles.timelineContent}>
+                                    <ThemedText style={[styles.timelineTitle, { color: colors.text }]}>
+                                        Last Updated
+                                    </ThemedText>
+                                    <ThemedText style={[styles.timelineDate, { color: colors.textSecondary }]}>
+                                        {new Date(item.updatedAt).toLocaleDateString('en-US', {
+                                            year: 'numeric',
+                                            month: 'long',
+                                            day: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                        })}
+                                    </ThemedText>
+                                </View>
                             </View>
                         )}
                     </View>
@@ -386,7 +638,7 @@ export default function ItemDetailScreen() {
                         </ThemedText>
                         <TouchableOpacity
                             style={[styles.emptyButton, { backgroundColor: colors.backgroundSecondary }]}
-                            onPress={() => Alert.alert('Add to Project', 'Project management will be available soon!')}
+                            onPress={handleAddToProject}
                         >
                             <ThemedText style={[styles.emptyButtonText, { color: colors.primary }]}>
                                 Add to Project
@@ -464,6 +716,13 @@ export default function ItemDetailScreen() {
                 onCreateAlert={handleAlertCreated}
                 itemId={item.id}
                 itemName={item.name}
+            />
+
+            <AddToProjectModal
+                visible={showAddToProjectModal}
+                onClose={() => setShowAddToProjectModal(false)}
+                item={item}
+                onItemAdded={() => setShowAddToProjectModal(false)}
             />
         </ThemedView>
     );
@@ -571,6 +830,15 @@ const styles = StyleSheet.create({
     statValue: {
         fontSize: 20,
     },
+    importanceContainer: {
+        flexDirection: 'row',
+        alignItems: 'baseline',
+        gap: 2,
+    },
+    importanceMax: {
+        fontSize: 14,
+        fontWeight: '400',
+    },
     statusBadge: {
         paddingHorizontal: 16,
         paddingVertical: 8,
@@ -581,6 +849,15 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     tagsContainer: {
+        marginTop: 16,
+        gap: 8,
+    },
+    tagsTitle: {
+        fontSize: 14,
+        fontWeight: '600',
+        marginBottom: 4,
+    },
+    tagsWrapper: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         gap: 8,
@@ -593,6 +870,109 @@ const styles = StyleSheet.create({
     tagText: {
         fontSize: 12,
         fontWeight: '500',
+    },
+    locationCard: {
+        marginHorizontal: 16,
+        marginBottom: 16,
+        padding: 20,
+        borderRadius: 16,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 3,
+    },
+    locationHierarchy: {
+        gap: 12,
+    },
+    locationItem: {
+        borderLeftWidth: 3,
+        borderLeftColor: '#E0E0E0',
+        paddingLeft: 16,
+    },
+    locationHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    locationIcon: {
+        width: 32,
+        height: 32,
+        borderRadius: 8,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    locationInfo: {
+        flex: 1,
+    },
+    locationLabel: {
+        fontSize: 12,
+        fontWeight: '500',
+        marginBottom: 2,
+    },
+    locationValue: {
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    detailWithIcon: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        flex: 1,
+    },
+    typeBadge: {
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 8,
+    },
+    typeBadgeText: {
+        fontSize: 12,
+        fontWeight: '600',
+    },
+    linkButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        paddingVertical: 4,
+    },
+    importanceScoreContainer: {
+        alignItems: 'flex-end',
+    },
+    importanceScoreBadge: {
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 8,
+    },
+    importanceScoreText: {
+        fontSize: 12,
+        fontWeight: '600',
+    },
+    timelineContainer: {
+        gap: 16,
+    },
+    timelineItem: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 12,
+    },
+    timelineIcon: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 2,
+    },
+    timelineContent: {
+        flex: 1,
+    },
+    timelineTitle: {
+        fontSize: 14,
+        fontWeight: '600',
+        marginBottom: 2,
+    },
+    timelineDate: {
+        fontSize: 12,
     },
     actionsCard: {
         marginHorizontal: 16,

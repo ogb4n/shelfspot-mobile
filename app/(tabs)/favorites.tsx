@@ -7,7 +7,8 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { ItemWithLocation } from '@/types/inventory';
 import { getStatusColor, getStatusText } from '@/utils/inventory/filters';
 import { router } from 'expo-router';
-import { Alert, FlatList, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useState } from 'react';
+import { Alert, FlatList, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function FavoritesScreen() {
   const colorScheme = useColorScheme() ?? 'light';
@@ -15,6 +16,15 @@ export default function FavoritesScreen() {
 
   // Use favorites hook instead of mock data
   const { favoriteItems, loading, error, removeFromFavorites } = useFavorites();
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Filter favorites based on search query
+  const filteredFavorites = favoriteItems.filter(item =>
+    item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.location.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const handleRemoveFromFavorites = (itemId: number, itemName: string) => {
     Alert.alert(
@@ -116,48 +126,41 @@ export default function FavoritesScreen() {
         </ThemedText>
         <View style={styles.headerStats}>
           <ThemedText style={[styles.statsText, { color: colors.textSecondary }]}>
-            {favoriteItems.length} item{favoriteItems.length > 1 ? 's' : ''}
+            {searchQuery.length > 0 ? filteredFavorites.length : favoriteItems.length} item{(searchQuery.length > 0 ? filteredFavorites.length : favoriteItems.length) !== 1 ? 's' : ''}
           </ThemedText>
         </View>
       </View>
 
-      {/* Quick Actions */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.quickActions}
-        contentContainerStyle={styles.quickActionsContent}
-      >
-        <TouchableOpacity 
-          style={[styles.quickActionCard, { backgroundColor: colors.primary }]}
-          onPress={() => router.push('/(tabs)/inventory')}
-        >
-          <IconSymbol name="square.grid.2x2" size={16} color="#FFFFFF" />
-          <ThemedText style={[styles.quickActionText, { color: '#FFFFFF' }]}>
-            All
-          </ThemedText>
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={[styles.quickActionCard, { backgroundColor: colors.warning }]}
-          onPress={() => router.push('/(tabs)/inventory')}
-        >
-          <IconSymbol name="exclamationmark.triangle" size={16} color="#FFFFFF" />
-          <ThemedText style={[styles.quickActionText, { color: '#FFFFFF' }]}>
-            Low Stock
-          </ThemedText>
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={[styles.quickActionCard, { backgroundColor: colors.info }]}
-          onPress={() => router.push('/(tabs)/inventory')}
-        >
-          <IconSymbol name="clock" size={16} color="#FFFFFF" />
-          <ThemedText style={[styles.quickActionText, { color: '#FFFFFF' }]}>
-            Recent
-          </ThemedText>
-        </TouchableOpacity>
-      </ScrollView>
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <View style={[styles.searchBar, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}>
+          <IconSymbol name="magnifyingglass" size={20} color={colors.textSecondary} />
+          <TextInput
+            style={[styles.searchInput, { color: colors.text }]}
+            placeholder="Search favorites..."
+            placeholderTextColor={colors.textSecondary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity
+              onPress={() => setSearchQuery('')}
+              style={styles.clearButton}
+            >
+              <IconSymbol name="xmark.circle.fill" size={20} color={colors.textSecondary} />
+            </TouchableOpacity>
+          )}
+        </View>
+        {searchQuery.length > 0 && (
+          <View style={styles.searchResults}>
+            <ThemedText style={[styles.searchResultsText, { color: colors.textSecondary }]}>
+              {filteredFavorites.length} result{filteredFavorites.length !== 1 ? 's' : ''} found
+            </ThemedText>
+          </View>
+        )}
+      </View>
 
       {/* Favorites List */}
       {loading ? (
@@ -176,15 +179,33 @@ export default function FavoritesScreen() {
             {error}
           </ThemedText>
         </View>
-      ) : favoriteItems.length > 0 ? (
+      ) : filteredFavorites.length > 0 ? (
         <FlatList
-          data={favoriteItems}
+          data={filteredFavorites}
           renderItem={renderFavoriteItem}
           keyExtractor={(item) => item.id.toString()}
           style={styles.list}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
         />
+      ) : searchQuery.length > 0 ? (
+        <View style={styles.emptyState}>
+          <IconSymbol name="magnifyingglass" size={64} color={colors.textSecondary} />
+          <ThemedText type="subtitle" style={[styles.emptyTitle, { color: colors.text }]}>
+            No Results Found
+          </ThemedText>
+          <ThemedText style={[styles.emptyDescription, { color: colors.textSecondary }]}>
+            No favorites match "{searchQuery}". Try a different search term.
+          </ThemedText>
+          <TouchableOpacity
+            style={[styles.emptyButton, { backgroundColor: colors.backgroundSecondary }]}
+            onPress={() => setSearchQuery('')}
+          >
+            <ThemedText style={[styles.emptyButtonText, { color: colors.primary }]}>
+              Clear Search
+            </ThemedText>
+          </TouchableOpacity>
+        </View>
       ) : (
         <EmptyState />
       )}
@@ -215,25 +236,34 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
-  quickActions: {
-    marginBottom: 16,
-    flexGrow: 0,
-  },
-  quickActionsContent: {
+  // Search Bar Styles
+  searchContainer: {
     paddingHorizontal: 20,
-    gap: 8,
+    marginBottom: 16,
   },
-  quickActionCard: {
+  searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    gap: 6,
-    minHeight: 40,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 12,
   },
-  quickActionText: {
-    fontSize: 14,
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    paddingVertical: 0,
+  },
+  clearButton: {
+    padding: 4,
+  },
+  searchResults: {
+    marginTop: 8,
+    paddingHorizontal: 4,
+  },
+  searchResultsText: {
+    fontSize: 12,
     fontWeight: '500',
   },
   list: {

@@ -64,7 +64,10 @@ export function EditItemModal({ visible, onClose, onUpdateItem, item }: EditItem
     const handleSubmit = () => {
         if (!canSave() || !item) return;
 
-        onUpdateItem(item.id, formData);
+        // Remove consumable property from updates - it should only be set during creation
+        const { consumable, ...updateData } = formData;
+
+        onUpdateItem(item.id, updateData);
         handleClose();
         Alert.alert('Success', 'Item has been updated!');
     };
@@ -204,20 +207,6 @@ export function EditItemModal({ visible, onClose, onUpdateItem, item }: EditItem
                                     ))}
                                 </View>
                             </View>
-
-                            <TouchableOpacity
-                                style={styles.consumableToggle}
-                                onPress={() => updateFormData('consumable', !formData.consumable)}
-                            >
-                                <IconSymbol
-                                    name={formData.consumable ? "checkmark.square" : "square"}
-                                    size={24}
-                                    color={formData.consumable ? colors.primary : colors.textSecondary}
-                                />
-                                <ThemedText style={[styles.consumableText, { color: colors.text }]}>
-                                    Consumable Item
-                                </ThemedText>
-                            </TouchableOpacity>
                         </View>
 
                         {/* Current Item Info */}
@@ -233,6 +222,15 @@ export function EditItemModal({ visible, onClose, onUpdateItem, item }: EditItem
                                     </ThemedText>
                                     <ThemedText style={[styles.infoValue, { color: colors.text }]}>
                                         {item.location}
+                                    </ThemedText>
+                                </View>
+
+                                <View style={styles.infoRow}>
+                                    <ThemedText style={[styles.infoLabel, { color: colors.textSecondary }]}>
+                                        Type:
+                                    </ThemedText>
+                                    <ThemedText style={[styles.infoValue, { color: colors.text }]}>
+                                        {item.consumable ? 'Consumable' : 'Non-consumable'}
                                     </ThemedText>
                                 </View>
 

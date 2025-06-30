@@ -1,5 +1,5 @@
-import { ItemWithLocation, FilterOptions, ItemStatus } from '../../types/inventory';
 import { ITEM_STATUSES } from '../../constants/inventory';
+import { FilterOptions, ItemStatus, ItemWithLocation } from '../../types/inventory';
 
 export const getStatusColor = (status: ItemStatus | undefined): string => {
   const statusConfig = ITEM_STATUSES.find(s => s.value === status);
@@ -28,6 +28,9 @@ export const filterItems = (
     // Favorites filter
     const matchesFavorites = !filters.favoritesOnly || item.isFavorite;
 
+    // Consumables filter
+    const matchesConsumables = !filters.consumablesOnly || item.consumable;
+
     // Room filter
     const matchesRoom = filters.roomIds.length === 0 || 
       (item.roomId && filters.roomIds.includes(item.roomId));
@@ -51,6 +54,7 @@ export const filterItems = (
     return matchesSearch && 
            matchesStatus && 
            matchesFavorites && 
+           matchesConsumables &&
            matchesRoom && 
            matchesPlace && 
            matchesContainer && 
@@ -101,4 +105,5 @@ export const clearAdvancedFilters = (): Partial<FilterOptions> => ({
   containerIds: [],
   tagIds: [],
   statuses: [],
+  consumablesOnly: false,
 });

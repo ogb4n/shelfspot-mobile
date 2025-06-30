@@ -39,13 +39,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="consumables"
-        options={{
-          title: 'Consumables',
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="cube.box.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
         name="favorites"
         options={{
           title: 'Favorites',

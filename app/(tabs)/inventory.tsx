@@ -1,5 +1,5 @@
-import { router } from 'expo-router';
-import { useState } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { Alert, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { ThemedText } from '../../components/ThemedText';
 import { ThemedView } from '../../components/ThemedView';
@@ -9,6 +9,7 @@ import { useColorScheme } from '../../hooks/useColorScheme';
 
 // Import refactored components and hooks
 import { AddItemModal } from '../../components/inventory/AddItemModal';
+import { AddToProjectModal } from '../../components/inventory/AddToProjectModal';
 import { AlertsModal } from '../../components/inventory/AlertsModal';
 import { CreateAlertModal } from '../../components/inventory/CreateAlertModal';
 import { EditItemModal } from '../../components/inventory/EditItemModal';
@@ -27,6 +28,9 @@ export default function InventoryScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
 
+  // Get navigation parameters
+  const { filter } = useLocalSearchParams<{ filter?: string }>();
+
   // Show/hide advanced filters
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
@@ -41,6 +45,10 @@ export default function InventoryScreen() {
   // Edit item modal
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedItemForEdit, setSelectedItemForEdit] = useState<ItemWithLocation | null>(null);
+
+  // Add to project modal
+  const [showAddToProjectModal, setShowAddToProjectModal] = useState(false);
+  const [selectedItemForProject, setSelectedItemForProject] = useState<ItemWithLocation | null>(null);
 
   // Use custom hooks
   const {
@@ -85,6 +93,13 @@ export default function InventoryScreen() {
     closeCreateAlertModal,
     createAlert,
   } = useInventoryAlerts(items);
+
+  // Handle filter parameter from navigation
+  useEffect(() => {
+    if (filter && filter === 'consumables') {
+      setSelectedFilter('consumables');
+    }
+  }, [filter, setSelectedFilter]);
 
   // Handlers
   const handleToggleAdvancedFilters = () => {
@@ -180,10 +195,19 @@ export default function InventoryScreen() {
   };
 
   const handleAddToProject = (item: ItemWithLocation) => {
-    // Placeholder for future project functionality
-    Alert.alert('Add to Project', `This feature will be available soon!\n\nItem: ${item.name}`, [
-      { text: 'OK' }
-    ]);
+    setSelectedItemForProject(item);
+    setShowAddToProjectModal(true);
+  };
+
+  const handleCloseAddToProjectModal = () => {
+    setShowAddToProjectModal(false);
+    setSelectedItemForProject(null);
+  };
+
+  const handleItemAddedToProject = () => {
+    setShowAddToProjectModal(false);
+    setSelectedItemForProject(null);
+    Alert.alert('Success', 'Item has been added to the project!');
   };
 
   const handleItemPress = (item: ItemWithLocation) => {
@@ -301,6 +325,13 @@ export default function InventoryScreen() {
         onCreateAlert={handleCreateAlert}
         itemId={selectedItemForAlert}
         itemName={selectedItem?.name}
+      />
+
+      <AddToProjectModal
+        visible={showAddToProjectModal}
+        item={selectedItemForProject}
+        onClose={handleCloseAddToProjectModal}
+        onItemAdded={handleItemAddedToProject}
       />
 
       {/* Context Menu */}

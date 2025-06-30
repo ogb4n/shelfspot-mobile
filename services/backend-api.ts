@@ -279,7 +279,14 @@ class BackendApiService {
     return this.request<any>(`/projects/${id}`);
   }
 
-  async createProject(data: { name: string; description?: string }): Promise<any> {
+  async createProject(data: { 
+    name: string; 
+    description?: string;
+    status?: string;
+    priority?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<any> {
     return this.request<any>('/projects', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -304,6 +311,47 @@ class BackendApiService {
     return this.request<{ message: string }>(`/projects/${id}`, {
       method: 'DELETE',
     });
+  }
+
+  // Project items methods
+  async getProjectItems(projectId: number): Promise<any[]> {
+    const project = await this.request<any>(`/projects/${projectId}`);
+    return project.projectItems || [];
+  }
+
+  async addItemToProject(projectId: number, data: { 
+    itemId: number; 
+    quantity: number; 
+    isActive?: boolean; 
+  }): Promise<any> {
+    return this.request<any>(`/projects/${projectId}/items`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateProjectItem(projectId: number, itemId: number, data: { 
+    importanceScore?: number; 
+    notes?: string; 
+  }): Promise<any> {
+    return this.request<any>(`/projects/${projectId}/items/${itemId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async removeItemFromProject(projectId: number, itemId: number): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/projects/${projectId}/items/${itemId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getProjectStatistics(projectId: number): Promise<any> {
+    return this.request<any>(`/projects/${projectId}/statistics`);
+  }
+
+  async getProjectScoringBreakdown(projectId: number): Promise<any> {
+    return this.request<any>(`/projects/${projectId}/scoring/breakdown`);
   }
 
   // Public request method for custom endpoints
