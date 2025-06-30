@@ -103,28 +103,6 @@ export default function SettingsScreen() {
     }
   };
 
-  const handleChangePassword = async (currentPassword: string, newPassword: string) => {
-    try {
-      // ⚠️ LIMITATION BACKEND: Il n'y a pas d'endpoint pour changer le mot de passe de façon sécurisée
-      // Seule option disponible : "reset password" qui ne vérifie PAS l'ancien mot de passe
-      // Cette fonction pourrait utiliser resetPassword du store, mais ce n'est pas sécurisé
-      
-      // Pour l'instant, on affiche un message d'information à l'utilisateur
-      Alert.alert(
-        'Information',
-        'La modification sécurisée du mot de passe n\'est pas encore disponible. ' +
-        'Seule la réinitialisation du mot de passe est possible (sans vérification de l\'ancien mot de passe). ' +
-        'Cette fonctionnalité nécessite une amélioration côté backend.',
-        [{ text: 'OK' }]
-      );
-      
-      setShowSecurityModal(false);
-    } catch (error) {
-      console.error('Erreur lors du changement de mot de passe:', error);
-      Alert.alert('Erreur', 'Impossible de modifier le mot de passe');
-    }
-  };
-
   const handleSaveNotifications = (settings: typeof notificationSettings) => {
     try {
       setNotificationSettings(settings);
@@ -405,7 +383,6 @@ export default function SettingsScreen() {
       <SecurityModal
         visible={showSecurityModal}
         onClose={() => setShowSecurityModal(false)}
-        onChangePassword={handleChangePassword}
       />
 
       {/* Modal des notifications */}
