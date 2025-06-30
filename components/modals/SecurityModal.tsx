@@ -3,136 +3,79 @@ import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { useAuthStore } from '@/stores/auth';
 import { useState } from 'react';
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 interface SecurityModalProps {
   visible: boolean;
   onClose: () => void;
-  onChangePassword: (currentPassword: string, newPassword: string) => void;
 }
 
 export default function SecurityModal({
   visible,
   onClose,
-  onChangePassword,
 }: SecurityModalProps) {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
   
-  const [currentPassword, setCurrentPassword] = useState('');
+  const { user, resetPassword, loading } = useAuthStore();
+  
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const isValidForm = currentPassword.length > 0 && 
-                     newPassword.length >= 6 && 
-                     newPassword === confirmPassword;
+  const isFormValid = () => {
+    return newPassword.length >= 8 && 
+           newPassword === confirmPassword && 
+           newPassword.trim() !== '' &&
+           confirmPassword.trim() !== '';
+  };
 
-  const handleSave = () => {
-    if (!isValidForm) {
-      Alert.alert(
-        'Erreur',
-        'Veuillez vérifier que tous les champs sont remplis correctement.',
-        [{ text: 'OK' }]
-      );
+  const handleSubmit = async () => {
+    if (!isFormValid()) {
+      Alert.alert('Erreur', 'Veuillez vérifier que les mots de passe sont identiques et contiennent au moins 8 caractères.');
       return;
     }
 
-    if (newPassword !== confirmPassword) {
-      Alert.alert(
-        'Erreur',
-        'La confirmation du mot de passe ne correspond pas.',
-        [{ text: 'OK' }]
-      );
+    if (!user?.email) {
+      Alert.alert('Erreur', 'Email utilisateur non trouvé');
       return;
     }
 
-    if (newPassword.length < 6) {
+    try {
+      await resetPassword(user.email, newPassword);
+      
       Alert.alert(
-        'Erreur',
-        'Le nouveau mot de passe doit contenir au moins 6 caractères.',
-        [{ text: 'OK' }]
+        'Succès',
+        'Votre mot de passe a été réinitialisé avec succès',
+        [{ text: 'OK', onPress: handleClose }]
       );
-      return;
+    } catch (error) {
+      console.error('Erreur lors de la réinitialisation du mot de passe:', error);
+      Alert.alert('Erreur', 'Impossible de réinitialiser le mot de passe');
     }
-
-    onChangePassword(currentPassword, newPassword);
-    handleClose();
   };
 
   const handleClose = () => {
-    setCurrentPassword('');
     setNewPassword('');
     setConfirmPassword('');
-    setShowCurrentPassword(false);
     setShowNewPassword(false);
     setShowConfirmPassword(false);
     onClose();
   };
-
-  const PasswordInput = ({ 
-    label, 
-    value, 
-    onChangeText, 
-    placeholder, 
-    showPassword, 
-    onToggleShow 
-  }: {
-    label: string;
-    value: string;
-    onChangeText: (text: string) => void;
-    placeholder: string;
-    showPassword: boolean;
-    onToggleShow: () => void;
-  }) => (
-    <View style={styles.formGroup}>
-      <ThemedText style={[styles.label, { color: colors.text }]}>
-        {label}
-      </ThemedText>
-      <View style={styles.passwordContainer}>
-        <TextInput
-          style={[
-            styles.passwordInput,
-            {
-              backgroundColor: colors.card,
-              borderColor: colors.border,
-              color: colors.text,
-            }
-          ]}
-          value={value}
-          onChangeText={onChangeText}
-          placeholder={placeholder}
-          placeholderTextColor={colors.textSecondary}
-          secureTextEntry={!showPassword}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-        <TouchableOpacity
-          style={styles.eyeButton}
-          onPress={onToggleShow}
-        >
-          <IconSymbol
-            name={showPassword ? 'eye.slash' : 'eye'}
-            size={20}
-            color={colors.textSecondary}
-          />
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
 
   return (
     <Modal
@@ -141,130 +84,174 @@ export default function SecurityModal({
       presentationStyle="pageSheet"
       onRequestClose={handleClose}
     >
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        <ThemedView style={[styles.content, { backgroundColor: colors.background }]}>
-          {/* Header */}
-          <View style={[styles.header, { borderBottomColor: colors.border }]}>
-            <TouchableOpacity onPress={handleClose} style={styles.headerButton}>
-              <ThemedText style={[styles.headerButtonText, { color: colors.primary }]}>
-                Annuler
-              </ThemedText>
-            </TouchableOpacity>
-            
-            <ThemedText type="defaultSemiBold" style={[styles.headerTitle, { color: colors.text }]}>
-              Sécurité
+      <ThemedView style={[styles.container, { backgroundColor: colors.background }]}>
+        {/* Header */}
+        <View style={[styles.header, { borderBottomColor: colors.border }]}>
+          <TouchableOpacity onPress={handleClose} style={styles.headerButton}>
+            <ThemedText style={[styles.headerButtonText, { color: colors.primary }]}>
+              Annuler
             </ThemedText>
-            
-            <TouchableOpacity 
-              onPress={handleSave} 
-              style={styles.headerButton}
-              disabled={!isValidForm}
-            >
+          </TouchableOpacity>
+          
+          <ThemedText type="defaultSemiBold" style={[styles.headerTitle, { color: colors.text }]}>
+            Changer le mot de passe
+          </ThemedText>
+          
+          <TouchableOpacity 
+            onPress={handleSubmit} 
+            style={styles.headerButton}
+            disabled={!isFormValid() || loading}
+          >
+            {loading ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
               <ThemedText 
                 style={[
                   styles.headerButtonText, 
                   { 
-                    color: isValidForm ? colors.primary : colors.textSecondary 
+                    color: isFormValid() ? colors.primary : colors.textSecondary 
                   }
                 ]}
               >
                 Sauvegarder
               </ThemedText>
-            </TouchableOpacity>
-          </View>
+            )}
+          </TouchableOpacity>
+        </View>
 
-          <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-            {/* Security Icon */}
-            <View style={styles.iconSection}>
-              <View style={[styles.securityIcon, { backgroundColor: colors.primary + '20' }]}>
-                <IconSymbol name="lock.shield" size={32} color={colors.primary} />
+        <KeyboardAvoidingView
+          style={styles.keyboardContainer}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+            {/* Info Section */}
+            <View style={styles.infoSection}>
+              <View style={[styles.iconContainer, { backgroundColor: colors.primary + '15' }]}>
+                <IconSymbol name="lock.shield" size={24} color={colors.primary} />
               </View>
-              <ThemedText style={[styles.iconTitle, { color: colors.text }]}>
-                Changer le mot de passe
+              <ThemedText style={[styles.title, { color: colors.text }]}>
+                Nouveau mot de passe
               </ThemedText>
-              <ThemedText style={[styles.iconSubtitle, { color: colors.textSecondary }]}>
-                Sécurisez votre compte avec un nouveau mot de passe
+              <ThemedText style={[styles.subtitle, { color: colors.textSecondary }]}>
+                Email: {user?.email}
               </ThemedText>
             </View>
 
-            {/* Form Section */}
-            <View style={styles.section}>
-              <PasswordInput
-                label="Mot de passe actuel"
-                value={currentPassword}
-                onChangeText={setCurrentPassword}
-                placeholder="Entrez votre mot de passe actuel"
-                showPassword={showCurrentPassword}
-                onToggleShow={() => setShowCurrentPassword(!showCurrentPassword)}
-              />
-
-              <PasswordInput
-                label="Nouveau mot de passe"
-                value={newPassword}
-                onChangeText={setNewPassword}
-                placeholder="Entrez votre nouveau mot de passe"
-                showPassword={showNewPassword}
-                onToggleShow={() => setShowNewPassword(!showNewPassword)}
-              />
-
-              <PasswordInput
-                label="Confirmer le nouveau mot de passe"
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                placeholder="Confirmez votre nouveau mot de passe"
-                showPassword={showConfirmPassword}
-                onToggleShow={() => setShowConfirmPassword(!showConfirmPassword)}
-              />
-            </View>
-
-            {/* Password Requirements */}
-            <View style={[styles.requirementsCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              <View style={styles.requirementsHeader}>
-                <View style={[styles.requirementsIcon, { backgroundColor: colors.primary + '20' }]}>
-                  <IconSymbol name="checkmark.shield" size={20} color={colors.primary} />
+            {/* Form */}
+            <View style={styles.formContainer}>
+              {/* Nouveau mot de passe */}
+              <View style={styles.inputGroup}>
+                <ThemedText style={[styles.label, { color: colors.text }]}>
+                  Nouveau mot de passe
+                </ThemedText>
+                <View style={styles.inputContainer}>
+                  <TextInput
+                    style={[
+                      styles.textInput,
+                      {
+                        backgroundColor: colors.card,
+                        borderColor: colors.border,
+                        color: colors.text,
+                      }
+                    ]}
+                    value={newPassword}
+                    onChangeText={setNewPassword}
+                    placeholder="Entrez votre nouveau mot de passe"
+                    placeholderTextColor={colors.textSecondary}
+                    secureTextEntry={!showNewPassword}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    returnKeyType="next"
+                  />
+                  <TouchableOpacity
+                    style={styles.eyeButton}
+                    onPress={() => setShowNewPassword(!showNewPassword)}
+                  >
+                    <IconSymbol
+                      name={showNewPassword ? 'eye.slash' : 'eye'}
+                      size={20}
+                      color={colors.textSecondary}
+                    />
+                  </TouchableOpacity>
                 </View>
-                <ThemedText type="defaultSemiBold" style={[styles.requirementsTitle, { color: colors.text }]}>
+              </View>
+
+              {/* Confirmer mot de passe */}
+              <View style={styles.inputGroup}>
+                <ThemedText style={[styles.label, { color: colors.text }]}>
+                  Confirmer le mot de passe
+                </ThemedText>
+                <View style={styles.inputContainer}>
+                  <TextInput
+                    style={[
+                      styles.textInput,
+                      {
+                        backgroundColor: colors.card,
+                        borderColor: colors.border,
+                        color: colors.text,
+                      }
+                    ]}
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    placeholder="Confirmez votre nouveau mot de passe"
+                    placeholderTextColor={colors.textSecondary}
+                    secureTextEntry={!showConfirmPassword}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    returnKeyType="done"
+                    onSubmitEditing={handleSubmit}
+                  />
+                  <TouchableOpacity
+                    style={styles.eyeButton}
+                    onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                  >
+                    <IconSymbol
+                      name={showConfirmPassword ? 'eye.slash' : 'eye'}
+                      size={20}
+                      color={colors.textSecondary}
+                    />
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Exigences */}
+              <View style={[styles.requirementsContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <ThemedText style={[styles.requirementsTitle, { color: colors.text }]}>
                   Exigences du mot de passe
                 </ThemedText>
-              </View>
-              <View style={styles.requirementsList}>
+                
                 <View style={styles.requirement}>
                   <IconSymbol 
-                    name={newPassword.length >= 6 ? 'checkmark.circle.fill' : 'circle'} 
+                    name={newPassword.length >= 8 ? 'checkmark.circle.fill' : 'circle'} 
                     size={16} 
-                    color={newPassword.length >= 6 ? colors.success : colors.textSecondary} 
+                    color={newPassword.length >= 8 ? colors.success : colors.textSecondary} 
                   />
                   <ThemedText style={[styles.requirementText, { color: colors.textSecondary }]}>
-                    Au moins 6 caractères
+                    Au moins 8 caractères
                   </ThemedText>
                 </View>
+                
                 <View style={styles.requirement}>
                   <IconSymbol 
-                    name={newPassword === confirmPassword && newPassword.length > 0 ? 'checkmark.circle.fill' : 'circle'} 
+                    name={newPassword === confirmPassword && newPassword.length > 0 && confirmPassword.length > 0 ? 'checkmark.circle.fill' : 'circle'} 
                     size={16} 
-                    color={newPassword === confirmPassword && newPassword.length > 0 ? colors.success : colors.textSecondary} 
+                    color={newPassword === confirmPassword && newPassword.length > 0 && confirmPassword.length > 0 ? colors.success : colors.textSecondary} 
                   />
                   <ThemedText style={[styles.requirementText, { color: colors.textSecondary }]}>
-                    Confirmation identique
+                    Les mots de passe sont identiques
                   </ThemedText>
                 </View>
               </View>
             </View>
           </ScrollView>
-        </ThemedView>
-      </KeyboardAvoidingView>
+        </KeyboardAvoidingView>
+      </ThemedView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
-  content: {
     flex: 1,
   },
   header: {
@@ -286,36 +273,39 @@ const styles = StyleSheet.create({
     fontSize: 18,
     textAlign: 'center',
   },
-  scrollView: {
+  keyboardContainer: {
     flex: 1,
   },
-  iconSection: {
+  scrollContainer: {
+    flex: 1,
+  },
+  infoSection: {
     alignItems: 'center',
     paddingVertical: 30,
+    paddingHorizontal: 20,
   },
-  securityIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 20,
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
   },
-  iconTitle: {
+  title: {
     fontSize: 20,
     fontWeight: '600',
     marginBottom: 8,
     textAlign: 'center',
   },
-  iconSubtitle: {
+  subtitle: {
     fontSize: 14,
     textAlign: 'center',
-    paddingHorizontal: 40,
   },
-  section: {
+  formContainer: {
     paddingHorizontal: 20,
   },
-  formGroup: {
+  inputGroup: {
     marginBottom: 20,
   },
   label: {
@@ -323,10 +313,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 8,
   },
-  passwordContainer: {
+  inputContainer: {
     position: 'relative',
   },
-  passwordInput: {
+  textInput: {
     borderWidth: 1,
     borderRadius: 12,
     paddingHorizontal: 16,
@@ -340,36 +330,23 @@ const styles = StyleSheet.create({
     top: 14,
     padding: 2,
   },
-  requirementsCard: {
+  requirementsContainer: {
     margin: 20,
     marginTop: 10,
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
   },
-  requirementsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  requirementsIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
   requirementsTitle: {
     fontSize: 16,
-  },
-  requirementsList: {
-    gap: 8,
+    fontWeight: '600',
+    marginBottom: 12,
   },
   requirement: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+    marginBottom: 8,
   },
   requirementText: {
     fontSize: 14,
