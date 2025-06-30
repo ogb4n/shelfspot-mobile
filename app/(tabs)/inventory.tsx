@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Alert, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { ThemedText } from '../../components/ThemedText';
 import { ThemedView } from '../../components/ThemedView';
@@ -13,11 +13,13 @@ import { AddItemModal } from '../../components/inventory/AddItemModal';
 import { AddToProjectModal } from '../../components/inventory/AddToProjectModal';
 import { AlertsModal } from '../../components/inventory/AlertsModal';
 import { CreateAlertModal } from '../../components/inventory/CreateAlertModal';
+import { EditAlertModal } from '../../components/inventory/EditAlertModal';
 import { EditItemModal } from '../../components/inventory/EditItemModal';
 import { InventoryFilters } from '../../components/inventory/InventoryFilters';
 import { InventoryHeader } from '../../components/inventory/InventoryHeader';
 import { InventoryItem } from '../../components/inventory/InventoryItem';
 import { InventorySearch } from '../../components/inventory/InventorySearch';
+import { ItemAlertsModal } from '../../components/inventory/ItemAlertsModal';
 import { ItemContextMenu } from '../../components/inventory/ItemContextMenu';
 import { ItemWithLocation } from '../../types/inventory';
 import { hasActiveAdvancedFilters } from '../../utils/inventory/filters';
@@ -47,6 +49,14 @@ export default function InventoryScreen() {
   // Add to project modal
   const [showAddToProjectModal, setShowAddToProjectModal] = useState(false);
   const [selectedItemForProject, setSelectedItemForProject] = useState<ItemWithLocation | null>(null);
+
+  // Item alerts modal
+  const [showItemAlertsModal, setShowItemAlertsModal] = useState(false);
+  const [selectedItemForAlertsView, setSelectedItemForAlertsView] = useState<ItemWithLocation | null>(null);
+
+  // Edit alert modal
+  const [showEditAlertModal, setShowEditAlertModal] = useState(false);
+  const [selectedAlertForEdit, setSelectedAlertForEdit] = useState<any>(null);
 
   // Use custom hooks
   const {
@@ -92,12 +102,30 @@ export default function InventoryScreen() {
     openCreateAlertModal,
     closeCreateAlertModal,
     createAlert,
+    updateAlert,
+    deleteAlert,
+    loadAlerts,
   } = useInventoryAlerts();
 
   // Computed values
   const selectedItem = selectedItemForAlert 
     ? items.find(item => item.id === selectedItemForAlert)
     : null;
+
+  // Load alerts when component mounts or when items change
+  useEffect(() => {
+    if (items.length > 0) {
+      loadAlerts();
+    }
+  }, [items.length, loadAlerts]);
+
+  // Update selectedItemForAlertsView when items change to keep it in sync
+  const currentSelectedItem = useMemo(() => {
+    if (selectedItemForAlertsView) {
+      return items.find(item => item.id === selectedItemForAlertsView.id) || selectedItemForAlertsView;
+    }
+    return selectedItemForAlertsView;
+  }, [items, selectedItemForAlertsView]);
 
   // Handle filter parameter from navigation
   useEffect(() => {
@@ -219,6 +247,79 @@ export default function InventoryScreen() {
     Alert.alert('Success', 'Item has been added to the project!');
   };
 
+  const handleViewItemAlerts = (itemId: number) => {
+    const item = items.find(i => i.id === itemId);
+    if (item) {
+      setSelectedItemForAlertsView(item);
+      setShowItemAlertsModal(true);
+    }
+  };
+
+  const handleCloseItemAlertsModal = () => {
+    setShowItemAlertsModal(false);
+    setSelectedItemForAlertsView(null);
+  };
+
+  const handleCreateAlertFromItemAlerts = () => {
+    if (selectedItemForAlertsView) {
+      setShowItemAlertsModal(false);
+      openCreateAlertModal(selectedItemForAlertsView.id);
+    }
+  };
+
+  // Navigation handler for alert items
+  const handleAlertItemPress = (itemId: number) => {
+    closeAlertsModal();
+    router.push(`/item/${itemId}`);
+  };
+
+  // Alert management handlers
+  const handleEditAlert = (alert: any) => {
+    setSelectedAlertForEdit(alert);
+    setShowEditAlertModal(true);
+    setShowItemAlertsModal(false);
+  };
+
+  const handleDeleteAlert = async (alertId: number) => {
+    Alert.alert(
+      'Confirm Deletion',
+      'Are you sure you want to delete this alert?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteAlert(alertId);
+              Alert.alert('Success', 'Alert has been deleted!');
+            } catch {
+              Alert.alert('Error', 'Failed to delete alert. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleUpdateAlert = async (alertData: any) => {
+    if (!selectedAlertForEdit) return;
+
+    try {
+      await updateAlert(selectedAlertForEdit.id, alertData);
+      setShowEditAlertModal(false);
+      setSelectedAlertForEdit(null);
+      Alert.alert('Success', 'Alert has been updated!');
+    } catch {
+      Alert.alert('Error', 'Failed to update alert. Please try again.');
+    }
+  };
+
+  const handleCloseEditAlertModal = () => {
+    setShowEditAlertModal(false);
+    setSelectedAlertForEdit(null);
+  };
+
   const handleItemPress = (item: ItemWithLocation) => {
     if (isSelectionMode) {
       handleItemSelection(item.id);
@@ -237,6 +338,7 @@ export default function InventoryScreen() {
       onLongPress={handleItemLongPress}
       onToggleFavorite={toggleFavorite}
       onCreateAlert={openCreateAlertModal}
+      onViewAlerts={handleViewItemAlerts}
     />
   );
 
@@ -326,6 +428,7 @@ export default function InventoryScreen() {
         visible={showAlertsModal}
         onClose={closeAlertsModal}
         triggeredAlerts={triggeredAlerts}
+        onItemPress={handleAlertItemPress}
       />
 
       <CreateAlertModal
@@ -341,6 +444,22 @@ export default function InventoryScreen() {
         item={selectedItemForProject}
         onClose={handleCloseAddToProjectModal}
         onItemAdded={handleItemAddedToProject}
+      />
+
+      <ItemAlertsModal
+        visible={showItemAlertsModal}
+        onClose={handleCloseItemAlertsModal}
+        item={currentSelectedItem}
+        onEditAlert={handleEditAlert}
+        onDeleteAlert={handleDeleteAlert}
+        onCreateAlert={handleCreateAlertFromItemAlerts}
+      />
+
+      <EditAlertModal
+        visible={showEditAlertModal}
+        onClose={handleCloseEditAlertModal}
+        onUpdateAlert={handleUpdateAlert}
+        alert={selectedAlertForEdit}
       />
 
       {/* Context Menu */}

@@ -482,10 +482,25 @@ export const useInventoryStore = create<InventoryState>()(
             const alerts = await backendApi.getAlerts();
             set({ allAlerts: alerts });
             
-            // Update triggered alerts
+            // Update items with latest alert information
             const { items } = get();
-            const triggered = sortAlertsByPriority(getTriggeredAlerts(items));
+            const updatedItems = items.map(item => {
+              const itemAlerts = alerts.filter(alert => alert.itemId === item.id);
+              const activeAlerts = itemAlerts.filter(alert => alert.isActive);
+              return {
+                ...item,
+                alerts: itemAlerts,
+                activeAlerts: activeAlerts
+              };
+            });
+            set({ items: updatedItems });
+            
+            // Update triggered alerts with the updated items
+            const triggered = sortAlertsByPriority(getTriggeredAlerts(updatedItems));
             set({ triggeredAlerts: triggered });
+            
+            // Apply current filters to update filteredItems
+            get().applyFilters();
           } catch (err: any) {
             console.error('Error loading alerts:', err);
             set({ alertsError: err.message || 'Failed to load alerts' });
@@ -571,10 +586,14 @@ export const useInventoryStore = create<InventoryState>()(
         initialize: async () => {
           try {
             console.log('InventoryStore: Initializing inventory');
+            // Load items first
+            await get().loadItems();
+            
+            // Then load related data including alerts
             await Promise.all([
-              get().loadItems(),
               get().loadFavorites(),
               get().loadInventoryData(),
+              get().loadAlerts(),
             ]);
             console.log('InventoryStore: Inventory initialized successfully');
           } catch (error) {

@@ -1,9 +1,9 @@
 import {
-  Modal,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View
+    Modal,
+    ScrollView,
+    StyleSheet,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { useThemeColor } from '../../hooks/useThemeColor';
 import { TriggeredAlert } from '../../utils/inventory/alerts';
@@ -15,9 +15,10 @@ interface AlertsModalProps {
   visible: boolean;
   onClose: () => void;
   triggeredAlerts: TriggeredAlert[];
+  onItemPress?: (itemId: number) => void;
 }
 
-export function AlertsModal({ visible, onClose, triggeredAlerts }: AlertsModalProps) {
+export function AlertsModal({ visible, onClose, triggeredAlerts, onItemPress }: AlertsModalProps) {
   const colors = {
     card: useThemeColor({}, 'card'),
     text: useThemeColor({}, 'text'),
@@ -62,12 +63,14 @@ export function AlertsModal({ visible, onClose, triggeredAlerts }: AlertsModalPr
               </View>
             ) : (
               triggeredAlerts.map(({ item, alert }, index) => (
-                <View
+                <TouchableOpacity
                   key={`${item.id}-${alert.id}`}
                   style={[styles.alertCard, {
                     backgroundColor: colors.card,
                     borderLeftColor: colors.warning,
                   }]}
+                  onPress={() => onItemPress?.(item.id)}
+                  activeOpacity={0.7}
                 >
                   <View style={styles.alertHeader}>
                     <View style={styles.alertIcon}>
@@ -92,8 +95,16 @@ export function AlertsModal({ visible, onClose, triggeredAlerts }: AlertsModalPr
                     <ThemedText style={[styles.alertLocation, { color: colors.textSecondary }]}>
                       📍 {item.location}
                     </ThemedText>
+                    {onItemPress && (
+                      <View style={styles.tapHint}>
+                        <IconSymbol name="hand.tap" size={12} color={colors.primary} />
+                        <ThemedText style={[styles.tapHintText, { color: colors.primary }]}>
+                          Tap to view item details
+                        </ThemedText>
+                      </View>
+                    )}
                   </View>
-                </View>
+                </TouchableOpacity>
               ))
             )}
           </View>
@@ -189,5 +200,15 @@ const styles = StyleSheet.create({
   },
   alertLocation: {
     fontSize: 14,
+  },
+  tapHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    gap: 4,
+  },
+  tapHintText: {
+    fontSize: 12,
+    fontWeight: '500',
   },
 });

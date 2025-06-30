@@ -47,7 +47,6 @@ export default function ItemDetailScreen() {
     const { items, toggleFavorite, updateItem, deleteItem } = useInventoryItems();
     const {
         allAlerts,
-        loadAlerts,
         createAlert,
         updateAlert,
         deleteAlert
@@ -62,12 +61,7 @@ export default function ItemDetailScreen() {
         }
     }, [id, items]);
 
-    // Load alerts for this item
-    useEffect(() => {
-        if (item) {
-            loadAlerts();
-        }
-    }, [item, loadAlerts]);
+    // Alerts are loaded globally in the store initialization, no need to reload here
 
     if (loading) {
         return (

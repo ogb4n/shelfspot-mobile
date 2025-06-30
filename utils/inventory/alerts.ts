@@ -31,6 +31,11 @@ export const hasActiveAlerts = (item: ItemWithLocation): boolean => {
   return item.activeAlerts?.some(alert => isAlertTriggered(item, alert)) || false;
 };
 
+// Check if an item has any alerts configured (active or inactive)
+export const hasAnyAlerts = (item: ItemWithLocation): boolean => {
+  return (item.activeAlerts?.length || 0) > 0;
+};
+
 export const getAlertMessage = (item: Item, alert: Alert): string => {
   if (alert.name) {
     return alert.name;

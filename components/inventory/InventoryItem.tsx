@@ -1,7 +1,7 @@
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useThemeColor } from '../../hooks/useThemeColor';
 import { ItemWithLocation } from '../../types/inventory';
-import { hasActiveAlerts } from '../../utils/inventory/alerts';
+import { hasActiveAlerts, hasAnyAlerts } from '../../utils/inventory/alerts';
 import { getStatusColor, getStatusText } from '../../utils/inventory/filters';
 import { ThemedText } from '../ThemedText';
 import { IconSymbol } from '../ui/IconSymbol';
@@ -14,6 +14,7 @@ interface InventoryItemProps {
   onLongPress?: (item: ItemWithLocation, position: { x: number; y: number }) => void;
   onToggleFavorite?: (itemId: number) => void;
   onCreateAlert?: (itemId: number) => void;
+  onViewAlerts?: (itemId: number) => void;
 }
 
 export function InventoryItem({
@@ -24,6 +25,7 @@ export function InventoryItem({
   onLongPress,
   onToggleFavorite,
   onCreateAlert,
+  onViewAlerts,
 }: InventoryItemProps) {
   const backgroundColor = useThemeColor({}, 'card');
   const textColor = useThemeColor({}, 'text');
@@ -33,12 +35,23 @@ export function InventoryItem({
   const warningColor = useThemeColor({}, 'warning');
   const backgroundSecondaryColor = useThemeColor({}, 'backgroundSecondary');
 
-  const hasAlerts = hasActiveAlerts(item);
+  const hasTriggeredAlerts = hasActiveAlerts(item);
+  const hasConfiguredAlerts = hasAnyAlerts(item);
 
   const handleLongPress = (event: any) => {
     if (!isSelectionMode && onLongPress) {
       const { pageX, pageY } = event.nativeEvent;
       onLongPress(item, { x: pageX, y: pageY });
+    }
+  };
+
+  const handleAlertPress = () => {
+    if (hasConfiguredAlerts) {
+      // If item has configured alerts, show alerts modal to view/manage them
+      onViewAlerts?.(item.id);
+    } else {
+      // If no alerts configured, open create alert modal
+      onCreateAlert?.(item.id);
     }
   };
 
@@ -78,7 +91,7 @@ export function InventoryItem({
               <ThemedText type="defaultSemiBold" style={[styles.itemName, { color: textColor }]}>
                 {item.name}
               </ThemedText>
-              {hasAlerts && (
+              {hasTriggeredAlerts && (
                 <View style={[styles.alertIndicator, { backgroundColor: warningColor }]}>
                   <IconSymbol name="exclamationmark" size={12} color="#FFFFFF" />
                 </View>
@@ -92,12 +105,12 @@ export function InventoryItem({
             <View style={styles.itemActions}>
               <TouchableOpacity
                 style={styles.alertButton}
-                onPress={() => onCreateAlert?.(item.id)}
+                onPress={handleAlertPress}
               >
                 <IconSymbol
-                  name="bell"
+                  name={hasConfiguredAlerts ? "bell.fill" : "bell"}
                   size={18}
-                  color={hasAlerts ? warningColor : textSecondaryColor}
+                  color={hasTriggeredAlerts ? warningColor : hasConfiguredAlerts ? primaryColor : textSecondaryColor}
                 />
               </TouchableOpacity>
               <TouchableOpacity

@@ -191,5 +191,8 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '600',
     color: '#FFFFFF',
+    textAlign: 'center',
+    lineHeight: 12,
+    includeFontPadding: false,
   },
 });

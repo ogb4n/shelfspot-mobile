@@ -10,5 +10,6 @@ export { InventoryFilters } from './InventoryFilters';
 export { InventoryHeader } from './InventoryHeader';
 export { InventoryItem } from './InventoryItem';
 export { InventorySearch } from './InventorySearch';
+export { ItemAlertsModal } from './ItemAlertsModal';
 export { ItemContextMenu } from './ItemContextMenu';
 
