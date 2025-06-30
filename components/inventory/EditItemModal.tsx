@@ -111,8 +111,10 @@ export function EditItemModal({ visible, onClose, onUpdateItem, item }: EditItem
             ...(formData.roomId !== undefined && { roomId: formData.roomId }),
             ...(formData.placeId !== undefined && { placeId: formData.placeId }),
             ...(formData.containerId !== undefined && { containerId: formData.containerId }),
-            // Note: tags are not yet supported by the API, so we exclude them for now
-            // ...(formData.tagIds !== undefined && { tagIds: formData.tagIds }),
+            ...(formData.price !== undefined && { price: formData.price }),
+            ...(formData.itemLink !== undefined && { itemLink: formData.itemLink }),
+            ...(typeof formData.consumable === 'boolean' && { consumable: formData.consumable }),
+            ...(formData.tagIds !== undefined && { tagIds: formData.tagIds }),
         };
 
         onUpdateItem(item.id, updateData);
@@ -544,6 +546,62 @@ export function EditItemModal({ visible, onClose, onUpdateItem, item }: EditItem
                                     autoCorrect={false}
                                 />
                             </View>
+
+                            {/* Consumable Toggle - Temporarily disabled until backend supports it */}
+                            {/* 
+                            <View style={styles.inputGroup}>
+                                <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                                    Item Type
+                                </ThemedText>
+                                <View style={styles.statusButtons}>
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.statusButton,
+                                            {
+                                                backgroundColor: !formData.consumable
+                                                    ? colors.primary
+                                                    : colors.backgroundSecondary,
+                                            }
+                                        ]}
+                                        onPress={() => updateFormData('consumable', false)}
+                                    >
+                                        <ThemedText style={[
+                                            styles.statusButtonText,
+                                            {
+                                                color: !formData.consumable
+                                                    ? '#FFFFFF'
+                                                    : colors.textSecondary
+                                            }
+                                        ]}>
+                                            Non-consumable
+                                        </ThemedText>
+                                    </TouchableOpacity>
+                                    
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.statusButton,
+                                            {
+                                                backgroundColor: formData.consumable
+                                                    ? colors.primary
+                                                    : colors.backgroundSecondary,
+                                            }
+                                        ]}
+                                        onPress={() => updateFormData('consumable', true)}
+                                    >
+                                        <ThemedText style={[
+                                            styles.statusButtonText,
+                                            {
+                                                color: formData.consumable
+                                                    ? '#FFFFFF'
+                                                    : colors.textSecondary
+                                            }
+                                        ]}>
+                                            Consumable
+                                        </ThemedText>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                            */}
                         </View>
 
                         {/* Current Item Info */}
@@ -582,6 +640,8 @@ export function EditItemModal({ visible, onClose, onUpdateItem, item }: EditItem
                                     </View>
                                 )}
 
+                                {/* Temporarily disabled until backend supports consumable field */}
+                                {/* 
                                 <View style={styles.infoRow}>
                                     <ThemedText style={[styles.infoLabel, { color: colors.textSecondary }]}>
                                         Type:
@@ -590,6 +650,7 @@ export function EditItemModal({ visible, onClose, onUpdateItem, item }: EditItem
                                         {item.consumable ? 'Consumable' : 'Non-consumable'}
                                     </ThemedText>
                                 </View>
+                                */}
 
                                 <View style={styles.infoRow}>
                                     <ThemedText style={[styles.infoLabel, { color: colors.textSecondary }]}>

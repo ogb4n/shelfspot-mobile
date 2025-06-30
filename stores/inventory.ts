@@ -73,6 +73,7 @@ export interface InventoryState {
   loadItems: () => Promise<void>;
   addItem: (itemData: ItemFormData) => Promise<void>;
   updateItem: (itemId: number, updates: Partial<ItemFormData>) => Promise<void>;
+  updateItemLocal: (itemId: number, updates: Partial<ItemWithLocation>) => void;
   deleteItem: (itemId: number) => Promise<void>;
   deleteItems: (itemIds: number[]) => Promise<void>;
   
@@ -189,9 +190,19 @@ export const useInventoryStore = create<InventoryState>()(
               // Add local tags if any exist for this item
               const localTagIds = itemTagAssociations[item.id] || [];
               if (localTagIds.length > 0) {
-                const localTags = localTagIds.map(tagId => tags.find(tag => tag.id === tagId)).filter(Boolean);
-                transformed.tags = [...(transformed.tags || []), ...localTags];
-                console.log(`Item ${item.id} (${item.name}) now has tags:`, transformed.tags);
+                console.log(`Adding local tags to item ${item.id} (${item.name}):`, localTagIds);
+                const localTags = localTagIds.map(tagId => {
+                  const tag = tags.find(tag => tag.id === tagId);
+                  if (!tag) {
+                    console.warn(`Tag with id ${tagId} not found in available tags`);
+                  }
+                  return tag;
+                }).filter(Boolean);
+                
+                // Replace backend tags with local tags to avoid conflicts
+                transformed.tags = localTags;
+                
+                console.log(`Item ${item.id} (${item.name}) now has tags:`, transformed.tags.map(t => t.name));
               }
               
               return transformed;
@@ -239,22 +250,24 @@ export const useInventoryStore = create<InventoryState>()(
               ...(itemData.containerId && { containerId: itemData.containerId }),
               ...(itemData.price && { price: itemData.price }),
               ...(itemData.itemLink && { itemLink: itemData.itemLink }),
-              ...(typeof itemData.consumable === 'boolean' && { consumable: itemData.consumable }),
-              // Note: sellprice and image are not supported by the CreateItemDto schema
+              // Note: consumable, sellprice and image are not supported by the backend yet
+              // ...(typeof itemData.consumable === 'boolean' && { consumable: itemData.consumable }),
               // ...(itemData.sellprice && { sellprice: itemData.sellprice }),
               // ...(itemData.image && { image: itemData.image }),
             };
             
             console.log('Creating item with data:', createData);
             const createdItem = await backendApi.createItem(createData);
+            console.log('Item created successfully:', createdItem);
             
             // Store tags locally (temporary until backend supports it)
             if (itemData.tagIds && itemData.tagIds.length > 0) {
               console.log('Storing tags locally for item:', createdItem.id, itemData.tagIds);
               const currentState = get();
               console.log('Current itemTagAssociations:', currentState.itemTagAssociations);
-              console.log('Available tags:', currentState.tags);
+              console.log('Available tags:', currentState.tags.map(t => ({ id: t.id, name: t.name })));
               
+              // Update tags locally first
               set((state) => ({
                 itemTagAssociations: {
                   ...state.itemTagAssociations,
@@ -265,12 +278,14 @@ export const useInventoryStore = create<InventoryState>()(
               // Also try to update item tags on backend if supported
               try {
                 await backendApi.updateItemTags(createdItem.id, itemData.tagIds);
+                console.log('Successfully added tags to item on backend');
               } catch (tagError) {
                 console.warn('Failed to add tags to item on backend (may not be supported yet):', tagError);
                 // Tags are stored locally, so operation continues
               }
             }
             
+            // Reload items to include the new item with tags
             await get().loadItems();
           } catch (err: any) {
             console.error('Error adding item:', err);
@@ -285,19 +300,16 @@ export const useInventoryStore = create<InventoryState>()(
           try {
             set({ loading: true, error: null });
             
-            // Extract tags from updates before sending to backend
-            const { tagIds, ...itemUpdates } = updates;
+            // Extract tags and fields not supported by backend from updates
+            const { tagIds, consumable, sellprice, image, ...itemUpdates } = updates;
             
-            // Update item properties first
-            if (Object.keys(itemUpdates).length > 0) {
-              await backendApi.updateItem(itemId, itemUpdates);
-            }
+            console.log('Updating item:', itemId, 'with updates:', updates);
             
-            // Update tags separately if provided
+            // Update tags locally first for immediate UI update
             if (tagIds !== undefined) {
-              console.log('Updating item tags:', tagIds);
+              console.log('Updating item tags locally:', tagIds);
               
-              // Store tags locally (temporary until backend supports it)
+              const { tags } = get();
               set((state) => ({
                 itemTagAssociations: {
                   ...state.itemTagAssociations,
@@ -305,23 +317,58 @@ export const useInventoryStore = create<InventoryState>()(
                 }
               }));
               
-              // Also try to update on backend if supported
+              // Update the item in local state immediately with new tags
+              const localTags = tagIds.map(tagId => tags.find(tag => tag.id === tagId)).filter(Boolean);
+              get().updateItemLocal(itemId, { tags: localTags });
+            }
+            
+            // Update ALL properties locally first for immediate UI response (including consumable)
+            const allLocalUpdates = { ...updates };
+            delete allLocalUpdates.tagIds; // Remove tagIds as it's handled separately
+            
+            if (Object.keys(allLocalUpdates).length > 0) {
+              console.log('Updating item properties locally:', allLocalUpdates);
+              get().updateItemLocal(itemId, allLocalUpdates);
+            }
+            
+            // Update only backend-supported properties on backend
+            if (Object.keys(itemUpdates).length > 0) {
+              console.log('Updating item properties on backend:', itemUpdates);
+              await backendApi.updateItem(itemId, itemUpdates);
+            }
+            
+            // Try to update tags on backend if supported
+            if (tagIds !== undefined) {
               try {
                 await backendApi.updateItemTags(itemId, tagIds);
+                console.log('Successfully updated tags on backend');
               } catch (tagError) {
                 console.warn('Failed to update item tags on backend (may not be supported yet):', tagError);
                 // Tags are stored locally, so operation continues
               }
             }
             
-            await get().loadItems();
+            console.log('Item update completed successfully');
           } catch (err: any) {
             console.error('Error updating item:', err);
             set({ error: err.message || 'Failed to update item' });
+            // Reload items to restore correct state
+            await get().loadItems();
             throw err;
           } finally {
             set({ loading: false });
           }
+        },
+
+        updateItemLocal: (itemId: number, updates: Partial<ItemWithLocation>) => {
+          const { items } = get();
+          const updatedItems = items.map(item => 
+            item.id === itemId 
+              ? { ...item, ...updates }
+              : item
+          );
+          set({ items: updatedItems });
+          get().applyFilters();
         },
 
         deleteItem: async (itemId: number) => {
@@ -719,6 +766,7 @@ export const useInventoryItems = () => {
   const loadItems = useInventoryStore((state) => state.loadItems);
   const addItem = useInventoryStore((state) => state.addItem);
   const updateItem = useInventoryStore((state) => state.updateItem);
+  const updateItemLocal = useInventoryStore((state) => state.updateItemLocal);
   const deleteItem = useInventoryStore((state) => state.deleteItem);
   const deleteItems = useInventoryStore((state) => state.deleteItems);
   const toggleFavorite = useInventoryStore((state) => state.toggleFavorite);
@@ -731,6 +779,7 @@ export const useInventoryItems = () => {
     loadItems,
     addItem,
     updateItem,
+    updateItemLocal,
     deleteItem,
     deleteItems,
     toggleFavorite,

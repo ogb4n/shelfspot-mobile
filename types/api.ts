@@ -7,10 +7,10 @@ export interface CreateItemDto {
   roomId: number;
   placeId: number;
   containerId?: number;
-  consumable?: boolean;
   price?: number;
   itemLink?: string;
-  // Note: sellprice and image are not supported by the backend CreateItemDto schema
+  // Note: consumable, sellprice and image are not supported by the backend yet
+  // consumable?: boolean;
   // sellprice?: number;
   // image?: string;
 }
@@ -49,4 +49,15 @@ export interface ItemResponseDto {
   };
 }
 
-export type UpdateItemDto = Partial<CreateItemDto>;
+export interface UpdateItemDto {
+  name?: string;
+  quantity?: number;
+  status?: string;
+  roomId?: number;
+  placeId?: number;
+  containerId?: number;
+  price?: number;
+  itemLink?: string;
+  // Note: consumable is not yet supported by the backend for updates
+  // consumable?: boolean;
+}

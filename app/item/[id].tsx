@@ -36,6 +36,7 @@ export default function ItemDetailScreen() {
 
     const [item, setItem] = useState<ItemWithLocation | null>(null);
     const [loading, setLoading] = useState(true);
+    const [isUpdating, setIsUpdating] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [showCreateAlertModal, setShowCreateAlertModal] = useState(false);
     const [showAddToProjectModal, setShowAddToProjectModal] = useState(false);
@@ -54,12 +55,12 @@ export default function ItemDetailScreen() {
 
     // Find the item by ID
     useEffect(() => {
-        if (id && items.length > 0) {
+        if (id && items.length > 0 && !isUpdating) {
             const foundItem = items.find(item => item.id.toString() === id);
             setItem(foundItem || null);
             setLoading(false);
         }
-    }, [id, items]);
+    }, [id, items, isUpdating]);
 
     // Alerts are loaded globally in the store initialization, no need to reload here
 
@@ -159,14 +160,22 @@ export default function ItemDetailScreen() {
 
     const handleUpdateItem = async (itemId: number, updatedData: any) => {
         try {
+            setIsUpdating(true);
+            
+            // Update the item in the store
             await updateItem(itemId, updatedData);
-            // Refresh item data
-            const updatedItem = items.find(i => i.id === itemId);
-            if (updatedItem) {
-                setItem(updatedItem);
-            }
             setShowEditModal(false);
+            
+            // Wait for the store to be fully updated, then manually refresh
+            setTimeout(() => {
+                const updatedItemFromStore = items.find(i => i.id === itemId);
+                if (updatedItemFromStore) {
+                    setItem(updatedItemFromStore);
+                }
+                setIsUpdating(false);
+            }, 300);
         } catch {
+            setIsUpdating(false);
             Alert.alert('Error', 'Failed to update item');
         }
     };

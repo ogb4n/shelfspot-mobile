@@ -277,6 +277,8 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
                   </View>
                 </View>
 
+                {/* Temporarily disabled until backend supports consumable field */}
+                {/* 
                 <TouchableOpacity
                   style={styles.consumableToggle}
                   onPress={() => updateFormData('consumable', !formData.consumable)}
@@ -290,6 +292,7 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
                     Consumable Item
                   </ThemedText>
                 </TouchableOpacity>
+                */}
               </View>
             )}
 
@@ -614,6 +617,8 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
                     </ThemedText>
                   </View>
 
+                  {/* Temporarily disabled until backend supports consumable field */}
+                  {/* 
                   <View style={styles.confirmationRow}>
                     <ThemedText style={[styles.confirmationLabel, { color: colors.textSecondary }]}>
                       Type:
@@ -622,6 +627,7 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
                       {formData.consumable ? 'Consumable' : 'Non-consumable'}
                     </ThemedText>
                   </View>
+                  */}
 
                   <View style={styles.confirmationRow}>
                     <ThemedText style={[styles.confirmationLabel, { color: colors.textSecondary }]}>
