@@ -1,4 +1,6 @@
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import { useState } from 'react';
+import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useThemeColor } from '../../hooks/useThemeColor';
 import { ItemWithLocation } from '../../types/inventory';
 import { hasActiveAlerts, hasAnyAlerts } from '../../utils/inventory/alerts';
@@ -12,9 +14,11 @@ interface InventoryItemProps {
   isSelectionMode?: boolean;
   onPress?: () => void;
   onLongPress?: (item: ItemWithLocation, position: { x: number; y: number }) => void;
-  onToggleFavorite?: (itemId: number) => void;
+  onToggleFavorite?: (itemId: number) => Promise<void>;
   onCreateAlert?: (itemId: number) => void;
   onViewAlerts?: (itemId: number) => void;
+  onEdit?: (item: ItemWithLocation) => void;
+  onDelete?: (itemId: number) => void;
 }
 
 export function InventoryItem({
@@ -26,7 +30,10 @@ export function InventoryItem({
   onToggleFavorite,
   onCreateAlert,
   onViewAlerts,
+  onEdit,
+  onDelete,
 }: InventoryItemProps) {
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
   const backgroundColor = useThemeColor({}, 'card');
   const textColor = useThemeColor({}, 'text');
   const textSecondaryColor = useThemeColor({}, 'textSecondary');
@@ -40,12 +47,30 @@ export function InventoryItem({
 
   const handleLongPress = (event: any) => {
     if (!isSelectionMode && onLongPress) {
+      // Add haptic feedback for long press
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       const { pageX, pageY } = event.nativeEvent;
       onLongPress(item, { x: pageX, y: pageY });
     }
   };
 
+  const handleFavoriteToggle = async () => {
+    if (favoriteLoading || !onToggleFavorite) return;
+
+    try {
+      setFavoriteLoading(true);
+      // Add haptic feedback
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      await onToggleFavorite(item.id);
+    } finally {
+      setFavoriteLoading(false);
+    }
+  };
+
   const handleAlertPress = () => {
+    // Add haptic feedback for alert actions
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
     if (hasConfiguredAlerts) {
       // If item has configured alerts, show alerts modal to view/manage them
       onViewAlerts?.(item.id);
@@ -55,7 +80,7 @@ export function InventoryItem({
     }
   };
 
-  return (
+  const renderItemContent = () => (
     <TouchableOpacity
       style={[
         styles.itemCard,
@@ -115,13 +140,18 @@ export function InventoryItem({
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.favoriteButton}
-                onPress={() => onToggleFavorite?.(item.id)}
+                onPress={handleFavoriteToggle}
+                disabled={favoriteLoading}
               >
-                <IconSymbol
-                  name={item.isFavorite ? "heart.fill" : "heart"}
-                  size={20}
-                  color={item.isFavorite ? errorColor : textSecondaryColor}
-                />
+                {favoriteLoading ? (
+                  <ActivityIndicator size={20} color={textSecondaryColor} />
+                ) : (
+                  <IconSymbol
+                    name={item.isFavorite ? "heart.fill" : "heart"}
+                    size={20}
+                    color={item.isFavorite ? errorColor : textSecondaryColor}
+                  />
+                )}
               </TouchableOpacity>
             </View>
           )}
@@ -165,6 +195,8 @@ export function InventoryItem({
       </View>
     </TouchableOpacity>
   );
+
+  return renderItemContent();
 }
 
 const styles = StyleSheet.create({
@@ -177,7 +209,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 3,
-    position: 'relative',
   },
   itemContent: {
     flex: 1,

@@ -1,12 +1,13 @@
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
+import { useToast } from '@/contexts/ToastContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { backendApi } from '@/services/backend-api';
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import * as Haptics from 'expo-haptics';
+import { useEffect, useState } from 'react';
 import {
-    Alert,
     Modal,
     ScrollView,
     StyleSheet,
@@ -47,6 +48,7 @@ export function CreateItemModal({
 }: CreateItemModalProps) {
     const colorScheme = useColorScheme() ?? 'light';
     const colors = Colors[colorScheme];
+    const { showSuccess, showError } = useToast();
 
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
@@ -54,6 +56,14 @@ export function CreateItemModal({
     const [selectedPlaceId, setSelectedPlaceId] = useState<number | null>(null);
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
+    const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+    // Track unsaved changes
+    useEffect(() => {
+        const hasChanges = name.trim() || description.trim() || selectedRoomId || selectedPlaceId;
+        setHasUnsavedChanges(!!hasChanges);
+    }, [name, description, selectedRoomId, selectedPlaceId]);
+    const [unsavedChanges, setUnsavedChanges] = useState(false);
 
     const resetForm = () => {
         setName('');
@@ -61,6 +71,7 @@ export function CreateItemModal({
         setSelectedRoomId(null);
         setSelectedPlaceId(null);
         setErrors({});
+        setUnsavedChanges(false);
     };
 
     const validateForm = () => {
@@ -85,8 +96,17 @@ export function CreateItemModal({
     };
 
     const handleClose = () => {
-        resetForm();
-        onClose();
+        if (unsavedChanges) {
+            // For better UX, we can simply warn but still close
+            showError('Your changes will be lost');
+            setTimeout(() => {
+                resetForm();
+                onClose();
+            }, 1000);
+        } else {
+            resetForm();
+            onClose();
+        }
     };
 
     const getTitle = () => {
@@ -153,17 +173,27 @@ export function CreateItemModal({
                     break;
             }
 
-            Alert.alert('Success', `${name.trim()} has been created successfully!`);
+            showSuccess(`${name.trim()} has been created successfully!`);
             onSuccess();
             resetForm();
         } catch (error: any) {
             console.error('Error creating item:', error);
             const errorMessage = error?.response?.data?.message || error?.message || 'Failed to create item';
-            Alert.alert('Error', errorMessage);
+            showError(errorMessage);
         } finally {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        const unsubscribe = () => {
+            if (unsavedChanges) {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            }
+        };
+
+        return unsubscribe;
+    }, [unsavedChanges]);
 
     return (
         <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
@@ -206,6 +236,7 @@ export function CreateItemModal({
                             value={name}
                             onChangeText={(text) => {
                                 setName(text);
+                                setUnsavedChanges(true);
                                 if (errors.name) {
                                     const newErrors = { ...errors };
                                     delete newErrors.name;
@@ -237,7 +268,10 @@ export function CreateItemModal({
                                     }
                                 ]}
                                 value={description}
-                                onChangeText={setDescription}
+                                onChangeText={(text) => {
+                                    setDescription(text);
+                                    setUnsavedChanges(true);
+                                }}
                                 placeholder="Optional description..."
                                 placeholderTextColor={colors.textSecondary}
                                 multiline
@@ -265,7 +299,10 @@ export function CreateItemModal({
                                                         : colors.border,
                                                 }
                                             ]}
-                                            onPress={() => setSelectedRoomId(room.id)}
+                                            onPress={() => {
+                                                setSelectedRoomId(room.id);
+                                                setUnsavedChanges(true);
+                                            }}
                                         >
                                             <ThemedText
                                                 style={[
@@ -309,6 +346,7 @@ export function CreateItemModal({
                                                 onPress={() => {
                                                     setSelectedRoomId(room.id);
                                                     setSelectedPlaceId(null); // Reset place when room changes
+                                                    setUnsavedChanges(true);
                                                 }}
                                             >
                                                 <ThemedText
@@ -348,7 +386,10 @@ export function CreateItemModal({
                                                                 : colors.border,
                                                         }
                                                     ]}
-                                                    onPress={() => setSelectedPlaceId(place.id)}
+                                                    onPress={() => {
+                                                        setSelectedPlaceId(place.id);
+                                                        setUnsavedChanges(true);
+                                                    }}
                                                 >
                                                     <ThemedText
                                                         style={[

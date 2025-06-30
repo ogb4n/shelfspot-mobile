@@ -1,8 +1,9 @@
-import React from 'react';
-import { TouchableOpacity, ViewStyle } from 'react-native';
-import { ThemedText } from '../ThemedText';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import * as Haptics from 'expo-haptics';
+import React from 'react';
+import { ActivityIndicator, TouchableOpacity, ViewStyle } from 'react-native';
+import { ThemedText } from '../ThemedText';
 
 interface ButtonProps {
   title: string;
@@ -10,8 +11,10 @@ interface ButtonProps {
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
   size?: 'small' | 'medium' | 'large';
   disabled?: boolean;
+  loading?: boolean;
   style?: ViewStyle;
   icon?: React.ReactNode;
+  hapticFeedback?: boolean;
 }
 
 export function Button({ 
@@ -20,11 +23,25 @@ export function Button({
   variant = 'primary', 
   size = 'medium', 
   disabled = false,
+  loading = false,
   style,
-  icon 
+  icon,
+  hapticFeedback = true
 }: ButtonProps) {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
+
+  const isDisabled = disabled || loading;
+
+  const handlePress = () => {
+    if (isDisabled) return;
+    
+    if (hapticFeedback) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    
+    onPress();
+  };
 
   const getButtonStyle = () => {
     const base = {
@@ -43,15 +60,15 @@ export function Button({
 
     const variants = {
       primary: {
-        backgroundColor: disabled ? colors.border : colors.primary,
+        backgroundColor: isDisabled ? colors.border : colors.primary,
       },
       secondary: {
-        backgroundColor: disabled ? colors.border : colors.secondary,
+        backgroundColor: isDisabled ? colors.border : colors.secondary,
       },
       outline: {
         backgroundColor: 'transparent',
         borderWidth: 1,
-        borderColor: disabled ? colors.border : colors.primary,
+        borderColor: isDisabled ? colors.border : colors.primary,
       },
       ghost: {
         backgroundColor: 'transparent',
@@ -62,7 +79,7 @@ export function Button({
   };
 
   const getTextColor = () => {
-    if (disabled) return colors.textSecondary;
+    if (isDisabled) return colors.textSecondary;
     
     switch (variant) {
       case 'primary':
@@ -79,14 +96,23 @@ export function Button({
   return (
     <TouchableOpacity
       style={[getButtonStyle(), style]}
-      onPress={onPress}
-      disabled={disabled}
+      onPress={handlePress}
+      disabled={isDisabled}
       activeOpacity={0.8}
     >
-      {icon}
-      <ThemedText style={{ color: getTextColor(), fontWeight: '600' }}>
-        {title}
-      </ThemedText>
+      {loading && (
+        <ActivityIndicator 
+          size="small" 
+          color={getTextColor()} 
+          style={{ marginRight: icon || title ? 8 : 0 }}
+        />
+      )}
+      {!loading && icon}
+      {(title && !loading) || (title && loading) ? (
+        <ThemedText style={{ color: getTextColor(), fontWeight: '600' }}>
+          {title}
+        </ThemedText>
+      ) : null}
     </TouchableOpacity>
   );
 }

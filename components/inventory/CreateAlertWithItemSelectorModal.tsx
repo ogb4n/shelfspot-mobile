@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import {
-    Alert,
     FlatList,
     Modal,
     ScrollView,
@@ -14,6 +13,7 @@ import { useThemeColor } from '../../hooks/useThemeColor';
 import { AlertFormData, ItemWithLocation } from '../../types/inventory';
 import { ThemedText } from '../ThemedText';
 import { ThemedView } from '../ThemedView';
+import { Button } from '../ui/Button';
 import { IconSymbol } from '../ui/IconSymbol';
 
 interface CreateAlertWithItemSelectorModalProps {
@@ -38,6 +38,7 @@ export function CreateAlertWithItemSelectorModal({
     const [selectedItem, setSelectedItem] = useState<ItemWithLocation | null>(null);
     const [showItemSelector, setShowItemSelector] = useState(false);
     const [itemSearchQuery, setItemSearchQuery] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const colors = {
         card: useThemeColor({}, 'card'),
@@ -72,12 +73,16 @@ export function CreateAlertWithItemSelectorModal({
         setItemSearchQuery('');
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (!canCreateAlert()) return;
 
-        onCreateAlert(formData);
-        handleClose();
-        Alert.alert('Success', 'The alert has been created!');
+        setIsSubmitting(true);
+        try {
+            await onCreateAlert(formData);
+            handleClose();
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const handleClose = () => {
@@ -306,33 +311,19 @@ export function CreateAlertWithItemSelectorModal({
                         {/* Footer */}
                         <View style={[styles.footer, { borderTopColor: colors.backgroundSecondary }]}>
                             <View style={styles.footerButtons}>
-                                <TouchableOpacity
-                                    style={[styles.button, styles.secondaryButton, { borderColor: colors.textSecondary }]}
+                                <Button
+                                    title="Cancel"
                                     onPress={handleClose}
-                                >
-                                    <ThemedText style={[styles.secondaryButtonText, { color: colors.textSecondary }]}>
-                                        Cancel
-                                    </ThemedText>
-                                </TouchableOpacity>
-
-                                <TouchableOpacity
-                                    style={[
-                                        styles.button,
-                                        styles.primaryButton,
-                                        {
-                                            backgroundColor: canCreateAlert() ? colors.primary : colors.backgroundSecondary,
-                                        }
-                                    ]}
+                                    variant="outline"
+                                    style={{ flex: 0.4 }}
+                                />
+                                <Button
+                                    title="Create Alert"
                                     onPress={handleSubmit}
                                     disabled={!canCreateAlert()}
-                                >
-                                    <ThemedText style={[
-                                        styles.primaryButtonText,
-                                        { color: canCreateAlert() ? '#FFFFFF' : colors.textSecondary }
-                                    ]}>
-                                        Create Alert
-                                    </ThemedText>
-                                </TouchableOpacity>
+                                    loading={isSubmitting}
+                                    style={{ flex: 1 }}
+                                />
                             </View>
                         </View>
                     </>

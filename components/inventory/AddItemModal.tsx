@@ -286,33 +286,43 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
                     </View>
                   </View>
 
-                  {/* Temporarily disabled until backend supports consumable field */}
-                  {/* 
-                <TouchableOpacity
-                  style={styles.consumableToggle}
-                  onPress={() => updateFormData('consumable', !formData.consumable)}
-                >
-                  <IconSymbol
-                    name={formData.consumable ? "checkmark.square" : "square"}
-                    size={24}
-                    color={formData.consumable ? colors.primary : colors.textSecondary}
-                  />
-                  <ThemedText style={[styles.consumableText, { color: colors.text }]}>
-                    Consumable Item
+                <View style={styles.inputGroup}>
+                  <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                    Item Type
                   </ThemedText>
-                </TouchableOpacity>
-                */}
+                  <TouchableOpacity
+                    style={styles.consumableToggle}
+                    onPress={() => updateFormData('consumable', !formData.consumable)}
+                  >
+                    <IconSymbol
+                      name={formData.consumable ? "checkmark.square" : "square"}
+                      size={24}
+                      color={formData.consumable ? colors.primary : colors.textSecondary}
+                    />
+                    <ThemedText style={[styles.consumableText, { color: colors.text }]}>
+                      Consumable Item
+                    </ThemedText>
+                  </TouchableOpacity>
                 </View>
-              )}
+              </View>
+            )}
 
-              {/* Step 1: Location */}
-              {currentStep === 1 && (
-                <View style={styles.stepContent}>
-                  {dataLoading ? (
-                    <View style={styles.loadingContainer}>
-                      <ActivityIndicator size="small" color={colors.primary} />
-                      <ThemedText style={[styles.loadingText, { color: colors.textSecondary }]}>
-                        Loading locations...
+            {/* Step 1: Location */}
+            {currentStep === 1 && (
+              <View style={styles.stepContent}>
+                {dataLoading ? (
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="small" color={colors.primary} />
+                    <ThemedText style={[styles.loadingText, { color: colors.textSecondary }]}>
+                      Loading locations...
+                    </ThemedText>
+                  </View>
+                ) : (
+                  <>
+                    {/* Room Selection */}
+                    <View style={styles.inputGroup}>
+                      <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                        Room *
                       </ThemedText>
                     </View>
                   ) : (
@@ -567,10 +577,12 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
                     />
                   </View>
 
-                  {/* Item Link Field */}
-                  <View style={styles.inputGroup}>
-                    <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
-                      Item Link (Optional)
+                  <View style={styles.confirmationRow}>
+                    <ThemedText style={[styles.confirmationLabel, { color: colors.textSecondary }]}>
+                      Type:
+                    </ThemedText>
+                    <ThemedText style={[styles.confirmationValue, { color: colors.text }]}>
+                      {formData.consumable ? 'Consumable' : 'Non-consumable'}
                     </ThemedText>
                     <TextInput
                       style={[styles.input, {
@@ -588,9 +600,6 @@ export function AddItemModal({ visible, onClose, onAddItem }: AddItemModalProps)
                       autoCorrect={false}
                     />
                   </View>
-                </View>
-              )}
-
               {/* Step 3: Confirmation */}
               {currentStep === 3 && (
                 <View style={styles.stepContent}>

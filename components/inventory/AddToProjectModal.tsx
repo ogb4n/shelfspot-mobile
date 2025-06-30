@@ -1,14 +1,14 @@
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import { useToast } from '@/contexts/ToastContext';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { backendApi } from '@/services/backend-api';
 import { Project } from '@/types';
 import { ItemWithLocation } from '@/types/inventory';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
     ActivityIndicator,
-    Alert,
     Modal,
     ScrollView,
     StyleSheet,
@@ -30,6 +30,7 @@ export function AddToProjectModal({
     onClose,
     onItemAdded,
 }: AddToProjectModalProps) {
+    const { showSuccess, showError } = useToast();
     const [projects, setProjects] = useState<Project[]>([]);
     const [selectedProject, setSelectedProject] = useState<Project | null>(null);
     const [quantity, setQuantity] = useState(1);
@@ -47,6 +48,19 @@ export function AddToProjectModal({
         border: useThemeColor({}, 'border'),
     };
 
+    const loadProjects = useCallback(async () => {
+        try {
+            setLoadingProjects(true);
+            const projectsData = await backendApi.getProjects();
+            setProjects(projectsData);
+        } catch (error) {
+            console.error('Error loading projects:', error);
+            showError('Failed to load projects');
+        } finally {
+            setLoadingProjects(false);
+        }
+    }, [showError]);
+
     useEffect(() => {
         if (visible) {
             loadProjects();
@@ -55,20 +69,7 @@ export function AddToProjectModal({
             setQuantity(1);
             setIsActive(true);
         }
-    }, [visible]);
-
-    const loadProjects = async () => {
-        try {
-            setLoadingProjects(true);
-            const projectsData = await backendApi.getProjects();
-            setProjects(projectsData);
-        } catch (error) {
-            console.error('Error loading projects:', error);
-            Alert.alert('Error', 'Failed to load projects');
-        } finally {
-            setLoadingProjects(false);
-        }
-    };
+    }, [visible, loadProjects]);
 
     const handleSubmit = async () => {
         if (!selectedProject || !item) return;
@@ -82,10 +83,10 @@ export function AddToProjectModal({
             });
 
             onItemAdded();
-            Alert.alert('Success', `Item added to project "${selectedProject.name}"`);
+            showSuccess(`Item added to project "${selectedProject.name}"`);
         } catch (error: any) {
             console.error('Error adding item to project:', error);
-            Alert.alert('Error', error.message || 'Failed to add item to project');
+            showError(error.message || 'Failed to add item to project');
         } finally {
             setLoading(false);
         }

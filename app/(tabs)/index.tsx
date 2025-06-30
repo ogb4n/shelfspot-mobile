@@ -2,13 +2,15 @@ import { AddItemModal } from '@/components/inventory/AddItemModal';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import { SkeletonList } from '@/components/ui/Skeleton';
 import { Colors } from '@/constants/Colors';
+import { useToast } from '@/contexts/ToastContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useInventoryAlerts, useInventoryData, useInventoryFavorites, useInventoryItems } from '@/stores/inventory';
 import { useShowCharts } from '@/stores/ui-settings';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Dimensions, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Dimensions, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Bar, CartesianChart } from 'victory-native';
 
 interface RecentAlert {
@@ -27,6 +29,7 @@ export default function DashboardScreen() {
   const { rooms, places, dataLoading } = useInventoryData();
   const { triggeredAlerts, alertsLoading, loadAlerts } = useInventoryAlerts();
   const showCharts = useShowCharts();
+  const { showSuccess, showError } = useToast();
 
   const loading = itemsLoading || favoritesLoading || dataLoading || alertsLoading;
 
@@ -125,9 +128,11 @@ export default function DashboardScreen() {
   const handleAddItem = async (itemData: any) => {
     try {
       await addItem(itemData);
-      // Optional: Show success message or perform additional actions
+      showSuccess('Item added successfully!');
+      setShowAddModal(false);
     } catch (error) {
       console.error('Error adding item:', error);
+      showError('Error adding item. Please try again.');
     }
   };
 
@@ -157,11 +162,8 @@ export default function DashboardScreen() {
         </View>
 
         {loading ? (
-          <View style={[styles.section, { alignItems: 'center', paddingVertical: 40 }]}>
-            <ActivityIndicator size="large" color={colors.primary} />
-            <ThemedText style={[{ color: colors.textSecondary, marginTop: 16 }]}>
-              Loading dashboard...
-            </ThemedText>
+          <View style={styles.section}>
+            <SkeletonList itemCount={3} showTags={false} />
           </View>
         ) : (
           <>

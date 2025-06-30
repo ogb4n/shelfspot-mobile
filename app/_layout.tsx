@@ -2,9 +2,11 @@ import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } fro
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
 import { AppInitializer } from '@/components/AppInitializer';
+import { ToastProvider } from '@/contexts/ToastContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 export default function RootLayout() {
@@ -19,25 +21,29 @@ export default function RootLayout() {
   }
 
   return (
-    <AppInitializer>
-      <NavigationThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack>
-          <Stack.Screen name="server-config" options={{ headerShown: false }} />
-          <Stack.Screen name="login" options={{ headerShown: false }} />
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="settings" options={{ headerShown: false }} />
-          <Stack.Screen name="item/[id]" options={{
-            headerShown: false,
-            presentation: 'card',
-          }} />
-          <Stack.Screen name="project/[id]" options={{
-            headerShown: false,
-            presentation: 'card',
-          }} />
-          <Stack.Screen name="+not-found" />
-        </Stack>
-        <StatusBar style="auto" />
-      </NavigationThemeProvider>
-    </AppInitializer>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ToastProvider>
+        <AppInitializer>
+          <NavigationThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+            <Stack>
+              <Stack.Screen name="server-config" options={{ headerShown: false }} />
+              <Stack.Screen name="login" options={{ headerShown: false }} />
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="settings" options={{ headerShown: false }} />
+              <Stack.Screen name="item/[id]" options={{
+                headerShown: false,
+                presentation: 'card',
+              }} />
+              <Stack.Screen name="project/[id]" options={{
+                headerShown: false,
+                presentation: 'card',
+              }} />
+              <Stack.Screen name="+not-found" />
+            </Stack>
+            <StatusBar style="auto" />
+          </NavigationThemeProvider>
+        </AppInitializer>
+      </ToastProvider>
+    </GestureHandlerRootView>
   );
 }

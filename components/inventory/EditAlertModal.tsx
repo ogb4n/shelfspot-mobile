@@ -12,6 +12,7 @@ import { useThemeColor } from '../../hooks/useThemeColor';
 import { AlertFormData, Alert as AlertType } from '../../types/inventory';
 import { ThemedText } from '../ThemedText';
 import { ThemedView } from '../ThemedView';
+import { Button } from '../ui/Button';
 import { IconSymbol } from '../ui/IconSymbol';
 
 interface EditAlertModalProps {
@@ -33,6 +34,7 @@ export function EditAlertModal({
         name: '',
         isActive: true,
     });
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const colors = {
         card: useThemeColor({}, 'card'),
@@ -66,13 +68,18 @@ export function EditAlertModal({
             (formData.name?.trim() || '') !== '';
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (!canUpdateAlert()) return;
 
-        // Remove itemId from the update data as the API doesn't expect it
-        const { itemId, ...updateData } = formData;
-        onUpdateAlert(updateData);
-        handleClose();
+        setIsSubmitting(true);
+        try {
+            // Remove itemId from the update data as the API doesn't expect it
+            const { itemId, ...updateData } = formData;
+            await onUpdateAlert(updateData);
+            handleClose();
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const handleClose = () => {
@@ -212,33 +219,19 @@ export function EditAlertModal({
                 {/* Footer */}
                 <View style={[styles.footer, { borderTopColor: colors.backgroundSecondary }]}>
                     <View style={styles.footerButtons}>
-                        <TouchableOpacity
-                            style={[styles.button, styles.secondaryButton, { borderColor: colors.textSecondary }]}
+                        <Button
+                            title="Cancel"
                             onPress={handleClose}
-                        >
-                            <ThemedText style={[styles.secondaryButtonText, { color: colors.textSecondary }]}>
-                                Cancel
-                            </ThemedText>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={[
-                                styles.button,
-                                styles.primaryButton,
-                                {
-                                    backgroundColor: canUpdateAlert() ? colors.primary : colors.backgroundSecondary,
-                                }
-                            ]}
+                            variant="outline"
+                            style={{ flex: 0.4 }}
+                        />
+                        <Button
+                            title="Update Alert"
                             onPress={handleSubmit}
                             disabled={!canUpdateAlert()}
-                        >
-                            <ThemedText style={[
-                                styles.primaryButtonText,
-                                { color: canUpdateAlert() ? '#FFFFFF' : colors.textSecondary }
-                            ]}>
-                                Update Alert
-                            </ThemedText>
-                        </TouchableOpacity>
+                            loading={isSubmitting}
+                            style={{ flex: 1 }}
+                        />
                     </View>
                 </View>
             </ThemedView>

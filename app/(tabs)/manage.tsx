@@ -2,12 +2,12 @@ import { CreateItemModal, EditItemModal, ManageSection, StatsCard } from '@/comp
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
+import { useToast } from '@/contexts/ToastContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { backendApi } from '@/services/backend-api';
 import { useInventoryStore } from '@/stores/inventory';
 import { useEffect, useState } from 'react';
 import {
-    Alert,
     RefreshControl,
     ScrollView,
     StyleSheet,
@@ -46,9 +46,11 @@ export default function ManageScreen() {
 
     // Get data from inventory store
     const { loadInventoryData } = useInventoryStore();
+    const { showSuccess, showError } = useToast();
 
     useEffect(() => {
         loadData();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const loadData = async () => {
@@ -67,7 +69,7 @@ export default function ManageScreen() {
             setTags(tagsData);
         } catch (error) {
             console.error('Error loading management data:', error);
-            Alert.alert('Error', 'Failed to load data. Please try again.');
+            showError('Failed to load data. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -94,48 +96,34 @@ export default function ManageScreen() {
     };
 
     const handleDelete = async (entityType: EntityType, item: ManageItem) => {
-        const entityName = entityType.slice(0, -1); // Remove 's' from plural
-        Alert.alert(
-            'Confirm Delete',
-            `Are you sure you want to delete "${item.name}"?\n\nThis action cannot be undone and may affect existing items that reference this ${entityName}.`,
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Delete',
-                    style: 'destructive',
-                    onPress: async () => {
-                        try {
-                            setLoading(true);
+        try {
+            setLoading(true);
 
-                            switch (entityType) {
-                                case 'rooms':
-                                    await backendApi.deleteRoom(item.id);
-                                    break;
-                                case 'places':
-                                    await backendApi.deletePlace(item.id);
-                                    break;
-                                case 'containers':
-                                    await backendApi.deleteContainer(item.id);
-                                    break;
-                                case 'tags':
-                                    await backendApi.deleteTag(item.id);
-                                    break;
-                            }
+            switch (entityType) {
+                case 'rooms':
+                    await backendApi.deleteRoom(item.id);
+                    break;
+                case 'places':
+                    await backendApi.deletePlace(item.id);
+                    break;
+                case 'containers':
+                    await backendApi.deleteContainer(item.id);
+                    break;
+                case 'tags':
+                    await backendApi.deleteTag(item.id);
+                    break;
+            }
 
-                            await loadData();
-                            await loadInventoryData(); // Refresh inventory store
-                            Alert.alert('Success', `${item.name} has been deleted successfully.`);
-                        } catch (error: any) {
-                            console.error('Error deleting item:', error);
-                            const errorMessage = error?.response?.data?.message || error?.message || 'Failed to delete item';
-                            Alert.alert('Error', errorMessage);
-                        } finally {
-                            setLoading(false);
-                        }
-                    },
-                },
-            ]
-        );
+            await loadData();
+            await loadInventoryData(); // Refresh inventory store
+            showSuccess(`${item.name} has been deleted successfully.`);
+        } catch (error: any) {
+            console.error('Error deleting item:', error);
+            const errorMessage = error?.response?.data?.message || error?.message || 'Failed to delete item';
+            showError(errorMessage);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleCreateSuccess = async () => {
