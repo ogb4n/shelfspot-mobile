@@ -11,6 +11,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AddToProjectModal } from '../../components/inventory/AddToProjectModal';
 import { CreateAlertModal } from '../../components/inventory/CreateAlertModal';
 import { EditItemModal } from '../../components/inventory/EditItemModal';
@@ -29,6 +30,7 @@ export default function ItemDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const colorScheme = useColorScheme() ?? 'light';
     const colors = Colors[colorScheme];
+    const insets = useSafeAreaInsets();
 
     const [item, setItem] = useState<ItemWithLocation | null>(null);
     const [loading, setLoading] = useState(true);
@@ -174,7 +176,11 @@ export default function ItemDetailScreen() {
     return (
         <ThemedView style={styles.container}>
             {/* Custom Header */}
-            <View style={[styles.header, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
+            <View style={[styles.header, { 
+                backgroundColor: colors.background, 
+                borderBottomColor: colors.border,
+                paddingTop: insets.top + 16
+            }]}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                     <IconSymbol size={24} name="chevron.left" color={colors.text} />
                 </TouchableOpacity>
@@ -735,7 +741,6 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         paddingHorizontal: 16,
         paddingVertical: 16,
-        paddingTop: 60,
         borderBottomWidth: 1,
     },
     headerTitle: {
