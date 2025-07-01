@@ -157,6 +157,13 @@ class BackendApiService {
     });
   }
 
+  async updateNotificationToken(notificationToken: string): Promise<User> {
+    return this.request<User>('/auth/profile/notification-token', {
+      method: 'PUT',
+      body: JSON.stringify({ notificationToken }),
+    });
+  }
+
   // Items methods
   async getItems(search?: string): Promise<any[]> {
     if (search) {

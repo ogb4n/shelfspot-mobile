@@ -23,7 +23,9 @@ export default function TabLayout() {
           },
           default: {},
         }),
-      }}>
+      }}
+      initialRouteName="index"
+    >
       <Tabs.Screen
         name="index"
         options={{
