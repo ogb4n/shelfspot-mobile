@@ -9,11 +9,18 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const colors = Colors[colorScheme ?? 'light'];
+  
+  // Use darker background for dark theme in tab bar
+  const tabBarBackgroundColor = colorScheme === 'dark' 
+    ? colors.background 
+    : colors.surface;
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        tabBarActiveTintColor: colors.tabIconSelected,
+        tabBarInactiveTintColor: colors.tabIconDefault,
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarBackground: TabBarBackground,
@@ -21,7 +28,11 @@ export default function TabLayout() {
           ios: {
             position: 'absolute',
           },
-          default: {},
+          default: {
+            backgroundColor: tabBarBackgroundColor,
+            borderTopColor: colors.border,
+            borderTopWidth: 1,
+          },
         }),
       }}
       initialRouteName="index"
