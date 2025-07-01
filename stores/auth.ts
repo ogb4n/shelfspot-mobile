@@ -1,4 +1,5 @@
 import { backendApi, BackendApiError, User } from '@/services/backend-api';
+import { notificationService } from '@/services/notification';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
@@ -19,6 +20,10 @@ export interface AuthState {
   updateEmail: (email: string) => Promise<void>;
   resetPassword: (email: string, newPassword: string) => Promise<void>;
   clearError: () => void;
+  
+  // Notification management
+  updateNotificationToken: (notificationToken: string) => Promise<void>;
+  registerForNotifications: () => Promise<void>;
   
   // Internal actions
   setUser: (user: User | null) => void;
@@ -53,6 +58,11 @@ export const useAuthStore = create<AuthState>()(
           });
           
           console.log('AuthStore: Login successful, user set:', response.user);
+          
+          // Register for notifications after successful login
+          setTimeout(() => {
+            get().registerForNotifications();
+          }, 1000); // Small delay to let the UI settle
         } catch (error) {
           console.error('AuthStore: Login failed:', error);
           let errorMessage = 'Erreur de connexion';
@@ -93,6 +103,11 @@ export const useAuthStore = create<AuthState>()(
           });
           
           console.log('AuthStore: Registration successful, user set:', response.user);
+          
+          // Register for notifications after successful registration
+          setTimeout(() => {
+            get().registerForNotifications();
+          }, 1000); // Small delay to let the UI settle
         } catch (error) {
           console.error('AuthStore: Registration failed:', error);
           let errorMessage = 'Erreur d\'inscription';
@@ -234,6 +249,50 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
+      updateNotificationToken: async (notificationToken: string) => {
+        try {
+          set({ loading: true, error: null });
+          console.log('AuthStore: Updating notification token');
+          
+          const updatedUser = await backendApi.updateNotificationToken(notificationToken);
+          
+          set({ 
+            user: updatedUser,
+            loading: false 
+          });
+          
+          console.log('AuthStore: Notification token updated successfully');
+        } catch (error) {
+          console.error('AuthStore: Notification token update failed:', error);
+          set({ 
+            error: 'Erreur lors de la mise à jour du token de notification',
+            loading: false 
+          });
+          throw error;
+        }
+      },
+
+      registerForNotifications: async () => {
+        try {
+          console.log('AuthStore: Starting notification registration');
+          
+          const result = await notificationService.registerForPushNotifications();
+          
+          if (result.success && result.token) {
+            console.log('AuthStore: Push token obtained, sending to backend');
+            await get().updateNotificationToken(result.token);
+          } else {
+            console.log('AuthStore: Failed to obtain push token or permission denied');
+            if (!result.permissionStatus.granted) {
+              console.log('AuthStore: User denied notification permission');
+            }
+          }
+        } catch (error) {
+          console.error('AuthStore: Notification registration failed:', error);
+          // Don't throw - notifications are optional
+        }
+      },
+
       clearError: () => {
         set({ error: null });
       },
@@ -279,7 +338,7 @@ export const useAuthInitializer = () => {
         console.log('AuthStore: Token found, refreshing user profile');
         await refreshUser();
       } catch (error) {
-        console.log('AuthStore: Token invalid, user will remain logged out');
+        console.log('AuthStore: Token invalid, user will remain logged out', error);
         // refreshUser already handles cleanup
       } finally {
         setLoading(false);
