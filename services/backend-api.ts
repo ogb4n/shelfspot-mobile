@@ -17,8 +17,10 @@ export interface User {
 
 export interface AuthResponse {
   access_token: string;
+  refresh_token: string;
   token_type: string;
   expires_in: number;
+  refresh_expires_in: number;
   user: User;
 }
 
@@ -133,11 +135,34 @@ class BackendApiService {
     });
   }
 
+  async updateEmail(email: string): Promise<User> {
+    console.log('BackendAPI: Updating user email');
+    return this.request<User>('/auth/profile/email', {
+      method: 'PUT',
+      body: JSON.stringify({ email }),
+    });
+  }
+
+  async updateNotificationToken(notificationToken: string): Promise<User> {
+    return this.request<User>('/auth/profile/notification-token', {
+      method: 'PUT',
+      body: JSON.stringify({ notificationToken }),
+    });
+  }
+
   async resetPassword(email: string, newPassword: string): Promise<{ message: string }> {
     console.log('BackendAPI: Resetting password for email:', email);
     return this.request<{ message: string }>('/auth/password/reset', {
       method: 'POST',
       body: JSON.stringify({ email, newPassword }),
+    });
+  }
+
+  async refreshToken(refreshToken: string): Promise<AuthResponse> {
+    console.log("BackendAPI: Refreshing token");
+    return this.request<AuthResponse>("/auth/refresh", {
+      method: "POST",
+      body: JSON.stringify({ refresh_token: refreshToken }),
     });
   }
 

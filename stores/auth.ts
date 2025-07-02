@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { backendApi, User, BackendApiError } from '@/services/backend-api';
+import { backendApi, User, BackendApiError, AuthResponse } from '@/services/backend-api';
 
 export interface AuthState {
   // State
@@ -15,9 +15,15 @@ export interface AuthState {
   register: (email: string, password: string, name?: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  refreshToken: () => Promise<AuthResponse>; // Add refresh token method
   updateProfile: (name: string) => Promise<void>;
+  updateEmail: (email: string) => Promise<void>;
   resetPassword: (email: string, newPassword: string) => Promise<void>;
   clearError: () => void;
+  
+  // Notification management
+  updateNotificationToken: (notificationToken: string) => Promise<void>;
+  registerForNotifications: () => Promise<void>;
   
   // Internal actions
   setUser: (user: User | null) => void;
@@ -42,8 +48,15 @@ export const useAuthStore = create<AuthState>()(
           
           const response = await backendApi.login(email, password);
           
-          // Store the token
+          // Store access token
           await AsyncStorage.setItem('access_token', response.access_token);
+          
+          // Store refresh token only if it exists (for backward compatibility)
+          if (response.refresh_token) {
+            await AsyncStorage.setItem('refresh_token', response.refresh_token);
+          } else {
+            console.warn('AuthStore: No refresh token received from backend');
+          }
           
           set({ 
             user: response.user, 
@@ -82,8 +95,15 @@ export const useAuthStore = create<AuthState>()(
           
           const response = await backendApi.register(email, password, name);
           
-          // Store the token
+          // Store access token
           await AsyncStorage.setItem('access_token', response.access_token);
+          
+          // Store refresh token only if it exists (for backward compatibility)
+          if (response.refresh_token) {
+            await AsyncStorage.setItem('refresh_token', response.refresh_token);
+          } else {
+            console.warn('AuthStore: No refresh token received from backend');
+          }
           
           set({ 
             user: response.user, 
@@ -119,6 +139,7 @@ export const useAuthStore = create<AuthState>()(
         try {
           console.log('AuthStore: Logging out');
           await AsyncStorage.removeItem('access_token');
+          await AsyncStorage.removeItem('refresh_token');
           set({ 
             user: null, 
             isAuthenticated: false,
@@ -197,6 +218,107 @@ export const useAuthStore = create<AuthState>()(
             loading: false 
           });
           throw error;
+        }
+      },
+
+      refreshToken: async () => {
+        try {
+          const refreshToken = await AsyncStorage.getItem('refresh_token');
+          if (!refreshToken) {
+            throw new Error('No refresh token available');
+          }
+
+          const response = await backendApi.refreshToken(refreshToken);
+          
+          // Store new tokens
+          await AsyncStorage.setItem('access_token', response.access_token);
+          await AsyncStorage.setItem('refresh_token', response.refresh_token);
+          
+          set({ 
+            user: response.user, 
+            isAuthenticated: true,
+            error: null 
+          });
+          
+          return response;
+        } catch (error) {
+          console.error('Token refresh failed:', error);
+          // Clear tokens and logout
+          await AsyncStorage.removeItem('access_token');
+          await AsyncStorage.removeItem('refresh_token');
+          set({ 
+            user: null, 
+            isAuthenticated: false,
+            error: 'Session expired' 
+          });
+          throw error;
+        }
+      },
+
+      updateEmail: async (email: string) => {
+        try {
+          set({ loading: true, error: null });
+          console.log('AuthStore: Updating email to:', email);
+          
+          const updatedUser = await backendApi.updateEmail(email);
+          
+          set({ 
+            user: updatedUser,
+            loading: false 
+          });
+          
+          console.log('AuthStore: Email updated successfully');
+        } catch (error) {
+          console.error('AuthStore: Email update failed:', error);
+          let errorMessage = 'Erreur lors de la mise à jour de l\'email';
+          
+          if (error instanceof BackendApiError) {
+            if (error.status === 409) {
+              errorMessage = 'Cet email est déjà utilisé par un autre compte';
+            } else if (error.status === 400) {
+              errorMessage = 'Format d\'email invalide';
+            }
+          }
+          
+          set({ 
+            error: errorMessage,
+            loading: false 
+          });
+          throw error;
+        }
+      },
+
+      updateNotificationToken: async (notificationToken: string) => {
+        try {
+          set({ loading: true, error: null });
+          console.log('AuthStore: Updating notification token');
+          
+          const updatedUser = await backendApi.updateNotificationToken(notificationToken);
+          
+          set({ 
+            user: updatedUser,
+            loading: false 
+          });
+          
+          console.log('AuthStore: Notification token updated successfully');
+        } catch (error) {
+          console.error('AuthStore: Notification token update failed:', error);
+          set({ 
+            error: 'Erreur lors de la mise à jour du token de notification',
+            loading: false 
+          });
+          throw error;
+        }
+      },
+
+      registerForNotifications: async () => {
+        try {
+          console.log('AuthStore: Notification registration not implemented yet');
+          // TODO: Implement push notification registration
+          // This will be implemented when the notification service is ready
+        } catch (error) {
+          console.error('AuthStore: Notification registration failed:', error);
+          // Don't throw - notifications are optional
         }
       },
 
