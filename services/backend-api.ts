@@ -521,6 +521,25 @@ class BackendApiService {
     return this.request<any>(`/projects/${projectId}/scoring/breakdown`);
   }
 
+  // Project scoring methods
+  async getProjectScoringStatistics(): Promise<any> {
+    return this.request<any>('/projects/scoring/statistics');
+  }
+
+  async getTopItems(): Promise<any[]> {
+    return this.request<any[]>('/projects/scoring/top-items');
+  }
+
+  async getCriticalItems(): Promise<any[]> {
+    return this.request<any[]>('/projects/scoring/critical-items');
+  }
+
+  async recalculateProjectScores(): Promise<any> {
+    return this.request<any>('/projects/scoring/recalculate', {
+      method: 'POST',
+    });
+  }
+
   // Public request method for custom endpoints
   async makeRequest<T>(endpoint: string, options?: RequestInit): Promise<T> {
     return this.request<T>(endpoint, options);

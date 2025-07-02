@@ -6,11 +6,37 @@ import { SkeletonList } from '@/components/ui/Skeleton';
 import { Colors } from '@/constants/Colors';
 import { useToast } from '@/contexts/ToastContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { backendApi } from '@/services/backend-api';
 import { useInventoryAlerts, useInventoryItems } from '@/stores/inventory';
 import { Alert, AlertFormData } from '@/types/inventory';
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { FlatList, Alert as RNAlert, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import {
+  FlatList,
+  Alert as RNAlert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from 'react-native';
+
+// Define the types for important items data
+interface TopItem {
+  id: number;
+  name: string;
+  importanceScore: number;
+  quantity: number;
+  status: string;
+}
+
+interface CriticalItem extends TopItem {
+  criticalityScore: number;
+}
+
+// View Mode Types
+type ViewMode = 'alerts' | 'important-items';
 
 export default function AlertsScreen() {
   const colorScheme = useColorScheme() ?? 'light';
@@ -20,6 +46,15 @@ export default function AlertsScreen() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // New state for switching between alerts and important items
+  const [viewMode, setViewMode] = useState<ViewMode>('alerts');
+  
+  // State for important items data
+  const [scoringStats, setScoringStats] = useState<any | null>(null);
+  const [topItems, setTopItems] = useState<TopItem[]>([]);
+  const [criticalItems, setCriticalItems] = useState<CriticalItem[]>([]);
+  const [importantItemsLoading, setImportantItemsLoading] = useState(false);
 
   // Context menu state
   const [showContextMenu, setShowContextMenu] = useState(false);
@@ -46,12 +81,69 @@ export default function AlertsScreen() {
     : allAlerts;
 
   const loading = itemsLoading || alertsLoading;
+  
+  // Toggle between alerts and important items views
+  const handleToggleViewMode = useCallback((mode: ViewMode) => {
+    setViewMode(mode);
+  }, []);
+  
+  // Get color based on importance score
+  const getScoreColor = (score?: number) => {
+    if (!score) return colors.textSecondary;
+    if (score >= 8) return '#ef4444'; // Red for high importance
+    if (score >= 5) return '#f59e0b'; // Yellow for medium importance
+    return '#10b981'; // Green for low importance
+  };
+  
+  // Load important items data
+  const loadImportantItemsData = useCallback(async () => {
+    if (viewMode === 'important-items') {
+      try {
+        setImportantItemsLoading(true);
+        
+        // Fetch all data in parallel
+        const [statsResponse, topItemsResponse, criticalItemsResponse] = await Promise.all([
+          backendApi.getProjectScoringStatistics(),
+          backendApi.getTopItems(),
+          backendApi.getCriticalItems()
+        ]);
+        
+        setScoringStats(statsResponse);
+        setTopItems(topItemsResponse);
+        setCriticalItems(criticalItemsResponse);
+      } catch (error) {
+        console.error('Error loading important items data:', error);
+        showError('Failed to load important items data');
+      } finally {
+        setImportantItemsLoading(false);
+      }
+    }
+  }, [viewMode, showError]);
 
   useEffect(() => {
     if (items.length > 0) {
       loadAlerts();
     }
   }, [items.length, loadAlerts]);
+  
+  // Load important items data when viewMode changes or on initial render
+  useEffect(() => {
+    if (viewMode === 'important-items') {
+      loadImportantItemsData();
+    }
+  }, [viewMode, loadImportantItemsData]);
+  
+  // Initial data load for both modes
+  useEffect(() => {
+    // Load alerts data
+    if (items.length > 0) {
+      loadAlerts();
+    }
+    
+    // Pre-load importance data for smoother switching
+    loadImportantItemsData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleToggleAlert = async (alertId: number, currentStatus: boolean) => {
     const alert = allAlerts.find(a => a.id === alertId);
@@ -281,90 +373,287 @@ export default function AlertsScreen() {
           <IconSymbol name="plus" size={24} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
-
-      {/* Stats */}
-      <View style={styles.statsContainer}>
-        <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-          <ThemedText type="subtitle" style={[styles.statNumber, { color: colors.warning }]}>
-            {allAlerts.filter((a: Alert) => a.isActive).length}
-          </ThemedText>
-          <ThemedText style={[styles.statLabel, { color: colors.textSecondary }]}>
-            Active Alerts
-          </ThemedText>
-        </View>
-        <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-          <ThemedText type="subtitle" style={[styles.statNumber, { color: colors.error }]}>
-            {allAlerts.filter((a: Alert) => a.lastSent).length}
-          </ThemedText>
-          <ThemedText style={[styles.statLabel, { color: colors.textSecondary }]}>
-            Recently Triggered
-          </ThemedText>
-        </View>
-      </View>
-
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <View style={[styles.searchBar, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <IconSymbol name="magnifyingglass" size={20} color={colors.textSecondary} />
-          <TextInput
-            style={[styles.searchInput, { color: colors.text }]}
-            placeholder="Search alerts by item name..."
-            placeholderTextColor={colors.textSecondary}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
+      
+      {/* View Mode Selector */}
+      <View style={[styles.viewModeContainer, { backgroundColor: colors.card }]}>
+        <TouchableOpacity
+          style={[
+            styles.viewModeTab,
+            viewMode === 'alerts' && [styles.activeViewModeTab, { borderBottomColor: colors.primary }]
+          ]}
+          onPress={() => handleToggleViewMode('alerts')}
+        >
+          <IconSymbol
+            name="bell"
+            size={18}
+            color={viewMode === 'alerts' ? colors.primary : colors.textSecondary}
           />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <IconSymbol name="xmark.circle.fill" size={20} color={colors.textSecondary} />
-            </TouchableOpacity>
-          )}
-        </View>
+          <Text style={[
+            styles.viewModeText,
+            { color: viewMode === 'alerts' ? colors.primary : colors.textSecondary }
+          ]}>
+            Alerts
+          </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[
+            styles.viewModeTab,
+            viewMode === 'important-items' && [styles.activeViewModeTab, { borderBottomColor: colors.primary }]
+          ]}
+          onPress={() => handleToggleViewMode('important-items')}
+        >
+          <IconSymbol
+            name="star"
+            size={18}
+            color={viewMode === 'important-items' ? colors.primary : colors.textSecondary}
+          />
+          <Text style={[
+            styles.viewModeText,
+            { color: viewMode === 'important-items' ? colors.primary : colors.textSecondary }
+          ]}>
+            Important Items
+          </Text>
+        </TouchableOpacity>
       </View>
 
-      {/* Alerts List */}
-      {loading ? (
-        <View style={styles.list}>
-          <SkeletonList itemCount={4} showTags={false} />
-        </View>
-      ) : alertsError ? (
-        <View style={styles.emptyState}>
-          <IconSymbol name="exclamationmark.triangle" size={64} color={colors.error} />
-          <ThemedText type="subtitle" style={[styles.emptyTitle, { color: colors.text }]}>
-            Error Loading Alerts
-          </ThemedText>
-          <ThemedText style={[styles.emptyDescription, { color: colors.textSecondary }]}>
-            {alertsError}
-          </ThemedText>
-          <TouchableOpacity
-            style={[styles.emptyButton, { backgroundColor: colors.primary }]}
-            onPress={loadAlerts}
-          >
-            <ThemedText style={[styles.emptyButtonText, { color: '#FFFFFF' }]}>
-              Retry
-            </ThemedText>
-          </TouchableOpacity>
-        </View>
-      ) : filteredAlerts.length > 0 ? (
-        <FlatList
-          data={filteredAlerts}
-          renderItem={renderAlert}
-          keyExtractor={(item) => item.id.toString()}
-          style={styles.list}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-        />
-      ) : searchQuery.trim() ? (
-        <View style={styles.emptyState}>
-          <IconSymbol name="magnifyingglass" size={64} color={colors.textSecondary} />
-          <ThemedText type="subtitle" style={[styles.emptyTitle, { color: colors.text }]}>
-            No Results Found
-          </ThemedText>
-          <ThemedText style={[styles.emptyDescription, { color: colors.textSecondary }]}>
-            No alerts found for &quot;{searchQuery}&quot;. Try a different search term.
-          </ThemedText>
-        </View>
+      {viewMode === 'alerts' ? (
+        <>
+          {/* Stats - Alerts Mode */}
+          <View style={styles.statsContainer}>
+            <View style={[styles.statCard, { backgroundColor: colors.card }]}>
+              <ThemedText type="subtitle" style={[styles.statNumber, { color: colors.warning }]}>
+                {allAlerts.filter((a: Alert) => a.isActive).length}
+              </ThemedText>
+              <ThemedText style={[styles.statLabel, { color: colors.textSecondary }]}>
+                Active Alerts
+              </ThemedText>
+            </View>
+            <View style={[styles.statCard, { backgroundColor: colors.card }]}>
+              <ThemedText type="subtitle" style={[styles.statNumber, { color: colors.error }]}>
+                {allAlerts.filter((a: Alert) => a.lastSent).length}
+              </ThemedText>
+              <ThemedText style={[styles.statLabel, { color: colors.textSecondary }]}>
+                Recently Triggered
+              </ThemedText>
+            </View>
+          </View>
+
+          {/* Search Bar - Alerts Mode */}
+          <View style={styles.searchContainer}>
+            <View style={[styles.searchBar, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <IconSymbol name="magnifyingglass" size={20} color={colors.textSecondary} />
+              <TextInput
+                style={[styles.searchInput, { color: colors.text }]}
+                placeholder="Search alerts by item name..."
+                placeholderTextColor={colors.textSecondary}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchQuery('')}>
+                  <IconSymbol name="xmark.circle.fill" size={20} color={colors.textSecondary} />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+
+          {/* Alerts List */}
+          {loading ? (
+            <View style={styles.list}>
+              <SkeletonList itemCount={4} showTags={false} />
+            </View>
+          ) : alertsError ? (
+            <View style={styles.emptyState}>
+              <IconSymbol name="exclamationmark.triangle" size={64} color={colors.error} />
+              <ThemedText type="subtitle" style={[styles.emptyTitle, { color: colors.text }]}>
+                Error Loading Alerts
+              </ThemedText>
+              <ThemedText style={[styles.emptyDescription, { color: colors.textSecondary }]}>
+                {alertsError}
+              </ThemedText>
+              <TouchableOpacity
+                style={[styles.emptyButton, { backgroundColor: colors.primary }]}
+                onPress={loadAlerts}
+              >
+                <ThemedText style={[styles.emptyButtonText, { color: '#FFFFFF' }]}>
+                  Retry
+                </ThemedText>
+              </TouchableOpacity>
+            </View>
+          ) : filteredAlerts.length > 0 ? (
+            <FlatList
+              data={filteredAlerts}
+              renderItem={renderAlert}
+              keyExtractor={(item) => item.id.toString()}
+              style={styles.list}
+              contentContainerStyle={styles.listContent}
+              showsVerticalScrollIndicator={false}
+            />
+          ) : searchQuery.trim() ? (
+            <View style={styles.emptyState}>
+              <IconSymbol name="magnifyingglass" size={64} color={colors.textSecondary} />
+              <ThemedText type="subtitle" style={[styles.emptyTitle, { color: colors.text }]}>
+                No Results Found
+              </ThemedText>
+              <ThemedText style={[styles.emptyDescription, { color: colors.textSecondary }]}>
+                No alerts found for &quot;{searchQuery}&quot;. Try a different search term.
+              </ThemedText>
+            </View>
+          ) : (
+            <EmptyState />
+          )}
+        </>
       ) : (
-        <EmptyState />
+        <>
+          {/* Important Items View */}
+          {importantItemsLoading ? (
+            <View style={styles.list}>
+              <SkeletonList itemCount={4} showTags={false} />
+            </View>
+          ) : (
+            <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
+              {/* Importance Score Statistics */}
+              {scoringStats && (
+                <View style={[styles.importanceStatsCard, { backgroundColor: colors.card }]}>
+                  <ThemedText type="subtitle" style={[styles.sectionTitle, { color: colors.text }]}>
+                    Importance Score Statistics
+                  </ThemedText>
+                  
+                  <View style={styles.statsGrid}>
+                    <View style={styles.statGridItem}>
+                      <ThemedText type="subtitle" style={[styles.statNumber, { color: colors.primary }]}>
+                        {scoringStats.totalItems}
+                      </ThemedText>
+                      <ThemedText style={[styles.statLabel, { color: colors.textSecondary }]}>
+                        Total Items
+                      </ThemedText>
+                    </View>
+                    
+                    <View style={styles.statGridItem}>
+                      <ThemedText type="subtitle" style={[styles.statNumber, { color: colors.warning }]}>
+                        {scoringStats.itemsWithScore}
+                      </ThemedText>
+                      <ThemedText style={[styles.statLabel, { color: colors.textSecondary }]}>
+                        Scored Items
+                      </ThemedText>
+                    </View>
+                    
+                    <View style={styles.statGridItem}>
+                      <ThemedText type="subtitle" style={[styles.statNumber, { color: colors.success }]}>
+                        {scoringStats.averageScore?.toFixed(1) || '0.0'}
+                      </ThemedText>
+                      <ThemedText style={[styles.statLabel, { color: colors.textSecondary }]}>
+                        Avg Score
+                      </ThemedText>
+                    </View>
+                    
+                    <View style={styles.statGridItem}>
+                      <ThemedText type="subtitle" style={[styles.statNumber, { color: colors.error }]}>
+                        {scoringStats.distribution?.critical || 0}
+                      </ThemedText>
+                      <ThemedText style={[styles.statLabel, { color: colors.textSecondary }]}>
+                        Critical Items
+                      </ThemedText>
+                    </View>
+                  </View>
+                </View>
+              )}
+              
+              {/* Top Important Items */}
+              {topItems.length > 0 ? (
+                <View style={[styles.importanceCard, { backgroundColor: colors.card }]}>
+                  <ThemedText type="subtitle" style={[styles.sectionTitle, { color: colors.text }]}>
+                    Top Important Items
+                  </ThemedText>
+                  {topItems.slice(0, 5).map((item) => (
+                    <TouchableOpacity 
+                      key={item.id} 
+                      style={[styles.importantItemRow, { borderBottomColor: colors.border }]}
+                      onPress={() => router.push(`/item/${item.id}`)}
+                    >
+                      <View style={styles.importantItemInfo}>
+                        <ThemedText style={[styles.importantItemName, { color: colors.text }]}>
+                          {item.name}
+                        </ThemedText>
+                        <ThemedText style={[styles.importantItemMeta, { color: colors.textSecondary }]}>
+                          Important Item
+                        </ThemedText>
+                      </View>
+                      <View style={[
+                        styles.scoreContainer, 
+                        { backgroundColor: getScoreColor(item.importanceScore) + '20' }
+                      ]}>
+                        <ThemedText style={[
+                          styles.scoreText, 
+                          { color: getScoreColor(item.importanceScore) }
+                        ]}>
+                          {item.importanceScore?.toFixed(1) || '0'}
+                        </ThemedText>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              ) : null}
+              
+              {/* Critical Items */}
+              {criticalItems.length > 0 ? (
+                <View style={[styles.importanceCard, { backgroundColor: colors.card }]}>
+                  <ThemedText type="subtitle" style={[styles.sectionTitle, { color: colors.text }]}>
+                    Critical Items (Low Stock & High Importance)
+                  </ThemedText>
+                  {criticalItems.slice(0, 5).map((item) => (
+                    <TouchableOpacity 
+                      key={item.id} 
+                      style={[styles.importantItemRow, { borderBottomColor: colors.border }]}
+                      onPress={() => router.push(`/item/${item.id}`)}
+                    >
+                      <View style={styles.importantItemInfo}>
+                        <ThemedText style={[styles.importantItemName, { color: colors.text }]}>
+                          {item.name}
+                        </ThemedText>
+                        <View style={styles.criticalItemDetails}>
+                          <View style={[styles.quantityBadge, { backgroundColor: colors.error + '20' }]}>
+                            <ThemedText style={[styles.quantityText, { color: colors.error }]}>
+                              {item.quantity} remaining
+                            </ThemedText>
+                          </View>
+                          <ThemedText style={[styles.importantItemMeta, { color: colors.textSecondary }]}>
+                            Criticality: {item.criticalityScore?.toFixed(1) || '0'}
+                          </ThemedText>
+                        </View>
+                      </View>
+                      <View style={[
+                        styles.scoreContainer, 
+                        { backgroundColor: getScoreColor(item.importanceScore) + '20' }
+                      ]}>
+                        <ThemedText style={[
+                          styles.scoreText, 
+                          { color: getScoreColor(item.importanceScore) }
+                        ]}>
+                          {item.importanceScore?.toFixed(1) || '0'}
+                        </ThemedText>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              ) : null}
+              
+              {/* No Data Message */}
+              {!importantItemsLoading && !scoringStats && !topItems.length && !criticalItems.length && (
+                <View style={styles.emptyState}>
+                  <IconSymbol name="star.slash" size={64} color={colors.textSecondary} />
+                  <ThemedText type="subtitle" style={[styles.emptyTitle, { color: colors.text }]}>
+                    No Important Items
+                  </ThemedText>
+                  <ThemedText style={[styles.emptyDescription, { color: colors.textSecondary }]}>
+                    Add items to projects to calculate importance scores.
+                  </ThemedText>
+                </View>
+              )}
+            </ScrollView>
+          )}
+        </>
       )}
 
       {/* Create Alert Modal */}
@@ -565,5 +854,126 @@ const styles = StyleSheet.create({
   emptyButtonText: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  
+  // View mode selector styles
+  viewModeContainer: {
+    flexDirection: 'row',
+    marginHorizontal: 16,
+    marginVertical: 12,
+    borderRadius: 12,
+    overflow: 'hidden',
+    height: 48,
+  },
+  viewModeTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  activeViewModeTab: {
+    borderBottomWidth: 2,
+  },
+  viewModeText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  
+  // Important items section styles
+  importanceStatsCard: {
+    margin: 16,
+    marginBottom: 8,
+    padding: 16,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  statGridItem: {
+    width: '48%',
+    padding: 12,
+    marginBottom: 12,
+    backgroundColor: 'rgba(0,0,0,0.03)',
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  importanceCard: {
+    margin: 16,
+    marginBottom: 20,
+    padding: 16,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  importantItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  importantItemInfo: {
+    flex: 1,
+    paddingRight: 12,
+  },
+  importantItemName: {
+    fontSize: 16,
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  importantItemMeta: {
+    fontSize: 14,
+  },
+  scoreContainer: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    minWidth: 42,
+    alignItems: 'center',
+  },
+  scoreText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  criticalItemDetails: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 4,
+  },
+  quantityBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  quantityText: {
+    fontSize: 12,
+    fontWeight: '500',
   },
 });

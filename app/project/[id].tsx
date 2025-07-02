@@ -8,7 +8,7 @@ import { SkeletonList } from '@/components/ui/Skeleton';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { backendApi } from '@/services/backend-api';
-import { Project, ProjectItem } from '@/types';
+import { Project, ProjectItem, ProjectScoringBreakdown } from '@/types';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -23,6 +23,7 @@ export default function ProjectDetailsScreen() {
 
     const [project, setProject] = useState<Project | null>(null);
     const [projectItems, setProjectItems] = useState<ProjectItem[]>([]);
+    const [projectScoring, setProjectScoring] = useState<ProjectScoringBreakdown | null>(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -66,8 +67,30 @@ export default function ProjectDetailsScreen() {
 
     const loadProjectItems = async () => {
         try {
+            // Get original project items for compatibility
             const items = await backendApi.getProjectItems(Number(id));
             setProjectItems(items);
+            
+            // Get detailed scoring breakdown
+            const scoringData = await backendApi.getProjectScoringBreakdown(Number(id));
+            setProjectScoring(scoringData);
+            
+            // Map the detailed scores to project items for display
+            if (scoringData && scoringData.itemsScores && items) {
+                // Create a map of scores by item ID for quick lookup
+                const scoreMap = new Map(
+                    scoringData.itemsScores.map(score => [score.itemId, score])
+                );
+                
+                // Update project items with scores from the breakdown
+                const itemsWithScores = items.map(item => ({
+                    ...item,
+                    // Add the detailed score information
+                    detailedScore: scoreMap.get(item.itemId)
+                }));
+                
+                setProjectItems(itemsWithScores);
+            }
         } catch (err: any) {
             console.error('Error loading project items:', err);
             // Mock empty array for development
@@ -350,7 +373,6 @@ export default function ProjectDetailsScreen() {
                                 <ProjectItemCard
                                     key={projectItem.id}
                                     projectItem={projectItem}
-                                    onUpdate={handleItemUpdated}
                                     onRemove={handleItemRemoved}
                                 />
                             ))}
