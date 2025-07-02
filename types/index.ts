@@ -116,6 +116,7 @@ export interface ProjectItem {
   item: Item;
   createdAt: string;
   updatedAt?: string;
+  detailedScore?: ItemWithDetailedScore;
 }
 
 export interface AddItemToProjectDto {
@@ -127,4 +128,55 @@ export interface AddItemToProjectDto {
 export interface UpdateProjectItemDto {
   importanceScore?: number;
   notes?: string;
+}
+
+// Project scoring types
+export interface ProjectScoringStatistics {
+  totalProjects: number;
+  activeProjects: number;
+  totalItems: number;
+  averageImportanceScore: number;
+  highPriorityItems: number;
+}
+
+export interface ItemWithScore {
+  id: number;
+  name: string;
+  importanceScore: number;
+  projectId: number;
+  projectName: string;
+}
+
+export interface ProjectUsage {
+  projectId: number;
+  projectName: string;
+  status: string;
+  priority: string;
+  quantityUsed: number;
+  contribution: number;
+}
+
+export interface ItemScoreBreakdown {
+  activeProjectsScore: number;
+  pausedProjectsScore: number;
+  projectCountBonus: number;
+  priorityMultiplier: number;
+}
+
+export interface ItemWithDetailedScore {
+  itemId: number;
+  itemName: string;
+  totalScore: number;
+  breakdown: ItemScoreBreakdown;
+  projectsUsage: ProjectUsage[];
+  quantityUsedInProject: number;
+  isActiveInProject: boolean;
+}
+
+export interface ProjectScoringBreakdown {
+  projectId: number;
+  projectName: string;
+  projectStatus: string;
+  projectPriority: string;
+  itemsScores: ItemWithDetailedScore[];
 }

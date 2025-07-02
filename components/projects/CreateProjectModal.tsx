@@ -7,11 +7,15 @@ import { CreateProjectDto, Project } from '@/types';
 import { useState } from 'react';
 import {
     Alert,
+    Keyboard,
+    KeyboardAvoidingView,
     Modal,
+    Platform,
     ScrollView,
     StyleSheet,
     TextInput,
     TouchableOpacity,
+    TouchableWithoutFeedback,
     View,
 } from 'react-native';
 
@@ -110,6 +114,44 @@ export function CreateProjectModal({ visible, onClose, onProjectCreated }: Creat
         background: useThemeColor({}, 'background'),
     };
 
+    // Format date automatically with slashes
+    const formatDateInput = (text: string): string => {
+        // Remove all non-numeric characters
+        const numbers = text.replace(/\D/g, '');
+        
+        // Add slashes automatically
+        if (numbers.length <= 2) {
+            return numbers;
+        } else if (numbers.length <= 4) {
+            return `${numbers.slice(0, 2)}/${numbers.slice(2)}`;
+        } else {
+            return `${numbers.slice(0, 2)}/${numbers.slice(2, 4)}/${numbers.slice(4, 8)}`;
+        }
+    };
+
+    // Convert DD/MM/YYYY to ISO 8601 format (YYYY-MM-DD)
+    const convertToISODate = (dateString: string): string => {
+        if (!dateString || dateString.length !== 10) return '';
+        
+        const parts = dateString.split('/');
+        if (parts.length !== 3) return '';
+        
+        const day = parts[0].padStart(2, '0');
+        const month = parts[1].padStart(2, '0');
+        const year = parts[2];
+        
+        // Validate the date parts
+        const dayNum = parseInt(day);
+        const monthNum = parseInt(month);
+        const yearNum = parseInt(year);
+        
+        if (dayNum < 1 || dayNum > 31 || monthNum < 1 || monthNum > 12 || yearNum < 1900 || yearNum > 2100) {
+            return '';
+        }
+        
+        return `${year}-${month}-${day}`;
+    };
+
     const resetForm = () => {
         setFormData({
             name: '',
@@ -136,7 +178,14 @@ export function CreateProjectModal({ visible, onClose, onProjectCreated }: Creat
 
         setLoading(true);
         try {
-            const newProject = await backendApi.createProject(formData);
+            // Convert dates to ISO format before sending to API
+            const projectData = {
+                ...formData,
+                startDate: formData.startDate ? convertToISODate(formData.startDate) : '',
+                endDate: formData.endDate ? convertToISODate(formData.endDate) : '',
+            };
+
+            const newProject = await backendApi.createProject(projectData);
 
             onProjectCreated(newProject);
             handleClose();
@@ -159,169 +208,196 @@ export function CreateProjectModal({ visible, onClose, onProjectCreated }: Creat
             presentationStyle="pageSheet"
             onRequestClose={handleClose}
         >
-            <ThemedView style={styles.container}>
-                {/* Header */}
-                <View style={[styles.header, { borderBottomColor: colors.backgroundSecondary }]}>
-                    <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-                        <IconSymbol name="xmark" size={24} color={colors.textSecondary} />
-                    </TouchableOpacity>
-                    <ThemedText type="defaultSemiBold" style={[styles.title, { color: colors.text }]}>
-                        Create New Project
-                    </ThemedText>
-                    <View style={styles.headerSpace} />
-                </View>
-
-                {/* Content */}
-                <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-                    <View style={styles.formContainer}>
-                        {/* Project Name */}
-                        <View style={styles.inputGroup}>
-                            <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
-                                Project Name *
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                <KeyboardAvoidingView 
+                    style={{ flex: 1 }}
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+                >
+                    <ThemedView style={styles.container}>
+                        {/* Header */}
+                        <View style={[styles.header, { borderBottomColor: colors.backgroundSecondary }]}>
+                            <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+                                <IconSymbol name="xmark" size={24} color={colors.textSecondary} />
+                            </TouchableOpacity>
+                            <ThemedText type="defaultSemiBold" style={[styles.title, { color: colors.text }]}>
+                                Create New Project
                             </ThemedText>
-                            <TextInput
-                                style={[styles.input, {
-                                    backgroundColor: colors.backgroundSecondary,
-                                    color: colors.text
-                                }]}
-                                placeholder="Ex: Kitchen Renovation"
-                                placeholderTextColor={colors.textSecondary}
-                                value={formData.name}
-                                onChangeText={(text) => setFormData({ ...formData, name: text })}
-                                editable={!loading}
-                                autoFocus
-                            />
+                            <View style={styles.headerSpace} />
                         </View>
 
-                        {/* Description */}
-                        <View style={styles.inputGroup}>
-                            <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
-                                Description
-                            </ThemedText>
-                            <TextInput
-                                style={[styles.input, styles.textArea, {
-                                    backgroundColor: colors.backgroundSecondary,
-                                    color: colors.text
-                                }]}
-                                placeholder="Project description..."
-                                placeholderTextColor={colors.textSecondary}
-                                value={formData.description}
-                                onChangeText={(text) => setFormData({ ...formData, description: text })}
-                                editable={!loading}
-                                multiline
-                                numberOfLines={4}
-                                textAlignVertical="top"
-                            />
-                        </View>
-
-                        {/* Status and Priority Row */}
-                        <View style={styles.row}>
-                            <View style={[styles.inputGroup, styles.halfWidth]}>
+                        {/* Content */}
+                        <ScrollView 
+                            style={styles.content} 
+                            showsVerticalScrollIndicator={false}
+                            keyboardShouldPersistTaps="handled"
+                            contentContainerStyle={{ paddingBottom: 20 }}
+                        >
+                            <View style={styles.formContainer}>
+                            {/* Project Name */}
+                            <View style={styles.inputGroup}>
                                 <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
-                                    Status
-                                </ThemedText>
-                                <Dropdown
-                                    value={formData.status || 'ACTIVE'}
-                                    options={STATUS_OPTIONS}
-                                    onSelect={(value) => setFormData({ ...formData, status: value as any })}
-                                    placeholder="Select status"
-                                    backgroundColor={colors.backgroundSecondary}
-                                    textColor={colors.text}
-                                    textSecondaryColor={colors.textSecondary}
-                                />
-                            </View>
-
-                            <View style={[styles.inputGroup, styles.halfWidth]}>
-                                <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
-                                    Priority
-                                </ThemedText>
-                                <Dropdown
-                                    value={formData.priority || 'MEDIUM'}
-                                    options={PRIORITY_OPTIONS}
-                                    onSelect={(value) => setFormData({ ...formData, priority: value as any })}
-                                    placeholder="Select priority"
-                                    backgroundColor={colors.backgroundSecondary}
-                                    textColor={colors.text}
-                                    textSecondaryColor={colors.textSecondary}
-                                />
-                            </View>
-                        </View>
-
-                        {/* Start Date and End Date Row */}
-                        <View style={styles.row}>
-                            <View style={[styles.inputGroup, styles.halfWidth]}>
-                                <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
-                                    Start Date
+                                    Project Name *
                                 </ThemedText>
                                 <TextInput
                                     style={[styles.input, {
                                         backgroundColor: colors.backgroundSecondary,
                                         color: colors.text
                                     }]}
-                                    placeholder="dd/mm/yyyy"
+                                    placeholder="Ex: Kitchen Renovation"
                                     placeholderTextColor={colors.textSecondary}
-                                    value={formData.startDate}
-                                    onChangeText={(text) => setFormData({ ...formData, startDate: text })}
+                                    value={formData.name}
+                                    onChangeText={(text) => setFormData({ ...formData, name: text })}
                                     editable={!loading}
+                                    autoFocus
                                 />
                             </View>
 
-                            <View style={[styles.inputGroup, styles.halfWidth]}>
+                            {/* Description */}
+                            <View style={styles.inputGroup}>
                                 <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
-                                    End Date
+                                    Description
                                 </ThemedText>
                                 <TextInput
-                                    style={[styles.input, {
+                                    style={[styles.input, styles.textArea, {
                                         backgroundColor: colors.backgroundSecondary,
                                         color: colors.text
                                     }]}
-                                    placeholder="dd/mm/yyyy"
+                                    placeholder="Project description..."
                                     placeholderTextColor={colors.textSecondary}
-                                    value={formData.endDate}
-                                    onChangeText={(text) => setFormData({ ...formData, endDate: text })}
+                                    value={formData.description}
+                                    onChangeText={(text) => setFormData({ ...formData, description: text })}
                                     editable={!loading}
+                                    multiline
+                                    numberOfLines={4}
+                                    textAlignVertical="top"
                                 />
                             </View>
+
+                            {/* Status and Priority Row */}
+                            <View style={styles.row}>
+                                <View style={[styles.inputGroup, styles.halfWidth]}>
+                                    <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                                        Status
+                                    </ThemedText>
+                                    <Dropdown
+                                        value={formData.status || 'ACTIVE'}
+                                        options={STATUS_OPTIONS}
+                                        onSelect={(value) => setFormData({ ...formData, status: value as any })}
+                                        placeholder="Select status"
+                                        backgroundColor={colors.backgroundSecondary}
+                                        textColor={colors.text}
+                                        textSecondaryColor={colors.textSecondary}
+                                    />
+                                </View>
+
+                                <View style={[styles.inputGroup, styles.halfWidth]}>
+                                    <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                                        Priority
+                                    </ThemedText>
+                                    <Dropdown
+                                        value={formData.priority || 'MEDIUM'}
+                                        options={PRIORITY_OPTIONS}
+                                        onSelect={(value) => setFormData({ ...formData, priority: value as any })}
+                                        placeholder="Select priority"
+                                        backgroundColor={colors.backgroundSecondary}
+                                        textColor={colors.text}
+                                        textSecondaryColor={colors.textSecondary}
+                                    />
+                                </View>
+                            </View>
+
+                            {/* Start Date and End Date Row */}
+                            <View style={styles.row}>
+                                <View style={[styles.inputGroup, styles.halfWidth]}>
+                                    <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                                        Start Date
+                                    </ThemedText>
+                                    <TextInput
+                                        style={[styles.input, {
+                                            backgroundColor: colors.backgroundSecondary,
+                                            color: colors.text
+                                        }]}
+                                        placeholder="DD/MM/YYYY"
+                                        placeholderTextColor={colors.textSecondary}
+                                        value={formData.startDate}
+                                        onChangeText={(text) => {
+                                            const formatted = formatDateInput(text);
+                                            setFormData({ ...formData, startDate: formatted });
+                                        }}
+                                        editable={!loading}
+                                        keyboardType="numeric"
+                                        maxLength={10}
+                                        returnKeyType="next"
+                                    />
+                                </View>
+
+                                <View style={[styles.inputGroup, styles.halfWidth]}>
+                                    <ThemedText style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                                        End Date
+                                    </ThemedText>
+                                    <TextInput
+                                        style={[styles.input, {
+                                            backgroundColor: colors.backgroundSecondary,
+                                            color: colors.text
+                                        }]}
+                                        placeholder="DD/MM/YYYY"
+                                        placeholderTextColor={colors.textSecondary}
+                                        value={formData.endDate}
+                                        onChangeText={(text) => {
+                                            const formatted = formatDateInput(text);
+                                            setFormData({ ...formData, endDate: formatted });
+                                        }}
+                                        editable={!loading}
+                                        keyboardType="numeric"
+                                        maxLength={10}
+                                        returnKeyType="done"
+                                    />
+                                </View>
+                            </View>
+                        </View>
+                    </ScrollView>
+
+                    {/* Footer */}
+                    <View style={[styles.footer, { borderTopColor: colors.backgroundSecondary }]}>
+                        <View style={styles.footerButtons}>
+                            <TouchableOpacity
+                                style={[styles.button, styles.secondaryButton, { borderColor: colors.textSecondary }]}
+                                onPress={handleClose}
+                                disabled={loading}
+                            >
+                                <ThemedText style={[styles.secondaryButtonText, { color: colors.textSecondary }]}>
+                                    Cancel
+                                </ThemedText>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[
+                                    styles.button,
+                                    styles.primaryButton,
+                                    {
+                                        backgroundColor: canCreate() ? colors.primary : colors.backgroundSecondary,
+                                    }
+                                ]}
+                                onPress={handleCreate}
+                                disabled={!canCreate()}
+                            >
+                                <ThemedText style={[
+                                    styles.primaryButtonText,
+                                    { color: canCreate() ? '#FFFFFF' : colors.textSecondary }
+                                ]}>
+                                    {loading ? 'Creating...' : 'Create Project'}
+                                </ThemedText>
+                            </TouchableOpacity>
                         </View>
                     </View>
-                </ScrollView>
 
-                {/* Footer */}
-                <View style={[styles.footer, { borderTopColor: colors.backgroundSecondary }]}>
-                    <View style={styles.footerButtons}>
-                        <TouchableOpacity
-                            style={[styles.button, styles.secondaryButton, { borderColor: colors.textSecondary }]}
-                            onPress={handleClose}
-                            disabled={loading}
-                        >
-                            <ThemedText style={[styles.secondaryButtonText, { color: colors.textSecondary }]}>
-                                Cancel
-                            </ThemedText>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={[
-                                styles.button,
-                                styles.primaryButton,
-                                {
-                                    backgroundColor: canCreate() ? colors.primary : colors.backgroundSecondary,
-                                }
-                            ]}
-                            onPress={handleCreate}
-                            disabled={!canCreate()}
-                        >
-                            <ThemedText style={[
-                                styles.primaryButtonText,
-                                { color: canCreate() ? '#FFFFFF' : colors.textSecondary }
-                            ]}>
-                                {loading ? 'Creating...' : 'Create Project'}
-                            </ThemedText>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </ThemedView>
-        </Modal>
-    );
+                    {/* Date Pickers */}
+                </ThemedView>
+            </KeyboardAvoidingView>
+        </TouchableWithoutFeedback>
+    </Modal>
+);
 }
 
 const styles = StyleSheet.create({

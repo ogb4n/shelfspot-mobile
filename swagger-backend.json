@@ -2110,7 +2110,17 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "Top des items par importance récupéré avec succès"
+            "description": "Top des items par importance récupéré avec succès",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ItemWithScoreDto"
+                  }
+                }
+              }
+            }
           },
           "401": {
             "description": "Non autorisé"
@@ -2134,7 +2144,17 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "Items critiques récupérés avec succès"
+            "description": "Items critiques récupérés avec succès",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CriticalItemDto"
+                  }
+                }
+              }
+            }
           },
           "401": {
             "description": "Non autorisé"
@@ -2165,13 +2185,12 @@
                   "type": "object",
                   "properties": {
                     "updated": {
-                      "type": "number"
+                      "type": "number",
+                      "description": "Nombre d'items mis à jour"
                     },
                     "errors": {
-                      "type": "number"
-                    },
-                    "topItems": {
-                      "type": "array"
+                      "type": "number",
+                      "description": "Nombre d'erreurs rencontrées"
                     }
                   }
                 }
@@ -2327,7 +2346,14 @@
         ],
         "responses": {
           "200": {
-            "description": "Statistiques du projet récupérées avec succès"
+            "description": "Statistiques du projet récupérées avec succès",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectStatisticsDto"
+                }
+              }
+            }
           },
           "401": {
             "description": "Non autorisé"
@@ -2364,7 +2390,17 @@
         ],
         "responses": {
           "200": {
-            "description": "Détail des scores récupéré avec succès"
+            "description": "Détail des scores récupéré avec succès",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProjectItemScoringDto"
+                  }
+                }
+              }
+            }
           },
           "401": {
             "description": "Non autorisé"
@@ -3238,6 +3274,221 @@
             "description": "Si l'utilisation de cet item est active dans le projet"
           }
         }
+      },
+      "ItemWithScoreDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "description": "ID de l'item"
+          },
+          "name": {
+            "type": "string",
+            "description": "Nom de l'item"
+          },
+          "quantity": {
+            "type": "number",
+            "description": "Quantité disponible"
+          },
+          "status": {
+            "type": "string",
+            "description": "Statut de l'item"
+          },
+          "importanceScore": {
+            "type": "number",
+            "description": "Score d'importance calculé"
+          },
+          "projectUsageCount": {
+            "type": "number",
+            "description": "Nombre de projets utilisant cet item"
+          },
+          "room": {
+            "type": "object",
+            "description": "Informations sur la pièce"
+          },
+          "place": {
+            "type": "object",
+            "description": "Informations sur l'emplacement"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "quantity",
+          "status",
+          "importanceScore",
+          "projectUsageCount"
+        ]
+      },
+      "CriticalItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "description": "ID de l'item"
+          },
+          "name": {
+            "type": "string",
+            "description": "Nom de l'item"
+          },
+          "quantity": {
+            "type": "number",
+            "description": "Quantité disponible (faible)"
+          },
+          "status": {
+            "type": "string",
+            "description": "Statut de l'item"
+          },
+          "importanceScore": {
+            "type": "number",
+            "description": "Score d'importance élevé"
+          },
+          "criticalityScore": {
+            "type": "number",
+            "description": "Score de criticité (importance / quantité)"
+          },
+          "projectUsageCount": {
+            "type": "number",
+            "description": "Nombre de projets utilisant cet item"
+          },
+          "room": {
+            "type": "object",
+            "description": "Informations sur la pièce"
+          },
+          "place": {
+            "type": "object",
+            "description": "Informations sur l'emplacement"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "quantity",
+          "status",
+          "importanceScore",
+          "criticalityScore",
+          "projectUsageCount"
+        ]
+      },
+      "ProjectStatisticsDto": {
+        "type": "object",
+        "properties": {
+          "projectInfo": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "number"
+              },
+              "name": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              },
+              "priority": {
+                "type": "string"
+              }
+            }
+          },
+          "itemsStatistics": {
+            "type": "object",
+            "properties": {
+              "totalItems": {
+                "type": "number",
+                "description": "Nombre total d'items dans le projet"
+              },
+              "activeItems": {
+                "type": "number",
+                "description": "Nombre d'items actifs"
+              },
+              "totalQuantity": {
+                "type": "number",
+                "description": "Quantité totale requise"
+              },
+              "averageImportanceScore": {
+                "type": "number",
+                "description": "Score d'importance moyen des items"
+              }
+            }
+          },
+          "completionStatus": {
+            "type": "object",
+            "properties": {
+              "percentage": {
+                "type": "number",
+                "description": "Pourcentage de completion"
+              },
+              "readyItems": {
+                "type": "number",
+                "description": "Nombre d'items prêts"
+              },
+              "missingItems": {
+                "type": "number",
+                "description": "Nombre d'items manquants"
+              }
+            }
+          }
+        },
+        "required": [
+          "projectInfo",
+          "itemsStatistics",
+          "completionStatus"
+        ]
+      },
+      "ProjectItemScoringDto": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "number",
+            "description": "ID de l'item"
+          },
+          "itemName": {
+            "type": "string",
+            "description": "Nom de l'item"
+          },
+          "quantityNeeded": {
+            "type": "number",
+            "description": "Quantité nécessaire pour le projet"
+          },
+          "quantityAvailable": {
+            "type": "number",
+            "description": "Quantité disponible en stock"
+          },
+          "importanceScore": {
+            "type": "number",
+            "description": "Score d'importance global de l'item"
+          },
+          "projectContribution": {
+            "type": "number",
+            "description": "Contribution de ce projet au score"
+          },
+          "usageFrequency": {
+            "type": "number",
+            "description": "Fréquence d'utilisation dans les projets"
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Si l'item est actif dans ce projet"
+          },
+          "room": {
+            "type": "object",
+            "description": "Informations sur la pièce"
+          },
+          "place": {
+            "type": "object",
+            "description": "Informations sur l'emplacement"
+          }
+        },
+        "required": [
+          "itemId",
+          "itemName",
+          "quantityNeeded",
+          "quantityAvailable",
+          "importanceScore",
+          "projectContribution",
+          "usageFrequency",
+          "isActive"
+        ]
       }
     }
   }

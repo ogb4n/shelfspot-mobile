@@ -1,32 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
-import {
-    ActivityIndicator,
-    Alert,
-    Modal,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
-} from 'react-native';
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useThemeColor } from '../../hooks/useThemeColor';
 import { backendApi } from '../../services/backend-api';
-import { ProjectItem, UpdateProjectItemDto } from '../../types';
+import { ProjectItem } from '../../types';
 
 interface ProjectItemCardProps {
     projectItem: ProjectItem;
-    onUpdate: () => void;
     onRemove: () => void;
 }
 
-export function ProjectItemCard({ projectItem, onUpdate, onRemove }: ProjectItemCardProps) {
-    const [showEditModal, setShowEditModal] = useState(false);
-    const [importanceScore, setImportanceScore] = useState(
-        projectItem.importanceScore?.toString() || '1'
-    );
-    const [notes, setNotes] = useState(projectItem.notes || '');
-    const [loading, setLoading] = useState(false);
+export function ProjectItemCard({ projectItem, onRemove }: ProjectItemCardProps) {
 
     const colors = {
         card: useThemeColor({}, 'card'),
@@ -54,41 +37,13 @@ export function ProjectItemCard({ projectItem, onUpdate, onRemove }: ProjectItem
                                 projectItem.itemId
                             );
                             onRemove();
-                        } catch (error: any) {
+                        } catch {
                             Alert.alert('Error', 'Failed to remove item from project.');
                         }
                     },
                 },
             ]
         );
-    };
-
-    const handleUpdate = async () => {
-        const score = parseInt(importanceScore);
-        if (isNaN(score) || score < 1 || score > 10) {
-            Alert.alert('Error', 'Importance score must be between 1 and 10.');
-            return;
-        }
-
-        try {
-            setLoading(true);
-            const data: UpdateProjectItemDto = {
-                importanceScore: score,
-                notes: notes.trim() || undefined,
-            };
-
-            await backendApi.updateProjectItem(
-                projectItem.projectId,
-                projectItem.itemId,
-                data
-            );
-            setShowEditModal(false);
-            onUpdate();
-        } catch (error: any) {
-            Alert.alert('Error', 'Failed to update project item.');
-        } finally {
-            setLoading(false);
-        }
     };
 
     const getScoreColor = (score?: number) => {
@@ -99,8 +54,7 @@ export function ProjectItemCard({ projectItem, onUpdate, onRemove }: ProjectItem
     };
 
     return (
-        <>
-            <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
                 <View style={styles.cardHeader}>
                     <View style={styles.itemInfo}>
                         <Text style={[styles.itemName, { color: colors.text }]}>
@@ -113,12 +67,6 @@ export function ProjectItemCard({ projectItem, onUpdate, onRemove }: ProjectItem
                         )}
                     </View>
                     <View style={styles.actions}>
-                        <TouchableOpacity
-                            style={styles.actionButton}
-                            onPress={() => setShowEditModal(true)}
-                        >
-                            <Ionicons name="pencil" size={18} color={colors.primary} />
-                        </TouchableOpacity>
                         <TouchableOpacity
                             style={styles.actionButton}
                             onPress={handleRemove}
@@ -136,14 +84,62 @@ export function ProjectItemCard({ projectItem, onUpdate, onRemove }: ProjectItem
                         <View
                             style={[
                                 styles.scoreBadge,
-                                { backgroundColor: getScoreColor(projectItem.importanceScore) },
+                                { backgroundColor: getScoreColor(
+                                    projectItem.detailedScore?.totalScore || 
+                                    projectItem.importanceScore
+                                ) },
                             ]}
                         >
                             <Text style={styles.scoreText}>
-                                {projectItem.importanceScore || 1}/10
+                                {projectItem.detailedScore?.totalScore || 
+                                 projectItem.importanceScore || 1}/10
                             </Text>
                         </View>
                     </View>
+                    
+                    {projectItem.detailedScore?.breakdown && (
+                        <View style={styles.scoreBreakdownContainer}>
+                            <Text style={[styles.scoreBreakdownTitle, { color: colors.textSecondary }]}>
+                                Score Breakdown:
+                            </Text>
+                            <View style={styles.scoreBreakdownItems}>
+                                <View style={styles.scoreBreakdownItem}>
+                                    <Text style={[styles.scoreBreakdownLabel, { color: colors.textSecondary }]}>
+                                        Active Projects:
+                                    </Text>
+                                    <Text style={[styles.scoreBreakdownValue, { color: colors.text }]}>
+                                        +{projectItem.detailedScore.breakdown.activeProjectsScore}
+                                    </Text>
+                                </View>
+                                {projectItem.detailedScore.breakdown.pausedProjectsScore > 0 && (
+                                    <View style={styles.scoreBreakdownItem}>
+                                        <Text style={[styles.scoreBreakdownLabel, { color: colors.textSecondary }]}>
+                                            Paused Projects:
+                                        </Text>
+                                        <Text style={[styles.scoreBreakdownValue, { color: colors.text }]}>
+                                            +{projectItem.detailedScore.breakdown.pausedProjectsScore}
+                                        </Text>
+                                    </View>
+                                )}
+                                <View style={styles.scoreBreakdownItem}>
+                                    <Text style={[styles.scoreBreakdownLabel, { color: colors.textSecondary }]}>
+                                        Project Count Bonus:
+                                    </Text>
+                                    <Text style={[styles.scoreBreakdownValue, { color: colors.text }]}>
+                                        +{projectItem.detailedScore.breakdown.projectCountBonus}
+                                    </Text>
+                                </View>
+                                <View style={styles.scoreBreakdownItem}>
+                                    <Text style={[styles.scoreBreakdownLabel, { color: colors.textSecondary }]}>
+                                        Priority Multiplier:
+                                    </Text>
+                                    <Text style={[styles.scoreBreakdownValue, { color: colors.text }]}>
+                                        x{projectItem.detailedScore.breakdown.priorityMultiplier}
+                                    </Text>
+                                </View>
+                            </View>
+                        </View>
+                    )}
 
                     {projectItem.notes && (
                         <View style={styles.notesContainer}>
@@ -168,113 +164,6 @@ export function ProjectItemCard({ projectItem, onUpdate, onRemove }: ProjectItem
                     </View>
                 </View>
             </View>
-
-            {/* Edit Modal */}
-            <Modal
-                visible={showEditModal}
-                animationType="slide"
-                presentationStyle="pageSheet"
-                onRequestClose={() => setShowEditModal(false)}
-            >
-                <View style={[styles.modalContainer, { backgroundColor: colors.background }]}>
-                    <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-                        <TouchableOpacity
-                            style={styles.closeButton}
-                            onPress={() => setShowEditModal(false)}
-                        >
-                            <Ionicons name="close" size={24} color={colors.text} />
-                        </TouchableOpacity>
-                        <Text style={[styles.modalTitle, { color: colors.text }]}>
-                            Edit Project Item
-                        </Text>
-                        <View style={styles.headerSpace} />
-                    </View>
-
-                    <View style={styles.modalContent}>
-                        <View style={[styles.itemPreview, { backgroundColor: colors.card }]}>
-                            <Text style={[styles.itemName, { color: colors.text }]}>
-                                {projectItem.item.name}
-                            </Text>
-                            {projectItem.item.description && (
-                                <Text style={[styles.itemDescription, { color: colors.textSecondary }]}>
-                                    {projectItem.item.description}
-                                </Text>
-                            )}
-                        </View>
-
-                        <View style={styles.inputGroup}>
-                            <Text style={[styles.inputLabel, { color: colors.text }]}>
-                                Importance Score (1-10)
-                            </Text>
-                            <TextInput
-                                style={[
-                                    styles.input,
-                                    { backgroundColor: colors.backgroundSecondary, color: colors.text },
-                                ]}
-                                placeholder="1"
-                                placeholderTextColor={colors.textSecondary}
-                                value={importanceScore}
-                                onChangeText={setImportanceScore}
-                                keyboardType="numeric"
-                                maxLength={2}
-                            />
-                        </View>
-
-                        <View style={styles.inputGroup}>
-                            <Text style={[styles.inputLabel, { color: colors.text }]}>
-                                Notes (Optional)
-                            </Text>
-                            <TextInput
-                                style={[
-                                    styles.input,
-                                    styles.textArea,
-                                    { backgroundColor: colors.backgroundSecondary, color: colors.text },
-                                ]}
-                                placeholder="Add notes about this item in the project..."
-                                placeholderTextColor={colors.textSecondary}
-                                value={notes}
-                                onChangeText={setNotes}
-                                multiline
-                                numberOfLines={3}
-                            />
-                        </View>
-                    </View>
-
-                    <View style={[styles.modalFooter, { borderTopColor: colors.border }]}>
-                        <View style={styles.footerButtons}>
-                            <TouchableOpacity
-                                style={[
-                                    styles.button,
-                                    styles.secondaryButton,
-                                    { borderColor: colors.border },
-                                ]}
-                                onPress={() => setShowEditModal(false)}
-                            >
-                                <Text style={[styles.secondaryButtonText, { color: colors.text }]}>
-                                    Cancel
-                                </Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={[
-                                    styles.button,
-                                    styles.primaryButton,
-                                    { backgroundColor: colors.primary },
-                                    loading && styles.disabledButton,
-                                ]}
-                                onPress={handleUpdate}
-                                disabled={loading}
-                            >
-                                {loading ? (
-                                    <ActivityIndicator size="small" color="white" />
-                                ) : (
-                                    <Text style={styles.primaryButtonText}>Save Changes</Text>
-                                )}
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
-            </Modal>
-        </>
     );
 }
 
@@ -363,89 +252,32 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: '600',
     },
-    modalContainer: {
-        flex: 1,
-    },
-    modalHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 20,
-        paddingVertical: 16,
-        paddingTop: 50,
-        borderBottomWidth: 1,
-    },
-    closeButton: {
-        padding: 4,
-    },
-    modalTitle: {
-        fontSize: 18,
-        fontWeight: '600',
-    },
-    headerSpace: {
-        width: 32,
-    },
-    modalContent: {
-        flex: 1,
-        padding: 20,
-        gap: 20,
-    },
-    itemPreview: {
-        padding: 16,
-        borderRadius: 12,
-    },
-    inputGroup: {
-        gap: 8,
-    },
-    inputLabel: {
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    input: {
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        borderRadius: 12,
-        fontSize: 16,
-    },
-    textArea: {
-        height: 80,
-        textAlignVertical: 'top',
-    },
-    modalFooter: {
+    // New styles for score breakdown
+    scoreBreakdownContainer: {
+        marginTop: 4,
+        paddingTop: 8,
         borderTopWidth: 1,
-        paddingHorizontal: 20,
-        paddingVertical: 16,
-        paddingBottom: 32,
+        borderTopColor: 'rgba(0,0,0,0.1)',
     },
-    footerButtons: {
+    scoreBreakdownTitle: {
+        fontSize: 14,
+        fontWeight: '500',
+        marginBottom: 6,
+    },
+    scoreBreakdownItems: {
+        gap: 4,
+    },
+    scoreBreakdownItem: {
         flexDirection: 'row',
-        gap: 12,
-    },
-    button: {
-        paddingVertical: 16,
-        paddingHorizontal: 24,
-        borderRadius: 12,
+        justifyContent: 'space-between',
         alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: 48,
     },
-    primaryButton: {
-        flex: 1,
+    scoreBreakdownLabel: {
+        fontSize: 12,
+        opacity: 0.7,
     },
-    secondaryButton: {
-        borderWidth: 1,
-        flex: 0.4,
-    },
-    disabledButton: {
-        opacity: 0.5,
-    },
-    primaryButtonText: {
-        color: 'white',
-        fontSize: 16,
-        fontWeight: '600',
-    },
-    secondaryButtonText: {
-        fontSize: 16,
+    scoreBreakdownValue: {
+        fontSize: 12,
         fontWeight: '500',
     },
 });

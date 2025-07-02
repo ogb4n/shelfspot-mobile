@@ -44,7 +44,8 @@
     "react-native-web": "~0.20.0",
     "react-native-webview": "13.13.5",
     "victory-native": "^41.17.4",
-    "zustand": "^5.0.6"
+    "zustand": "^5.0.6",
+    "@react-native-community/datetimepicker": "8.4.1"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
